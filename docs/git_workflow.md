@@ -2,10 +2,10 @@
 ## Git workflow
 
 This step-by-step git approach is a your _safe haven_ on working with git. When you stick to these guidelines,
-you will be succesfully using the 'Github workflow' we apply for the COVID 19 model.
+you will be succesfully using the 'Github workflow' we apply for pySODM.
 The `master` branch is holy to us and should be on all time a working, up-to-date representation of the functionalities!
 
-This workflow flow assumes you have [forked](https://help.github.com/en/github/getting-started-with-github/fork-a-repo) the COVID repository of Biomath (called `upstream` by default) to your own Github account (called `origin` by default) and cloned your own version to your computer.
+This workflow flow assumes you have [forked](https://help.github.com/en/github/getting-started-with-github/fork-a-repo) the pySODM repository of @twallema (called `upstream` by default) to your own Github account (called `origin` by default) and cloned your own version to your computer.
 
 ### Before I start working
 
