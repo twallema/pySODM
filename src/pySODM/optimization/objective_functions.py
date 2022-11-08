@@ -1,7 +1,7 @@
+import inspect
 import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
-import inspect
 
 ##############################
 ## Log-likelihood functions ##
