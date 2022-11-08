@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from ..models.base import BaseModel
+from pySODM.models.base import BaseModel
 
 # Define a model
 class SIR(BaseModel):
