@@ -18,9 +18,9 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'covid19-model'
-copyright = '2020, Biomath'
-author = 'Biomath'
+project = 'pySODM'
+copyright = '2022, Tijs Alleman'
+author = 'Tijs Alleman'
 
 # -- General configuration ---------------------------------------------------
 
