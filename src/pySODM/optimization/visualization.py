@@ -2,7 +2,12 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import emcee
-from .output import _apply_tick_locator
+
+def _apply_tick_locator(ax):
+    """support function to apply default ticklocator settings"""
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
+    ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+    return ax
 
 def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
     """Make a visualization of autocorrelation of each chain
