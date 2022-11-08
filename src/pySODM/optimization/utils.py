@@ -1,9 +1,8 @@
-import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from .objective_fcns import log_posterior_probability 
+from pySODM.optimization.objective_functions import log_posterior_probability
 def assign_theta(param_dict, parNames, thetas):
     """ A generic function to assign a PSO estimate to the model parameters dictionary
 
