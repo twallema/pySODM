@@ -19,11 +19,13 @@ import pandas as pd
 import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
-from covid19model.models.base import BaseModel
+# pySODM packages
+from pySODM.models.base import BaseModel #from covid19model.models.base import BaseModel
+from pySODM.optimization import pso, nelder_mead
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_poisson, ll_negative_binomial
+# COVID-19 model
 from covid19model.data.utils import construct_initN
-from covid19model.optimization.objective_fcns import log_prior_uniform, ll_poisson, ll_negative_binomial, log_posterior_probability
-from covid19model.optimization.utils import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
-from covid19model.optimization import pso, nelder_mead
 
 # Suppress warnings
 import warnings
