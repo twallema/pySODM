@@ -3,10 +3,10 @@
 ### Get the code
 
 - Create a [`github`](https://github.com/) account if you do not have one already.
-- On the [COVID19-Model Github repository page](https://github.com/UGentBiomath/COVID19-Model) click the `Fork` button.
+- On the [pySODM Github repository page](https://github.com/twallema/pySODM) click the `Fork` button.
 - From your own repository page (your account) of the `COVID19-Model`, use [`git`](https://git-scm.com/) to download the code to your own computer. See the [Github documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on how to clone/download a repository.
 
-When all went fine, you should have the code on your computer in a directory called `COVID19-Model`.
+When all went fine, you should have the code on your computer in a directory called `pySODM`.
 
 ### Install Python (conda) and packages
 
@@ -18,6 +18,7 @@ To use the code, make sure you have Python (conda) and the required dependency p
      ```
 
 - Setup/update the `environment`: Dependencies are collected in the conda `environment.yml` file (inside the root folder), so anybody can recreate the required environment using,
+     **must be updated at a later stage**
 
      ```
      conda env create -f environment.yml
@@ -31,7 +32,7 @@ To use the code, make sure you have Python (conda) and the required dependency p
      
      Mind that the step **"solving the environment" can take quite some time**.
 
-- Install the code developed specifically for the project (lives inside the `src/covid19model` folder) in the environment (in `-e` edit mode):
+- Install the code developed specifically for the project (lives inside the `src/pySODM` folder) in the environment (in `-e` edit mode):
 
      ```
      conda activate COVID_MODEL
