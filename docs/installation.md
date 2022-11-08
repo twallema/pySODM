@@ -4,7 +4,7 @@
 
 - Create a [`github`](https://github.com/) account if you do not have one already.
 - On the [pySODM Github repository page](https://github.com/twallema/pySODM) click the `Fork` button.
-- From your own repository page (your account) of the `COVID19-Model`, use [`git`](https://git-scm.com/) to download the code to your own computer. See the [Github documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on how to clone/download a repository.
+- From your own repository page (your account) of `pySODM`, use [`git`](https://git-scm.com/) to download the code to your own computer. See the [Github documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on how to clone/download a repository.
 
 When all went fine, you should have the code on your computer in a directory called `pySODM`.
 

@@ -12,7 +12,7 @@ python setup.py build_sphinx
 ```
 When you want to create a new page, make sure to add the page to the `index.rst` in order to make the page part of the website. The website is build automatically using [github actions](REPLACE: https://github.com/twallema/COVID19-Model/blob/master/.github/workflows/deploy.yml#L22-L24) and the output is deployed to [https://ugentbiomath.github.io/COVID19-Model/](REPLACE: https://ugentbiomath.github.io/COVID19-Model/). The resulting html-website is created in the directory `build/html`. Double click any of the `html` file in the folder to open the website in your browser (no server required).
 
-### The `covid19model` Python package
+### The `pySODM` Python package
 
 The code inside the `src/pySODM` directory is actually a Python package, which provides a number of additional benefits on the maintenance of the code.
 
@@ -35,7 +35,7 @@ __Note:__ When adding new packages makes sure to update both,
 
 As the previous sections described, each subfolder of the repository has a specific purpose and we would ask to respect the general layout. Still, this is all work in progress, so alterations to it that improve the workflow are certainly possible. Please do your suggestion by creating a [New issue](https://github.com/twallema/pySODM/issues/new/choose).
 
-__Remember:__ Anyone should be able to reproduce the final products with only the `code` in `src` and the data in `data/raw`!
+__Remember:__ Anyone should be able to reproduce the final products with only the `code` in `src`!
 
 #### code
 ```

@@ -1,19 +1,19 @@
-Contributing to covid19model
+Contributing to pySODM
 ============================
 
-.. _code repository: https://github.com/UGentBiomath/COVID19-Model
-.. _new issue: https://github.com/UGentBiomath/COVID19-Model/issues/new
-.. _issue list: https://github.com/UGentBiomath/COVID19-Model/issues
-.. _documentation: https://github.com/UGentBiomath/COVID19-Model
+.. _code repository: https://github.com/twallema/pySODM
+.. _new issue: https://github.com/twallema/pySODM/issues/new
+.. _issue list: https://github.com/twallema/pySODM/issues
+.. _documentation: https://github.com/twallema/pySODM
 .. _Sphinx: http://www.sphinx-doc.org/en/master/
 .. _reStructuredText: http://docutils.sourceforge.net/rst.html
 .. _propose a file change: https://help.github.com/articles/editing-files-in-another-user-s-repository/
-.. _report an issue: https://github.com/UGentBiomath/COVID19-Model/issues/new
+.. _report an issue: https://github.com/twallema/pySODM/issues/new
 .. _numpy docstring standard: https://numpydoc.readthedocs.io/en/latest/format.html
 
 
-First of all, thanks for considering contributing to the COVID-19! It's people like you that make it
-rewarding for us, the project authors, to work on COVID-19 model.
+First of all, thanks for considering contributing to pySODM! It's people like you that make it
+rewarding for us, the project authors, to work on pySODM.
 
 How you can contribute?
 -----------------------
@@ -22,28 +22,22 @@ There are several ways you can contribute to this project.
 
 Share the love
 ^^^^^^^^^^^^^^
-
-Think COVID-19 modelling is useful? Let others discover it by telling them in person, via Twitter_ or a blog post.
-
-.. _Twitter: https://twitter.com/biomathugent
-
-Using COVID-19 model code for a paper you are writing? Consider citing it:
+Using pySODM for a paper you are writing? Consider citing it:
 
     #TODO
 
 Ask a question ⁉️
 ^^^^^^^^^^^^^^^^^
 
-Using COVID-19 modelling code and got stuck? Browse the documentation_ to see if you
+Using `pySODM` code and got stuck? Browse the documentation_ to see if you
 can find a solution. Still stuck? Post your question as a `new issue`_ on GitHub.
 While we cannot offer user support, we'll try to do our best to address it,
 as questions often lead to better documentation, new insights or the discovery of bugs.
 
-
 Propose an idea
 ^^^^^^^^^^^^^^^^
 
-Have an idea for COVID-19 modelling? Take a look at the documentation_ and
+Have an idea for pySODM? Take a look at the documentation_ and
 `issue list`_ to see if it isn't included or suggested yet. If not, suggest
 your idea as a `new issue`_ on GitHub. While we can't promise to implement
 your idea or do your model exercise, it helps to:
@@ -56,7 +50,7 @@ See :ref:`dev-guidelines`,  if you want to contribute code for your idea as well
 Report a bug
 ^^^^^^^^^^^^
 
-Using COVID-19 modelling code and discovered a bug? That's annoying! Don't let others have the
+Using pySODM code and discovered a bug? That's annoying! Don't let others have the
 same experience and report it as a `new issue`_ so we can fix it. A good bug
 report makes it easier for us to do so, so please include:
 
@@ -88,7 +82,7 @@ Functions are described as comments near their code and translated to
 documentation using the  `numpy docstring standard`_. If you want to improve a
 function description:
 
-1. Go to ``covid19model/`` directory in the `code repository`_.
+1. Go to ``pySODM/`` directory in the `code repository`_.
 2. Look for the file with the name of the function.
 3. `Propose a file change`_ to update the function documentation in the docstring (in between the triple quotes).
 
