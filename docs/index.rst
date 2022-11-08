@@ -33,7 +33,6 @@ A demo of the model can be found [here](notebooks/templates/SEIRSAgeModel_demo.i
    :caption: User guide
    :maxdepth: 1
 
-   Model background <models>
    Run the model <application.md>
    Previous work <previous_work.md>
    Future work <roadmap>
