@@ -104,6 +104,75 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
 
     return sampler
 
+def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=True):
+    """ A function to perturbate a PSO estimate and construct a matrix with initial positions for the MCMC chains
+
+    Parameters
+    ----------
+
+    theta : list (of floats) or np.array
+        Result of PSO calibration, results must correspond to the order of the parameter names list (pars)
+
+    pert : list (of floats)
+        Relative perturbation factors (plus-minus) on PSO estimate
+
+    multiplier : int
+        Multiplier determining the total number of markov chains that will be run by emcee.
+        Typically, total nr. chains = multiplier * nr. parameters
+        Default (minimum): 2 (one chain will result in an error in emcee)
+        
+    bounds : array of tuples of floats
+        Ordered boundaries for the parameter values, e.g. ((0.1, 1.0), (1.0, 10.0)) if there are two parameters.
+        Note: bounds must not be zero, because the perturbation is based on a percentage of the value,
+        and any percentage of zero returns zero, causing an error regarding linear dependence of walkers
+        
+    verbose : boolean
+        Print user feedback to stdout
+
+    Returns
+    -------
+    ndim : int
+        Number of parameters
+
+    nwalkers : int
+        Number of chains
+
+    pos : np.array
+        Initial positions for markov chains. Dimensions: [ndim, nwalkers]
+    """
+
+    # Validation
+    if len(theta) != len(pert):
+        raise Exception('The parameter value array "theta" must have the same length as the perturbation value array "pert".')
+    if bounds and (len(bounds) != len(theta)):
+        raise Exception('If bounds is not None, it must contain a tuple for every parameter in theta')
+    # Convert theta to np.array
+    theta = np.array(theta)
+    # Define clipping values: perturbed value must not fall outside this range
+    if bounds:
+        lower_bounds = [bounds[i][0]/(1-pert[i]) for i in range(len(bounds))]
+        upper_bounds = [bounds[i][1]/(1+pert[i]) for i in range(len(bounds))]
+    
+    ndim = len(theta)
+    nwalkers = ndim*multiplier
+    cond_number=np.inf
+    retry_counter=0
+    while cond_number == np.inf:
+        if bounds and (retry_counter==0):
+            theta = np.clip(theta, lower_bounds, upper_bounds)
+        pos = theta + theta*pert*np.random.uniform(low=-1,high=1,size=(nwalkers,ndim))
+        cond_number = np.linalg.cond(pos)
+        if ((cond_number == np.inf) and verbose and (retry_counter<20)):
+            print("Condition number too high, recalculating perturbations. Perhaps one or more of the bounds is zero?")
+            sys.stdout.flush()
+            retry_counter += 1
+        elif retry_counter >= 20:
+            raise Exception("Attempted 20 times to perturb parameter values but the condition number remains too large.")
+    if verbose:
+        print('Total number of markov chains: ' + str(nwalkers)+'\n')
+        sys.stdout.flush()
+    return ndim, nwalkers, pos
+
 def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, settings={}):
     """
     A function to discard and thin the samples available in the sampler object. Convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
