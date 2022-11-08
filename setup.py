@@ -4,7 +4,7 @@ setup(
     name='pySODM',
     packages=find_packages("src", exclude=["*.tests"]),
     package_dir={'': 'src'},
-    version='0.0',
+    version='22.11',
     description='Simulating and Optimising Dynamical Models ',
     author='Tijs Alleman, KERMIT, Ghent University',
     license='MIT',
