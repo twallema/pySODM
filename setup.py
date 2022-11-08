@@ -5,7 +5,7 @@ setup(
     packages=find_packages("src", exclude=["*.tests"]),
     package_dir={'': 'src'},
     version='22.11',
-    description='Simulating and Optimising Dynamical Models ',
+    description='Simulating and Optimising Dynamical Models',
     author='Tijs Alleman, KERMIT, Ghent University',
     license='MIT',
     install_requires=[
