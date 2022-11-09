@@ -115,7 +115,7 @@ if __name__ == '__main__':
     # Maximum number of PSO iterations
     n_pso = 10
     # Maximum number of MCMC iterations
-    n_mcmc = 100
+    n_mcmc = 120
     # PSO settings
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     multiplier_pso = 30
@@ -141,8 +141,8 @@ if __name__ == '__main__':
     objective_function = log_posterior_probability([],[],model,pars,data,states,
                                                log_likelihood_fnc,log_likelihood_fnc_args,-weights)
     # PSO
-    #theta = pso.optimize(objective_function, bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
-    #                   swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]
+    theta = pso.optimize(objective_function, bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
+                       swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]
     # A good guess
     theta = [0.030, 0.90]         
     # Nelder-mead
