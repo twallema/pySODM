@@ -20,7 +20,6 @@ import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
-from pySODM.models.base import BaseModel #from covid19model.models.base import BaseModel
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_poisson
@@ -47,34 +46,11 @@ df_influenza = pd.Series(index=index, name='CASES', data=data.values)
 # Hardcode Belgian demographics
 initN = pd.Series(index=age_groups, data=[606938, 1328733, 7352492, 2204478])
 
-##################
-## Define model ##
-##################
+################
+## Load model ##
+################
 
-class influenza_model(BaseModel):
-    """
-    Simple SEIR model for influenza with undetected carriers
-    """
-    
-    state_names = ['S','E','Ia','Im','R','Im_new']
-    parameter_names = ['beta','sigma','f_a','gamma']
-    stratification = ['Nc']
-
-    @staticmethod
-    def integrate(t, S, E, Ia, Im, R, Im_new, beta, sigma, f_a, gamma, Nc):
-        
-        # Calculate total population
-        T = S+E+Ia+Im+R
-        # Calculate differentials
-        dS = -beta*Nc@((Ia+Im)*S/T)
-        dE = beta*Nc@((Ia+Im)*S/T) - 1/sigma*E
-        dIa = f_a*E/sigma - 1/gamma*Ia
-        dIm = (1-f_a)/sigma*E - 1/gamma*Im
-        dR = 1/gamma*(Ia+Im)
-        # Calculate incidence mild disease
-        dIm_new = (1-f_a)/sigma*E - Im_new
-
-        return dS, dE, dIa, dIm, dR, dIm_new
+from models import influenza_model
 
 #################
 ## Setup model ##
