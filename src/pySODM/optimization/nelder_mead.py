@@ -74,6 +74,13 @@ def optimize(func, x_start, bounds,
     ## Initial simplex ##
     #####################
 
+    print(f'\nNelder-Mead minimization')
+    print(f'========================\n')
+
+    print(f'Using {processes} cores')
+    print(f'Starting point: {x_start}')
+    print(f'Using the following bounds: {bounds}\n')
+
     # Compute score of initial estimate
     dim = len(x_start)
     prev_best = obj(x_start)

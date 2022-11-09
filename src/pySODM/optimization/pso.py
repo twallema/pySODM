@@ -86,9 +86,7 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         The objective values at each position in p
 
     """
-    
-#     print('CHECKPOINT: start of optim function')
-    
+
     lb, ub = [], []
     for variable_bounds in bounds:
         lb.append(variable_bounds[0])
@@ -108,11 +106,16 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     # these values thetas will be based on the PSO dynamics and the boundary conditions in lb and ub.
     obj = partial(_obj_wrapper, func, args, kwargs)
 
+    print(f'\nParticle Swarm minimization')
+    print(f'===========================\n')
+
+    print(f'Using {processes} cores')
+    
     # Check for constraint function(s) #########################################
     if f_ieqcons is None:
         if not len(ieqcons):
             if debug:
-                print('No constraints given.')
+                print('Without constraints')
                 sys.stdout.flush()
             cons = _cons_none_wrapper
         else:
@@ -127,6 +130,8 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         cons = partial(_cons_f_ieqcons_wrapper, f_ieqcons, args, kwargs)
 
     is_feasible = partial(_is_feasible_wrapper, cons)
+
+    print(f'Using the following bounds: {bounds}\n')
 
     # Initialize the multiprocessing module if necessary
     if processes > 1:
@@ -219,7 +224,7 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         i_min = np.argmin(fp)
         if fp[i_min] < fg:
             if debug:
-                print('New best for swarm at iteration {:}: {:} {:}'\
+                print('New best for swarm at iteration {:}: {:} {:.3e}'\
                     .format(it, p[i_min, :], fp[i_min]))
                 sys.stdout.flush()
             p_min = p[i_min, :].copy()
@@ -246,7 +251,7 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
                 fg = fp[i_min]
 
         if debug:
-            print('Best after iteration {:}: {:} {:}'.format(it, g, fg))
+            print('Best after iteration {:}: {:} {:.3e}'.format(it, g, fg))
             sys.stdout.flush()
         it += 1
 
