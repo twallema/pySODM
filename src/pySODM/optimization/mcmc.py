@@ -185,7 +185,7 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
         sys.stdout.flush()
     return ndim, nwalkers, pos
 
-def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, settings={}):
+def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, settings={}, samples_path=None, identifier=None):
     """
     A function to discard and thin the samples available in the sampler object. Convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
     Append a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).
@@ -215,5 +215,21 @@ def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, set
     
     # Append settings
     samples_dict.update(settings)
+
+    ###############
+    # Save result #
+    ###############
+
+    if not samples_path:
+        samples_path = os.getcwd()
+    else:
+        samples_path = os.path.join(os.getcwd(), samples_path)
+
+    # Determine current date
+    run_date = str(datetime.date.today())
+
+    # Dump samples
+    with open(os.path.join(os.getcwd(),samples_path+str(identifier)+'_SAMPLES_'+run_date+'.json'), 'w') as fp:
+        json.dump(samples_dict, fp)
 
     return samples_dict
