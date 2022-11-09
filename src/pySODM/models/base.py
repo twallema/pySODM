@@ -521,7 +521,7 @@ class BaseModel:
         date = actual_start_date + pd.Timedelta(t, unit='D')
         return date
 
-    def sim(self, time, warmup=0, start_date=None, N=1, draw_fcn=None, samples=None, method='RK23', rtol=5e-3, l=1/2, processes=None):
+    def sim(self, time, warmup=0, start_date=None, N=1, draw_fcn=None, samples=None, method='RK23', rtol=1e-3, l=1/2, processes=None):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
@@ -560,7 +560,7 @@ class BaseModel:
             Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK23'.
         
         rtol: float
-            Relative tolerance of Scipy `solve_ivp`. Default: 5e-3.
+            Relative tolerance of Scipy `solve_ivp`. Default: 1e-3. Quick and dirty: 5e-3.
 
         l: float
             Leaping time of tau-leaping Gillespie algorithm
