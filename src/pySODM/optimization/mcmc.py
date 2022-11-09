@@ -88,8 +88,9 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
             # Hardcode threshold values defining convergence
             thres_multi = 50.0
             thres_frac = 0.03
-            # Check convergence using mean tau
-            converged = np.all(np.mean(tau) * thres_multi < sampler.iteration)
+            # Check if chain length > 50*max autocorrelation
+            converged = np.all(np.max(tau) * thres_multi < sampler.iteration)
+            # Check if average tau varied more than three percent
             converged &= np.all(np.abs(np.mean(old_tau) - np.mean(tau)) / np.mean(tau) < thres_frac)
             if converged:
                 break
@@ -193,10 +194,9 @@ def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, set
     # Discard and thin #
     ####################
 
-    thin = 1
     try:
         autocorr = sampler.get_autocorr_time()
-        thin = max(1,int(0.5 * np.min(autocorr)))
+        thin = max(1, round(0.5 * np.max(autocorr)))
         print(f'Convergence: the chain is longer than 50 times the intergrated autocorrelation time.\nPreparing to save samples with thinning value {thin}.')
         sys.stdout.flush()
     except:
