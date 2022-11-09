@@ -50,12 +50,14 @@ initN = pd.Series(index=age_groups, data=[606938, 1328733, 7352492, 2204478])
 ## Load model ##
 ################
 
-from models import influenza_model
+from models import ODE_influenza_model as influenza_model
 
 #################
 ## Setup model ##
 #################
 
+# Number of repeated experiments
+N=20
 # Set start date and warmup
 warmup=25
 start_idx=0
@@ -72,7 +74,7 @@ Nc = np.array([[1.3648649, 1.1621622, 5.459459, 0.3918919],
 # Define model parameters
 params={'beta':0.10,'sigma':1,'f_a':0.75,'gamma':5,'Nc':np.transpose(Nc)}
 # Define initial condition
-init_states = {'S': initN.values,'E': initN.values/initN.values[0]}
+init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
 # Define model coordinates
 coordinates=[age_groups,]
 # Initialize model
@@ -91,25 +93,25 @@ if __name__ == '__main__':
     # Maximum number of PSO iterations
     n_pso = 10
     # Maximum number of MCMC iterations
-    n_mcmc = 120
+    n_mcmc = 100
     # PSO settings
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     multiplier_pso = 30
     maxiter = n_pso
     popsize = multiplier_pso*processes
     # MCMC settings
-    multiplier_mcmc = 9
+    multiplier_mcmc = 90
     max_n = n_mcmc
     print_n = 5
     # Define dataset
     data=[df_influenza[start_date:end_date], ]
-    states = ["Im_new",]
+    states = ["Im_inc",]
     weights = np.array([1,]) # Scores of individual contributions: Dataset: 0, total ll: -4590, Dataset: 1, total ll: -4694, Dataset: 2, total ll: -4984
     log_likelihood_fnc = [ll_poisson,]
     log_likelihood_fnc_args = [[],]
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
-    bounds = [(0.001,0.15), (0,1)]
+    bounds = [(0.001,0.10), (0,1)]
     # Setup prior functions and arguments
     log_prior_fnc = len(bounds)*[log_prior_uniform,]
     log_prior_fnc_args = bounds
@@ -118,11 +120,9 @@ if __name__ == '__main__':
                                                log_likelihood_fnc,log_likelihood_fnc_args,-weights)
     # PSO
     theta = pso.optimize(objective_function, bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
-                       swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]
-    # A good guess
-    theta = [0.030, 0.90]         
+                       swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
-    step = len(bounds)*[0.10,]
+    step = len(bounds)*[0.05,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), bounds, step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
     ######################
@@ -131,16 +131,20 @@ if __name__ == '__main__':
 
     # Assign results to model
     model.parameters.update({'beta': theta[0],})
-    out = model.sim(end_date, start_date=start_date, warmup=warmup)
+    out = model.sim(end_date, start_date=start_date, warmup=warmup, samples={}, N=N)
 
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
     for id, age_class in enumerate(df_influenza.index.get_level_values('Nc').unique()):
-        axs[id].plot(out['time'],out.sel(Nc=age_class)['Im_new'], color='black')
+        # Data
         axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
+        # Model trajectories
+        for i in range(N):
+            axs[id].plot(out['time'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+        # Format
         axs[id].set_title(age_class)
-        axs[id].legend(['$I_{m, new}$','data'])
+        axs[id].legend(['$I_{m, inc}$','data'])
         axs[id].xaxis.set_major_locator(plt.MaxNLocator(5))
         for tick in axs[id].get_xticklabels():
             tick.set_rotation(30)
@@ -154,7 +158,7 @@ if __name__ == '__main__':
     ##########
 
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.02, 0.02], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10, 0.10], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
     # Labels for traceplots
     labels = ['$\\beta$', '$f_a$']
     pars_postprocessing = ['beta', 'f_a']
@@ -203,17 +207,20 @@ if __name__ == '__main__':
         param_dict['f_a'] = samples_dict['f_a'][idx]
         return param_dict
     # Simulate model
-    out = model.sim(end_date, start_date=start_date, warmup=warmup, N=20, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim(end_date, start_date=start_date, warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
     for id, age_class in enumerate(df_influenza.index.get_level_values('Nc').unique()):
-        axs[id].plot(out['time'],out['Im_new'].sel(Nc=age_class).mean(dim='draws'), color='black')
-        axs[id].fill_between(out['time'].values,out['Im_new'].sel(Nc=age_class).quantile(dim='draws', q=0.025),
-                             out['Im_new'].sel(Nc=age_class).quantile(dim='draws', q=0.975), color='black', alpha=0.1)
+        # Data
         axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
+        # Model trajectories
+        for i in range(N):
+            axs[id].plot(out['time'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+        #axs[id].fill_between(out['time'].values,out['Im_inc'].sel(Nc=age_class).quantile(dim='draws', q=0.025),
+        #                     out['Im_inc'].sel(Nc=age_class).quantile(dim='draws', q=0.975), color='black', alpha=0.1)
         axs[id].set_title(age_class)
-        axs[id].legend(['$I_{m, new}$','data'])
+        axs[id].legend(['$I_{m, inc}$','data'])
         axs[id].xaxis.set_major_locator(plt.MaxNLocator(5))
         for tick in axs[id].get_xticklabels():
             tick.set_rotation(30)
