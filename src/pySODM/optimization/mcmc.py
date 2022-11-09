@@ -20,10 +20,16 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
         fig_path = os.getcwd()
     else:
         fig_path = os.path.join(os.getcwd(), fig_path)
+        # If it doesn't exist make it
+        if not os.path.exists(fig_path):
+            os.makedirs(fig_path)
     if not samples_path:
         samples_path = os.getcwd()
     else:
         samples_path = os.path.join(os.getcwd(), samples_path)
+        # If it doesn't exist make it
+        if not os.path.exists(samples_path):
+            os.makedirs(samples_path)
     # Check if the fig_path/autocorrelation and fig_path/traceplots exist and if not make them
     for directory in [fig_path+"/autocorrelation/", fig_path+"/traceplots/"]:
         if not os.path.exists(directory):
