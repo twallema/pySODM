@@ -2,6 +2,81 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def add_poisson_noise(output):
+    """A function to add poisson noise to a simulation result
+    
+    Parameters
+    ----------
+
+    output: xarray
+        Simulation output
+
+    Returns
+    -------
+
+    output: xarray
+        Simulation output, but every value was replaced with a poisson estimate.
+    """
+
+    # Loop over variables in xarray
+    for varname, da in output.data_vars.items():
+        # Replace very value with a poison draw
+        values = np.random.poisson(da.values)
+        output[varname].values = values
+    return output
+
+def add_negative_binomial_noise(output, alpha):
+    """A function to add negative binomial noise to a simulation result
+    
+    Parameters
+    ----------
+
+    output: xarray
+        Simulation output
+
+    alpha: float
+        Overdispersion factor. Must be larger than or equal to 0. Reduces to Poisson noise for alpha --> 0.
+
+    Returns
+    -------
+
+    output: xarray
+        Simulation output, but every value was replaced with a negative binomial estimate.
+    """
+
+    # Loop over variables in xarray
+    for varname, da in output.data_vars.items():
+        # Replace very value with a negative_binomial draw
+        values = np.random.negative_binomial(1/alpha, (1/alpha)/(da.values + (1/alpha)))
+        output[varname].values = values
+    return output
+
+def add_gaussian_noise(output, sigma):
+    """A function to add gaussian noise to a simulation result
+    
+    Parameters
+    ----------
+
+    output: xarray
+        Simulation output
+
+    sigma: float
+        Standard deviation. Must be larger than or equal to 0.
+
+    Returns
+    -------
+
+    output: xarray
+        Simulation output, but every value was replaced with a gaussian estimate.
+    """        
+
+    # Loop over variables in xarray
+    for varname, da in output.data_vars.items():
+        # Replace very value with a normal draw
+        values = np.random.normal(da.values, sigma)
+        output[varname].values = values
+    return output
+
 from pySODM.optimization.objective_functions import log_posterior_probability
 def assign_theta(param_dict, parNames, thetas):
     """ A generic function to assign a PSO estimate to the model parameters dictionary
