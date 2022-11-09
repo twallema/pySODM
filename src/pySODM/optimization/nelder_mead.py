@@ -112,8 +112,6 @@ def optimize(func, x_start, bounds,
     # Order scores
     res.sort(key=lambda x: x[1])
     best = res[0][1]
-    
-    print(f'Best after iteration 0: score: {best:.3e}, theta: {res[0][0]}')
 
     # simplex iter
     iters = 0
@@ -127,7 +125,7 @@ def optimize(func, x_start, bounds,
         res.sort(key=lambda x: x[1])
         best = res[0][1]
         # Print current score
-        print(f'Best after iteration {str(iters)}: score: {best:.3e}, theta: {res[0][0]}')
+        print(f'Best after iteration {str(iters)}: {best:.3e}; {res[0][0]}')
         # Check if we need to stop
         # Break after max_iter
         if max_iter and iters >= max_iter:

@@ -224,8 +224,8 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         i_min = np.argmin(fp)
         if fp[i_min] < fg:
             if debug:
-                print('New best for swarm at iteration {:}: {:} {:.3e}'\
-                    .format(it, p[i_min, :], fp[i_min]))
+                print('New best at iteration {:}: {:.3e}; {:} '\
+                    .format(it, fp[i_min], p[i_min, :],))
                 sys.stdout.flush()
             p_min = p[i_min, :].copy()
             stepsize = np.sqrt(np.sum((g - p_min)**2))
@@ -251,7 +251,7 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
                 fg = fp[i_min]
 
         if debug:
-            print('Best after iteration {:}: {:} {:.3e}'.format(it, g, fg))
+            print('Best after iteration {:}: {:.3e}; {:}'.format(it, fg, g))
             sys.stdout.flush()
         it += 1
 
