@@ -51,6 +51,11 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
         pos = backend.get_chain(discard=0, thin=1, flat=False)[-1, ...]
     # This will be useful to testing convergence
     old_tau = np.inf
+    # Start calibration
+    print(f'\nMarkov-Chain Monte-Carlo sampling')
+    print(f'=================================\n')
+    print(f'Using {processes} cores for {ndim} parameters, in {nwalkers} chains\n')
+    sys.stdout.flush()
 
     with get_context("spawn").Pool(processes=processes) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_fcn, backend=backend, pool=pool,
@@ -110,7 +115,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
 
     return sampler
 
-def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=True):
+def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
     """ A function to perturbate a PSO estimate and construct a matrix with initial positions for the MCMC chains
 
     Parameters
