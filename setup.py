@@ -15,6 +15,8 @@ setup(
         'matplotlib',
         'xarray',
         'emcee',
+        'tqdm',
+        'corner',
         'h5py'
     ],
     extras_require={
