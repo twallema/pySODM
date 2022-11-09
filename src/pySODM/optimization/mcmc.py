@@ -60,7 +60,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
     with get_context("spawn").Pool(processes=processes) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_fcn, backend=backend, pool=pool,
                         args=objective_fcn_args, kwargs=objective_fcn_kwargs, moves=moves)
-        for sample in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=True):
+        for sample in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
             # Only check convergence every print_n steps
             if sampler.iteration % print_n:
                 continue
