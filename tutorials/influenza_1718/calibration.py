@@ -21,6 +21,7 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
+from pySODM.optimization.utils import add_poisson_noise
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_poisson
 # pySODM dependecies
@@ -91,16 +92,16 @@ if __name__ == '__main__':
     #####################
 
     # Maximum number of PSO iterations
-    n_pso = 10
+    n_pso = 20
     # Maximum number of MCMC iterations
-    n_mcmc = 100
+    n_mcmc = 150
     # PSO settings
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     multiplier_pso = 30
     maxiter = n_pso
     popsize = multiplier_pso*processes
     # MCMC settings
-    multiplier_mcmc = 90
+    multiplier_mcmc = 9
     max_n = n_mcmc
     print_n = 5
     # Define dataset
@@ -131,7 +132,10 @@ if __name__ == '__main__':
 
     # Assign results to model
     model.parameters.update({'beta': theta[0],})
+    # Simulate model
     out = model.sim(end_date, start_date=start_date, warmup=warmup, samples={}, N=N)
+    # Add poisson obervational noise
+    out = add_poisson_noise(out)
 
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
@@ -158,7 +162,7 @@ if __name__ == '__main__':
     ##########
 
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10, 0.10], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.05, 0.05], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
     # Labels for traceplots
     labels = ['$\\beta$', '$f_a$']
     pars_postprocessing = ['beta', 'f_a']
@@ -183,7 +187,7 @@ if __name__ == '__main__':
                                     settings_dict=settings)
     # Generate a sample dictionary
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
-    samples_dict = emcee_sampler_to_dictionary(sampler, pars_postprocessing, discard=50, settings=settings)
+    samples_dict = emcee_sampler_to_dictionary(sampler, pars_postprocessing, discard=30, settings=settings)
     # Save samples dictionary to json for long-term storage: _SETTINGS_ and _BACKEND_ can be removed at this point
     with open(str(identifier)+'_SAMPLES_'+run_date+'.json', 'w') as fp:
         json.dump(samples_dict, fp)
@@ -199,8 +203,6 @@ if __name__ == '__main__':
     ## Visualize result ##
     ######################
 
-    # TODO: Observational noise!
-
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
         idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))  
@@ -208,6 +210,8 @@ if __name__ == '__main__':
         return param_dict
     # Simulate model
     out = model.sim(end_date, start_date=start_date, warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    # Add poisson observation noise
+    out = add_poisson_noise(out)
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
