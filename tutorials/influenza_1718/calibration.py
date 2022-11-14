@@ -92,7 +92,7 @@ if __name__ == '__main__':
     #####################
 
     # Maximum number of PSO iterations
-    n_pso = 20
+    n_pso = 10
     # Maximum number of MCMC iterations
     n_mcmc = 150
     # PSO settings
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
         # Model trajectories
         for i in range(N):
-            axs[id].plot(out['time'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+            axs[id].plot(out['date'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
         # Format
         axs[id].set_title(age_class)
         axs[id].legend(['$I_{m, inc}$','data'])
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
         # Model trajectories
         for i in range(N):
-            axs[id].plot(out['time'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+            axs[id].plot(out['date'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
         #axs[id].fill_between(out['time'].values,out['Im_inc'].sel(Nc=age_class).quantile(dim='draws', q=0.025),
         #                     out['Im_inc'].sel(Nc=age_class).quantile(dim='draws', q=0.975), color='black', alpha=0.1)
         axs[id].set_title(age_class)
