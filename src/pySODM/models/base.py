@@ -96,13 +96,14 @@ class BaseModel:
             return keywords[3:]
 
     def _validate_time_dependent_parameters(self):
-        # Validate arguments of compliance definition
-        extra_params = []
 
+        extra_params = []
         all_param_names = self.parameter_names.copy()
 
         for lst in self.parameters_stratified_names:
             all_param_names.extend(lst)
+
+        print(all_param_names)
 
         if self.stratification:
             all_param_names.extend(self.stratification)
