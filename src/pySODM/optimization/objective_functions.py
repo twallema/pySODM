@@ -275,20 +275,28 @@ class log_posterior_probability():
                 raise Exception(
                     f"{idx}th dataset contains nans"
                     )
-            # Does data have 'date' as index level? (required)
-            if 'date' not in df.index.names:
+            # Does data have 'date' or 'time' as index level? (required)
+            if (('date' not in df.index.names) & ('time' not in df.index.names)):
                 raise Exception(
-                    "Index of {idx}th dataset does not have 'date' as index level (index levels: {df.index.names})."
-                    )   
-            # Does data contain any axes other than the mandatory 'date'?
-            self.additional_axes_data.append([name for name in df.index.names if name != 'date'])
+                    "Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
+                    )
+            elif (('date' in df.index.names) & ('time' not in df.index.names)):
+                self.time_index = 'date'
+                self.additional_axes_data.append([name for name in df.index.names if name != 'date'])
+            elif (('date' not in df.index.names) & ('time' in df.index.names)):
+                self.time_index = 'time'
+                self.additional_axes_data.append([name for name in df.index.names if name != 'time'])
+            else:
+                raise Exception(
+                    "Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
+                    )
 
         # Extract start- and enddate of simulations
         index_min=[]
         index_max=[]
         for idx, df in enumerate(data):
-            index_min.append(df.index.get_level_values('date').unique().min())
-            index_max.append(df.index.get_level_values('date').unique().max())
+            index_min.append(df.index.get_level_values(self.time_index).unique().min())
+            index_max.append(df.index.get_level_values(self.time_index).unique().max())
         self.start_sim = min(index_min)
         self.end_sim = max(index_max)
 
@@ -457,17 +465,17 @@ class log_posterior_probability():
         total_ll=0
         # Loop over dataframes
         for idx,df in enumerate(data):
-            # Reduce dimensions
+            # Reduce dimensions on the model prediction
             out_copy = out[states[idx]]
             for dimension in out.dims:
                 if dimension in self.aggregate_over[idx]:
                     out_copy = out_copy.sum(dim=dimension)
-            # Interpolate to right time
-            interp = out_copy.interp(time=df.index.get_level_values('date').unique().values, method="linear")
+            # Interpolate to right times/dates
+            interp = out_copy.interp({self.time_index: df.index.get_level_values(self.time_index).unique().values}, method="linear")
             # Select right axes
             if not self.additional_axes_data[idx]:
                 # Only dates must be matched
-                ymodel = interp.sel(time=df.index.get_level_values('date').unique().values).values
+                ymodel = interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values
                 if n_log_likelihood_extra_args[idx] == 0:
                     total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, df.values)
                 else:
@@ -475,12 +483,14 @@ class log_posterior_probability():
             else:
                 # Make a dictionary containing the axes names and the values we'd like to match
                 # TODO: get rid of this transpose, does this work in 3 dimensions?
-                ymodel = np.transpose(interp.sel(time=df.index.get_level_values('date').unique().values).sel({k:self.coordinates_data_also_in_model[idx][jdx] for jdx,k in enumerate(self.additional_axes_data[idx])}).values)
+                ymodel = np.transpose(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).sel({k:self.coordinates_data_also_in_model[idx][jdx] for jdx,k in enumerate(self.additional_axes_data[idx])}).values)
+                # Automatically reorder the dataframe so that time/date is first index
+                df = df.reorder_levels([self.time_index,]+self.additional_axes_data[idx])
                 if n_log_likelihood_extra_args[idx] == 0:
                     total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, self.series_to_ndarray(df))
                 else:
                     total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, self.series_to_ndarray(df), *[log_likelihood_fnc_args[idx],])
-
+                
         return total_ll
 
     def __call__(self, thetas, simulation_kwargs={}):
