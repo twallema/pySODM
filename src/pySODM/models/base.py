@@ -463,7 +463,7 @@ class BaseModel:
 
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
-        
+
         if self.state_2d:
             for state in self.state_2d:
                 self.initial_states[state] = self.initial_states[state].flatten()
@@ -671,16 +671,13 @@ class BaseModel:
             dims = self.stratification.copy()
         else:
             dims = []
-        dims.append('time')
-
+        
         if actual_start_date is not None:
-            time = actual_start_date + pd.to_timedelta(output["t"], unit='D')
+            dims.append('date')
+            coords = {"date": actual_start_date + pd.to_timedelta(output["t"], unit='D')}
         else:
-            time = output["t"]
-
-        coords = {
-            "time": time,
-        }
+            dims.append('time')
+            coords = {"time": output["t"]}
 
         if self.stratification:
             for i in range(len(self.stratification)):
