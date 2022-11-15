@@ -120,11 +120,12 @@ class BaseModel:
         extra_params = []
         all_param_names = self.parameter_names.copy()
 
-        if not isinstance(self.parameters_stratified_names[0], list):
-            all_param_names += self.parameters_stratified_names
-        else:
-            for lst in self.parameters_stratified_names:
-                all_param_names.extend(lst)
+        if self.parameters_stratified_names:
+            if not isinstance(self.parameters_stratified_names[0], list):
+                all_param_names += self.parameters_stratified_names
+            else:
+                for lst in self.parameters_stratified_names:
+                    all_param_names.extend(lst)
                 
         for param, func in self.time_dependent_parameters.items():
             if param not in all_param_names:
