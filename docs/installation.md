@@ -23,7 +23,7 @@ To use the code, make sure you have Python (conda) and the required dependency p
      conda update conda
      ```
 
-- Make an environment file `environment.yml` with the dependencies of your code.
+- Make an environment file `environment.yml` with the dependencies of your own project.
 
      ```
      name: MY_ENVIRONMENT
@@ -37,7 +37,6 @@ To use the code, make sure you have Python (conda) and the required dependency p
      ```
 
 - Setup/update the `environment`: Dependencies are collected in the conda `environment.yml` file (inside the root folder), so anybody can recreate the required environment using,
-     **must be updated at a later stage**
 
      ```
      conda env create -f environment.yml
@@ -49,16 +48,16 @@ To use the code, make sure you have Python (conda) and the required dependency p
      conda env update -f environment.yml --prune
      ```
      
-     Mind that the step **"solving the environment" can take very long if you have a lot of dependencies**.
+     Mind that the step "solving the environment" can take very long if you have a lot of dependencies.
 
-- Install the `pySODM` code developed specifically for the project (lives inside the `src/pySODM` folder) within your own environment (in `-e` edit mode):
+- Install the `pySODM` code inside the environment of your own project (in `-e` edit mode):
 
      ```
      conda activate MY_ENVIRONMENT
      pip install -e .
      ```
 
-     __Note:__ This step needs to be done in a terminal or command prompt. Use your favorite terminal or use the [Anaconda Prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt). Navigate with the `cd` command to the directory where you copied the repository.
+     __Note:__ This step needs to be done in a terminal or command prompt. Use your favorite terminal or use the [Anaconda Prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt). Navigate with the `cd` command to the directory where you copied the `pySODM` repository.
 
 
 _Optional_: To use the code, the general installation instruction outlined above suffice. When you're planning to work on the documentation or the code of the model implementations itself, make sure to also install the development requirements:
