@@ -252,7 +252,7 @@ class log_posterior_probability():
     The data must be of type pd.DataFrame and must contain the axes "date". 
     # TODO: update docstring
     """
-    def __init__(self, log_prior_prob_fnc, log_prior_prob_fnc_args, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights):
+    def __init__(self, log_prior_prob_fnc, log_prior_prob_fnc_args, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, labels=None):
 
         ###########################################################################################################################
         ## Check provided number of log_prior functions/arguments, number of datasets, states, weights, log_likelihood functions ##
@@ -272,7 +272,8 @@ class log_posterior_probability():
         ## Checks on parameters to calibrated ##
         ########################################
 
-        for param_name in parameter_names:
+        idx_par_with_multiple_entries=[]
+        for i,param_name in enumerate(parameter_names):
             # Check if the parameter exists
             if param_name not in model.parameters:
                 raise Exception(
@@ -289,15 +290,85 @@ class log_posterior_probability():
                         raise NotImplementedError(
                             f"Only 1D numpy arrays can be calibrated using pySDOM. Parameter '{param_name}' is a {model.parameters[param_name].ndim}-dimensional np.ndarray!"
                         )
+                    else:
+                        idx_par_with_multiple_entries.append(i)
                 elif isinstance(model.parameters[param_name], list):
                     if not all([isinstance(item, (int,float)) for item in model.parameters[param_name]]):
                         raise TypeError(
                             f"Model parameter '{param_name}' of type list must only contain int or float!"
                         )
+                    else:
+                        idx_par_with_multiple_entries.append(i)
                 else:
                     raise TypeError(
                         f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
                     )
+
+        #######################################
+        ## Construct bounds, pars and labels ##
+        #######################################
+
+        # Compute expanded size of bounds
+        expanded_length=0
+        for i, param_name in enumerate(parameter_names):
+            if i in idx_par_with_multiple_entries:
+                expanded_length += len(model.parameters[param_name])
+            else:
+                expanded_length += 1
+
+        # Construct parameters_postprocessing
+        parameter_names_postprocessing = []
+        for i, param_name in enumerate(parameter_names):
+            if i in idx_par_with_multiple_entries:
+                l = len(model.parameters[param_name])
+                for j in range(l):
+                    parameter_names_postprocessing.append(param_name+'_'+str(j))
+            else:
+                parameter_names_postprocessing.append(param_name)
+
+        if len(bounds) == len(parameter_names):
+            # Expand bounds
+            new_bounds = []
+            for i, param_name in enumerate(parameter_names):
+                if i in idx_par_with_multiple_entries:
+                    l = len(model.parameters[param_name])
+                    for j in range(l):
+                        new_bounds.append(bounds[i])
+                else:
+                    new_bounds.append(bounds[i])
+            bounds = new_bounds
+        elif len(bounds) == expanded_length:
+            pass
+        else:
+            raise Exception(
+                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+            )
+
+        # Expand labels if provided
+        if labels:
+            if len(labels) == len(parameter_names):
+                new_labels=[]
+                for i, param_name in enumerate(parameter_names):
+                    if i in idx_par_with_multiple_entries:
+                        l = len(model.parameters[param_name])
+                        for j in range(l):
+                            new_labels.append(labels[i]+'_'+str(j))
+                    else:
+                        new_labels.append(labels[i])
+                labels=new_labels
+            elif len(labels) == expanded_length:
+                pass
+            else:
+                raise Exception(
+                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                )
+        else:
+            labels = parameter_names_postprocessing
+        
+        # Assign to objective function
+        self.bounds=bounds
+        self.labels=labels
+        self.parameter_names_postprocessing=parameter_names_postprocessing
 
         ####################
         ## Checks on data ##
@@ -452,7 +523,6 @@ class log_posterior_probability():
         self.log_likelihood_fnc_args = log_likelihood_fnc_args
         self.weights = weights
 
-
     @staticmethod
     def compute_log_prior_probability(thetas, log_prior_prob_fnc, log_prior_prob_fnc_args):
         """
@@ -464,13 +534,14 @@ class log_posterior_probability():
             args = log_prior_prob_fnc_args[idx]
             lp.append(fnc(theta,args))
         return sum(lp)
-
+    
     @staticmethod
     def thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
 
         dict={}
         idx = 0
         total_n_values = 0
+        import sys
         for param in parameter_names:
             try:
                 dict[param] = np.array(thetas[idx:idx+len(model_parameter_dictionary[param])], np.float64)
