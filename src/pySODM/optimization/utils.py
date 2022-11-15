@@ -77,20 +77,40 @@ def add_gaussian_noise(output, sigma):
         output[varname].values = values
     return output
 
-from pySODM.optimization.objective_functions import log_posterior_probability
-def assign_theta(param_dict, parNames, thetas):
-    """ A generic function to assign a PSO estimate to the model parameters dictionary
+def thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
+    """
+    Add a docstring
+    """
+    dict={}
+    idx = 0
+    total_n_values = 0
+    for param in parameter_names:
+        try:
+            dict[param] = np.array(thetas[idx:idx+len(model_parameter_dictionary[param])], np.float64)
+            total_n_values += len(dict[param])
+            idx = idx + len(model_parameter_dictionary[param])
+        except:
+            if ((isinstance(model_parameter_dictionary[param], float)) | (isinstance(model_parameter_dictionary[param], int))):
+                dict[param] = thetas[idx]
+                total_n_values += 1
+                idx = idx + 1
+            else:
+                raise ValueError('Calibration parameters must be either of type int, float, list (containing int/float) or 1D np.array')
+    return dict, total_n_values
+
+def assign_theta(param_dict, parameter_names, thetas):
+    """ A generic function to assign the output of a PSO/Nelder-Mead calibration to the model parameters dictionary
 
     Parameters
     ----------
     param_dict : dict
         Model parameters dictionary
 
-    parNames : list (of strings)
+    parameter_names : list (of strings)
         Names of model parameters estimated using PSO
 
     thetas : list (of floats)
-        Result of PSO calibration, results must correspond to the order of the parameter names list (pars)
+        Result of a PSO or Nelder-Mead calibration, results must correspond to the order of the parameter names list (pars)
 
     Returns
     -------
@@ -101,26 +121,17 @@ def assign_theta(param_dict, parNames, thetas):
     param_dict : dict
         Model parameters dictionary with values of parameters 'pars' set to the obtained PSO estimate in vector 'theta'
 
-    Example use
-    -----------
-    # Run PSO
-    theta = pso.fit_pso(model, data, pars, states, weights, bounds, maxiter=maxiter, popsize=popsize,
-                start_date=start_calibration, processes=processes)
-    # If warmup is not one of the parameters to be estimated:
-    model.parameters = assign_PSO(model.parameters, pars, theta)
-    # If warmup is one of the parameters to be estimated:
-    warmup, model.parameters = assign_PSO(model.parameters, pars, theta)
     """
 
     # Find out if 'warmup' needs to be estimated
     warmup_position=None
-    if 'warmup' in parNames:
-        warmup_position=parNames.index('warmup')
+    if 'warmup' in parameter_names:
+        warmup_position=parameter_names.index('warmup')
         warmup = thetas[warmup_position]
-        parNames = [x for x in parNames if x != "warmup"]
+        parameter_names = [x for x in parameter_names if x != "warmup"]
         thetas = [x for (i,x) in enumerate(thetas) if i != warmup_position]
 
-    thetas_dict,n = log_posterior_probability.thetas_to_thetas_dict(thetas, parNames, param_dict)
+    thetas_dict,n = thetas_to_thetas_dict(thetas, parameter_names, param_dict)
     for i, (param,value) in enumerate(thetas_dict.items()):
             param_dict.update({param : value})
 

@@ -2,6 +2,7 @@ import inspect
 import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
+from pySODM.optimization.utils import thetas_to_thetas_dict
 
 ##############################
 ## Log-likelihood functions ##
@@ -534,29 +535,6 @@ class log_posterior_probability():
             args = log_prior_prob_fnc_args[idx]
             lp.append(fnc(theta,args))
         return sum(lp)
-    
-    @staticmethod
-    def thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
-
-        dict={}
-        idx = 0
-        total_n_values = 0
-        import sys
-        for param in parameter_names:
-            try:
-                dict[param] = np.array(thetas[idx:idx+len(model_parameter_dictionary[param])], np.float64)
-                total_n_values += len(dict[param])
-                idx = idx + len(model_parameter_dictionary[param])
-            except:
-                if ((isinstance(model_parameter_dictionary[param], float)) | (isinstance(model_parameter_dictionary[param], int))):
-                    dict[param] = thetas[idx]
-                    total_n_values += 1
-                    idx = idx + 1
-                else:
-                    raise ValueError('Calibration parameters must be either of type int, float, list or 1D np.array')
-    
-        return dict, total_n_values
-
 
     @staticmethod
     def series_to_ndarray(df):
@@ -608,10 +586,10 @@ class log_posterior_probability():
         if self.warmup_position:
             simulation_kwargs.update({'warmup': thetas[self.warmup_position]})
             # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = self.thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
+            thetas_dict, n = thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
         else:
             # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = self.thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
+            thetas_dict, n = thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
 
         # Assign thetas for model parameters to the model object
         for param,value in thetas_dict.items():

@@ -21,7 +21,7 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
-from pySODM.optimization.utils import add_poisson_noise
+from pySODM.optimization.utils import add_poisson_noise, assign_theta
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_poisson
 # pySODM dependecies
@@ -135,12 +135,12 @@ if __name__ == '__main__':
     ######################
 
     # Assign results to model
-    model.parameters.update({'beta': theta[0],'f_a': theta[1:]})
+    model.parameters = assign_theta(model.parameters, pars, theta)
+    #model.parameters.update({'beta': theta[0],'f_a': theta[1:]})
     # Simulate model
     out = model.sim(end_date, start_date=start_date, warmup=warmup, samples={}, N=N)
     # Add poisson obervational noise
     out = add_poisson_noise(out)
-
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
