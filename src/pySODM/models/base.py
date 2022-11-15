@@ -103,8 +103,6 @@ class BaseModel:
         for lst in self.parameters_stratified_names:
             all_param_names.extend(lst)
 
-        print(all_param_names)
-
         if self.stratification:
             all_param_names.extend(self.stratification)
 
