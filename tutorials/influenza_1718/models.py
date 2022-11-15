@@ -33,11 +33,12 @@ class SDE_influenza_model(BaseModel):
     """
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['beta','sigma','f_a','gamma']
-    stratification = ['Nc']
+    parameter_names = ['beta','sigma','gamma','Nc']
+    parameters_stratified_names = ['f_a']
+    stratification_names = ['age_group']
 
     @staticmethod
-    def integrate(t, l, S, E, Ia, Im, R, Im_inc, beta, sigma, f_a, gamma, Nc):
+    def integrate(t, l, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
         
         # Calculate total population
         T = S+E+Ia+Im+R
