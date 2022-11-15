@@ -1,4 +1,5 @@
 # Prevents numpy from using multiple threads to perform computations on large matrices
+from multiprocessing.sharedctypes import Value
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Other packages
@@ -39,8 +40,7 @@ class BaseModel:
     state_names = None
     parameter_names = None
     parameters_stratified_names = None
-    stratification = None
-    apply_compliance_to = None
+    stratification_names = None
     state_2d = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
@@ -48,26 +48,46 @@ class BaseModel:
         self.initial_states = states
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
-        if self.stratification:
-            self.stratification_size = []
-            for axis in self.stratification:
-                if not axis in parameters:
-                    raise ValueError(
-                        "stratification parameter '{0}' is missing from the specified "
-                        "parameters dictionary".format(axis)
-                    )
-                self.stratification_size.append(parameters[axis].shape[0])
-        else:
-            self.stratification_size = [1]
 
+        # Validate stratification
+        if self.stratification_names:
+            if not self.coordinates:
+                raise ValueError(
+                    "Stratification name provided but no coordinates"
+                )
+            else:
+                if set(self.stratification_names) != set(self.coordinates.keys()):
+                    raise ValueError(
+                        "Stratification names do not match coordinates dictionary keys.\n"
+                        "Missing stratification names: {0}. Redundant coordinates: {1}".format(set(self.stratification_names).difference(set(self.coordinates.keys())), set(self.coordinates.keys()).difference(set(self.stratification_names)))
+                    )
+                else:
+                    self.stratification_size = []
+                    for i, (key,value) in enumerate(coordinates.items()):
+                        try:
+                            self.stratification_size.append(len(value))
+                        except:
+                            raise ValueError(
+                                f"Unable to deduce stratification length from '{value}' of coordinate '{key}'"
+                            )
+        else:
+            if self.coordinates:
+                raise ValueError(
+                    f"You have provided a dictionary of coordinates with keys: {list(coordinates.keys())} upon model initialization but no variable 'stratification names' was found in the integrate function.\nDefine a variable 'stratification_names = {list(coordinates.keys())}' in the model definition."
+                )
+            else:
+                self.stratification_size = [1]
+
+        # Validate the time-dependent parameter functions
         if time_dependent_parameters:
             self._validate_time_dependent_parameters()
         else:
             self._function_parameters = []
 
+        # Validate model
         self._validate()
 
-        # Added to use 2D states
+        # Experimental: added to use 2D states in Economic IO model
         if self.state_2d:
             self.split_point = (len(self.state_names) - 1) * self.stratification_size[0]
 
@@ -170,9 +190,6 @@ class BaseModel:
             else:
                 for stratified_names in self.parameters_stratified_names:
                     specified_params += stratified_names
-
-        if self.stratification:
-            specified_params += self.stratification
 
         if integrate_params != specified_params:
             raise ValueError(
@@ -666,8 +683,8 @@ class BaseModel:
         Convert array (returned by scipy) to an xarray Dataset with variable names
         """
 
-        if self.stratification:
-            dims = self.stratification.copy()
+        if self.coordinates:
+            dims = list(self.coordinates.keys()).copy()
         else:
             dims = []
         
@@ -678,16 +695,11 @@ class BaseModel:
             dims.append('time')
             coords = {"time": output["t"]}
 
-        if self.stratification:
-            for i in range(len(self.stratification)):
-                if self.coordinates:
-                    if self.coordinates[i] is not None:
-                        coords.update({self.stratification[i]: self.coordinates[i]})
-                else:
-                    coords.update({self.stratification[i]: np.arange(self.stratification_size[i])})
+        if self.coordinates:
+            coords.update(self.coordinates)
 
         size_lst = [len(self.state_names)]
-        if self.stratification:
+        if self.coordinates:
             for size in self.stratification_size:
                 size_lst.append(size)
         size_lst.append(len(output["t"]))
@@ -709,7 +721,7 @@ class BaseModel:
             data[var] = xarr
         
         if self.state_2d:
-            xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[self.stratification[0],self.stratification[0],'time'])
+            xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[list(self.coordinates.keys())[0],list(self.coordinates.keys())[0],'time'])
             data[self.state_names[-1]] = xarr
 
         return xarray.Dataset(data)

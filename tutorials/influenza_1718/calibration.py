@@ -41,7 +41,7 @@ data = data.squeeze()
 # Re-insert pd.IntervalIndex (pd.IntervalIndex is always loaded as a string..)
 age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
 iterables = [data.index.get_level_values('DATE').unique(), age_groups]
-names = ['date', 'Nc']
+names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
 df_influenza = pd.Series(index=index, name='CASES', data=data.values)
 # Hardcode Belgian demographics
@@ -77,7 +77,7 @@ params={'beta':0.10,'sigma':1,'f_a':0.75*np.ones(4),'gamma':5,'Nc':np.transpose(
 # Define initial condition
 init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
 # Define model coordinates
-coordinates=[age_groups,]
+coordinates={'age_group': age_groups}
 # Initialize model
 model = influenza_model(init_states,params,coordinates)
 
@@ -137,12 +137,12 @@ if __name__ == '__main__':
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
-    for id, age_class in enumerate(df_influenza.index.get_level_values('Nc').unique()):
+    for id, age_class in enumerate(df_influenza.index.get_level_values('age_group').unique()):
         # Data
         axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
         # Model trajectories
         for i in range(N):
-            axs[id].plot(out['date'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+            axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
         # Format
         axs[id].set_title(age_class)
         axs[id].legend(['$I_{m, inc}$','data'])
@@ -211,14 +211,12 @@ if __name__ == '__main__':
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
-    for id, age_class in enumerate(df_influenza.index.get_level_values('Nc').unique()):
+    for id, age_class in enumerate(df_influenza.index.get_level_values('age_group').unique()):
         # Data
         axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
         # Model trajectories
         for i in range(N):
-            axs[id].plot(out['date'],out['Im_inc'].sel(Nc=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
-        #axs[id].fill_between(out['time'].values,out['Im_inc'].sel(Nc=age_class).quantile(dim='draws', q=0.025),
-        #                     out['Im_inc'].sel(Nc=age_class).quantile(dim='draws', q=0.975), color='black', alpha=0.1)
+            axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
         axs[id].set_title(age_class)
         axs[id].legend(['$I_{m, inc}$','data'])
         axs[id].xaxis.set_major_locator(plt.MaxNLocator(5))

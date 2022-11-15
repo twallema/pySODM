@@ -417,13 +417,13 @@ class log_posterior_probability():
             for data_dim in data_index_diff:
                 tmp2=[]
                 # Verify the axes in additional_axes_data are valid model dimensions
-                if data_dim not in model.stratification:
+                if data_dim not in list(model.coordinates.keys()):
                     raise Exception(
                         f"{i}th dataset coordinate '{data_dim}' is not a valid model stratification"
                     )
                 else:
                     # Verify all coordinates in the dataset can be found in the model
-                    coords_model = dict(zip(model.stratification, model.coordinates))[data_dim]
+                    coords_model = model.coordinates[data_dim]
                     coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
                     for coord in coords_data:
                         if coord not in coords_model:
@@ -440,7 +440,7 @@ class log_posterior_probability():
         self.aggregate_over=[]
         for i, data_index_diff in enumerate(self.additional_axes_data):
             tmp=[]
-            for model_strat in model.stratification:
+            for model_strat in list(model.coordinates.keys()):
                 if model_strat not in data_index_diff:
                     tmp.append(model_strat)
             self.aggregate_over.append(tmp)
