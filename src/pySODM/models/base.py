@@ -722,7 +722,10 @@ class BaseModel:
             data[var] = xarr
         
         if self.state_2d:
-            xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[list(self.coordinates.keys())[0],list(self.coordinates.keys())[0],'time'])
+            if actual_start_date is not None:
+                xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[list(self.coordinates.keys())[0],list(self.coordinates.keys())[0],'date'])
+            else:
+                xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[list(self.coordinates.keys())[0],list(self.coordinates.keys())[0],'time'])
             data[self.state_names[-1]] = xarr
 
         return xarray.Dataset(data)
