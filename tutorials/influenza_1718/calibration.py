@@ -91,23 +91,15 @@ if __name__ == '__main__':
     ## PSO/Nelder-Mead ##
     #####################
 
-    # Maximum number of PSO iterations
-    n_pso = 20
-    # Maximum number of MCMC iterations
-    n_mcmc = 200
-    # PSO settings
+    # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
+    n_pso = 20
     multiplier_pso = 30
-    maxiter = n_pso
-    popsize = multiplier_pso*processes
-    # MCMC settings
-    multiplier_mcmc = 9
-    max_n = n_mcmc
-    print_n = 5
+
     # Define dataset
     data=[df_influenza[start_date:end_date], ]
     states = ["Im_inc",]
-    weights = np.array([1,]) # Scores of individual contributions: Dataset: 0, total ll: -4590, Dataset: 1, total ll: -4694, Dataset: 2, total ll: -4984
+    weights = np.array([1,])
     log_likelihood_fnc = [ll_poisson,]
     log_likelihood_fnc_args = [[],]
     # Calibated parameters and bounds
@@ -120,6 +112,8 @@ if __name__ == '__main__':
     # Extract formatted parameter_names, bounds and labels
     pars_postprocessing = objective_function.parameter_names_postprocessing
     labels = objective_function.labels 
+    bounds = objective_function.bounds
+    print(f'\npars_postprocessing: {pars_postprocessing}\nbounds: {bounds}\nlabels: {labels}')
     # Setup prior functions and arguments
     log_prior_fnc = len(objective_function.bounds)*[log_prior_uniform,]
     log_prior_fnc_args = objective_function.bounds                                     
@@ -136,7 +130,6 @@ if __name__ == '__main__':
 
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
-    #model.parameters.update({'beta': theta[0],'f_a': theta[1:]})
     # Simulate model
     out = model.sim(end_date, start_date=start_date, warmup=warmup, samples={}, N=N)
     # Add poisson obervational noise
@@ -165,32 +158,33 @@ if __name__ == '__main__':
     ## MCMC ##
     ##########
 
-    discard=30
-    # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10, 0.10, 0.10, 0.10, 0.10], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
-    # Labels for traceplots
-    #labels = ['$\\beta$', '$f_a$']
-    #pars_postprocessing = ['beta', 'f_a']
     # Variables
+    n_mcmc = 200
+    multiplier_mcmc = 9
+    print_n = 5
+    discard=30
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
     run_date = str(datetime.date.today())
+
     # initialize objective function
     objective_function = log_posterior_probability(log_prior_fnc,log_prior_fnc_args,model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    # Perturbate previously obtained estimate
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"), 'n_chains': nwalkers,
                 'warmup': warmup, 'labels': labels, 'parameters': pars_postprocessing, 'starting_estimate': list(theta)}
     # Sample 100 iterations
-    sampler = run_EnsembleSampler(pos, max_n, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)
-    backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.h5'))
     # Sample 100 more
-    sampler = run_EnsembleSampler(pos, max_n, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
+    backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.h5'))
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
                                     settings_dict=settings)
-    # Generate a sample dictionary
+    # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
     samples_dict = emcee_sampler_to_dictionary(sampler, pars_postprocessing, discard=discard, settings=settings, samples_path=samples_path, identifier=identifier)
     # Look at the resulting distributions in a cornerplot
