@@ -120,12 +120,12 @@ class BaseModel:
         extra_params = []
         all_param_names = self.parameter_names.copy()
 
-        for lst in self.parameters_stratified_names:
-            all_param_names.extend(lst)
-
-        if self.stratification:
-            all_param_names.extend(self.stratification)
-
+        if not isinstance(self.parameters_stratified_names[0], list):
+            all_param_names += self.parameters_stratified_names
+        else:
+            for lst in self.parameters_stratified_names:
+                all_param_names.extend(lst)
+                
         for param, func in self.time_dependent_parameters.items():
             if param not in all_param_names:
                 raise ValueError(
@@ -680,7 +680,7 @@ class BaseModel:
 
     def _output_to_xarray_dataset(self, output, actual_start_date=None):
         """
-        Convert array (returned by scipy) to an xarray Dataset with variable names
+        Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
         """
 
         if self.coordinates:
