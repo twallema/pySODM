@@ -252,7 +252,11 @@ class log_posterior_probability():
     The data must be of type pd.DataFrame and must contain the axes "date". 
     # TODO: update docstring
     """
-    def __init__(self, log_prior_prob_fnc, log_prior_prob_fnc_args, model, parameter_names, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights):
+    def __init__(self, log_prior_prob_fnc, log_prior_prob_fnc_args, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights):
+
+        ###########################################################################################################################
+        ## Check provided number of log_prior functions/arguments, number of datasets, states, weights, log_likelihood functions ##
+        ###########################################################################################################################
 
         # Some inputs must have the same length
         if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
@@ -263,6 +267,37 @@ class log_posterior_probability():
             raise ValueError(
                 "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
                 )
+
+        ########################################
+        ## Checks on parameters to calibrated ##
+        ########################################
+
+        for param_name in parameter_names:
+            # Check if the parameter exists
+            if param_name not in model.parameters:
+                raise Exception(
+                    f"'{param_name}' is not a valid model parameter!"
+                )
+            # Check the datatype: only int, float, list of int/float, 1D np.array
+            if isinstance(model.parameters[param_name], bool):
+                raise TypeError(
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                    )
+            elif ((not isinstance(model.parameters[param_name], int)) & (not isinstance(model.parameters[param_name], float))):
+                if isinstance(model.parameters[param_name], np.ndarray):
+                    if model.parameters[param_name].ndim != 1:
+                        raise NotImplementedError(
+                            f"Only 1D numpy arrays can be calibrated using pySDOM. Parameter '{param_name}' is a {model.parameters[param_name].ndim}-dimensional np.ndarray!"
+                        )
+                elif isinstance(model.parameters[param_name], list):
+                    if not all([isinstance(item, (int,float)) for item in model.parameters[param_name]]):
+                        raise TypeError(
+                            f"Model parameter '{param_name}' of type list must only contain int or float!"
+                        )
+                else:
+                    raise TypeError(
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                    )
 
         ####################
         ## Checks on data ##
