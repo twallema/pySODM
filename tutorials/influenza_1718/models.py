@@ -7,11 +7,12 @@ class ODE_influenza_model(BaseModel):
     """
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['beta','sigma','f_a','gamma']
+    parameter_names = ['beta','sigma','gamma']
+    parameters_stratified_names = [['f_a'],]
     stratification = ['Nc']
 
     @staticmethod
-    def integrate(t, S, E, Ia, Im, R, Im_inc, beta, sigma, f_a, gamma, Nc):
+    def integrate(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, f_a, Nc):
         
         # Calculate total population
         T = S+E+Ia+Im+R

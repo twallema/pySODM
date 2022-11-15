@@ -73,7 +73,7 @@ Nc = np.array([[1.3648649, 1.1621622, 5.459459, 0.3918919],
              [0.3842975, 0.8409091, 10.520661, 0.9008264],
              [0.2040816, 0.5918367,  4.612245, 2.1428571]])
 # Define model parameters
-params={'beta':0.10,'sigma':1,'f_a':0.75,'gamma':5,'Nc':np.transpose(Nc)}
+params={'beta':0.10,'sigma':1,'f_a':0.75*np.ones(4),'gamma':5,'Nc':np.transpose(Nc)}
 # Define initial condition
 init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
 # Define model coordinates
@@ -92,9 +92,9 @@ if __name__ == '__main__':
     #####################
 
     # Maximum number of PSO iterations
-    n_pso = 10
+    n_pso = 20
     # Maximum number of MCMC iterations
-    n_mcmc = 150
+    n_mcmc = 200
     # PSO settings
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     multiplier_pso = 30
@@ -112,26 +112,30 @@ if __name__ == '__main__':
     log_likelihood_fnc_args = [[],]
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
-    bounds = [(0.001,0.10), (0,1)]
-    # Setup prior functions and arguments
-    log_prior_fnc = len(bounds)*[log_prior_uniform,]
-    log_prior_fnc_args = bounds
+    labels = ['$\\beta$', '$f_a$']
+    bounds = [(1e-6,0.20), (0,1)]
     # Setup objective function without priors and with negative weights 
-    objective_function = log_posterior_probability([],[],model,pars,data,states,
-                                               log_likelihood_fnc,log_likelihood_fnc_args,-weights)
+    objective_function = log_posterior_probability([],[],model,pars,bounds,data,states,
+                                               log_likelihood_fnc,log_likelihood_fnc_args,-weights, labels=labels)
+    # Extract formatted parameter_names, bounds and labels
+    pars_postprocessing = objective_function.parameter_names_postprocessing
+    labels = objective_function.labels 
+    # Setup prior functions and arguments
+    log_prior_fnc = len(objective_function.bounds)*[log_prior_uniform,]
+    log_prior_fnc_args = objective_function.bounds                                     
     # PSO
-    theta = pso.optimize(objective_function, bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
+    theta = pso.optimize(objective_function, objective_function.bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
                        swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
-    step = len(bounds)*[0.05,]
-    theta = nelder_mead.optimize(objective_function, np.array(theta), bounds, step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
+    step = len(objective_function.bounds)*[0.05,]
+    theta = nelder_mead.optimize(objective_function, np.array(theta), objective_function.bounds, step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
     ######################
     ## Visualize result ##
     ######################
 
     # Assign results to model
-    model.parameters.update({'beta': theta[0],})
+    model.parameters.update({'beta': theta[0],'f_a': theta[1:]})
     # Simulate model
     out = model.sim(end_date, start_date=start_date, warmup=warmup, samples={}, N=N)
     # Add poisson obervational noise
@@ -161,36 +165,37 @@ if __name__ == '__main__':
     ## MCMC ##
     ##########
 
+    discard=30
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.05, 0.05], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10, 0.10, 0.10, 0.10, 0.10], multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
     # Labels for traceplots
-    labels = ['$\\beta$', '$f_a$']
-    pars_postprocessing = ['beta', 'f_a']
+    #labels = ['$\\beta$', '$f_a$']
+    #pars_postprocessing = ['beta', 'f_a']
     # Variables
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
     run_date = str(datetime.date.today())
     # initialize objective function
-    objective_function = log_posterior_probability(log_prior_fnc,log_prior_fnc_args,model,pars,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights)
+    objective_function = log_posterior_probability(log_prior_fnc,log_prior_fnc_args,model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"), 'n_chains': nwalkers,
                 'warmup': warmup, 'labels': labels, 'parameters': pars_postprocessing, 'starting_estimate': list(theta)}
     # Sample 100 iterations
     sampler = run_EnsembleSampler(pos, max_n, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, labels=labels, backend=None, processes=processes, progress=True,
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)
     backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.h5'))
     # Sample 100 more
     sampler = run_EnsembleSampler(pos, max_n, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, labels=labels, backend=backend, processes=processes, progress=True,
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
                                     settings_dict=settings)
     # Generate a sample dictionary
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
-    samples_dict = emcee_sampler_to_dictionary(sampler, pars_postprocessing, discard=30, settings=settings, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(sampler, pars_postprocessing, discard=discard, settings=settings, samples_path=samples_path, identifier=identifier)
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
-    fig = corner.corner(sampler.get_chain(discard=50, thin=2, flat=True), labels=labels, **CORNER_KWARGS)
+    fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=labels, **CORNER_KWARGS)
     for idx,ax in enumerate(fig.get_axes()):
         ax.grid(False)
     plt.show()
@@ -203,7 +208,7 @@ if __name__ == '__main__':
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
         idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))  
-        param_dict['f_a'] = samples_dict['f_a'][idx]
+        param_dict['f_a'] = np.array([samples_dict['f_a_0'][idx], samples_dict['f_a_1'][idx], samples_dict['f_a_2'][idx], samples_dict['f_a_3'][idx]])
         return param_dict
     # Simulate model
     out = model.sim(end_date, start_date=start_date, warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)

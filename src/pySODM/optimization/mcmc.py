@@ -11,9 +11,9 @@ from pySODM.optimization.visualization import traceplot, autocorrelation_plot
 
 abs_dir = os.path.dirname(__file__)
 
-def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_args, objective_fcn_kwargs,
+def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args, objective_function_kwargs,
                 moves=[(emcee.moves.DEMove(), 0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.5)],
-                fig_path=None, samples_path=None, print_n=10, labels=None, backend=None, processes=1, progress=True, settings_dict={}):
+                fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={}):
 
     # Set default fig_path/samples_path as same directory as calibration script
     if not fig_path:
@@ -58,8 +58,8 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
     sys.stdout.flush()
 
     with get_context("spawn").Pool(processes=processes) as pool:
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_fcn, backend=backend, pool=pool,
-                        args=objective_fcn_args, kwargs=objective_fcn_kwargs, moves=moves)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_function, backend=backend, pool=pool,
+                        args=objective_function_args, kwargs=objective_function_kwargs, moves=moves)
         for sample in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
             # Only check convergence every print_n steps
             if sampler.iteration % print_n:
@@ -70,11 +70,11 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_fcn, objective_fcn_arg
             #############################
             
             # Update autocorrelation plot
-            ax, tau = autocorrelation_plot(sampler.get_chain(), labels=labels,
+            ax, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.labels,
                                             filename=fig_path+'/autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={'linewidth':2, 'color': 'red'})
             # Update traceplot
-            traceplot(sampler.get_chain(),labels=labels,
+            traceplot(sampler.get_chain(),labels=objective_function.labels,
                         filename=fig_path+'/traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth':2,'color': 'red','alpha': 0.15})
             # Garbage collection
