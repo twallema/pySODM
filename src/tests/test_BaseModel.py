@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 import numpy as np
 from pySODM.models.base import BaseModel
 
@@ -29,7 +30,12 @@ def test_SIR_time():
     # Build model
     model = SIR(initial_states, parameters)
 
-    # Simulate using int timesteps
+    # Simulate using a mixture of int/float
+    time = [int(10), float(50.3)]
+    output = model.sim(time)
+    # Simulate using just one timestep
+    output = model.sim(50)
+    # Simulate using a list of timesteps
     time = [0, 50]
     output = model.sim(time)
 
@@ -53,7 +59,8 @@ def test_SIR_date():
     model = SIR(initial_states, parameters)
 
     # Simulate using dates
-    output = model.sim('2020-02-20', start_date='2020-01-01')
+    output = model.sim(['2020-01-01', '2020-02-20'])
+    output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')])
 
     # Validate
     assert 'date' in list(output.dims.keys())
@@ -64,6 +71,10 @@ def test_SIR_date():
     I = output["I"].squeeze()
     assert I[0] == 10
     assert S.shape == (51, )
+
+    # Simulate using a mixture of timestamp and string
+    with pytest.raises(TypeError, match="List-like input of simulation start"):
+        output = model.sim(['2020-01-01', pd.Timestamp('2020-02-20')])
 
 def test_model_init_validation():
     # valid initialization
@@ -141,7 +152,7 @@ def test_stratified_SIR_time():
     assert output["I"].values.shape == (2, 51)
     assert output["R"].values.shape == (2, 51)
 
-def test_SIR_date():
+def test_stratified_SIR_date():
 
     # Define parameters and initial states
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
@@ -152,7 +163,7 @@ def test_SIR_date():
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
 
     # Simulate using dates
-    output = model.sim('2020-02-20', start_date='2020-01-01')
+    output = model.sim(['2020-01-01', '2020-02-20'])
 
     # Validate
     assert output["S"].values.shape == (2, 51)

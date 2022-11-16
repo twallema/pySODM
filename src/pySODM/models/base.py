@@ -538,7 +538,7 @@ class BaseModel:
         date = actual_start_date + pd.Timedelta(t, unit='D')
         return date
 
-    def sim(self, time, warmup=0, start_date=None, N=1, draw_fcn=None, samples=None, method='RK23', rtol=1e-3, l=1/2, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', rtol=1e-3, l=1/2, processes=None):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
@@ -547,18 +547,14 @@ class BaseModel:
 
         Parameters
         ----------
-        time : 1) int/float, 2) list of int/float of type '[start, stop]', 3) string or timestamp
+        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
-            2) Input is interpreted as [start, stop]. Floats are automatically rounded.
-            3) Date supplied is interpreted as the end date of the simulation
+            2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
+            3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
 
         warmup : int
             Number of days to simulate prior to start time or date
-
-        start_date : str or timestamp
-            Must be supplied when using a date as simulation start.
-            Model starts to run on (start_date - warmup)
 
         N : int
             Number of repeated simulations (useful for stochastic models). One by default.
@@ -598,33 +594,37 @@ class BaseModel:
                 "Solver method 'method' must be of type string"
             )
 
-        # Adjust startdate with warmup
-        if start_date is not None:
-            actual_start_date = pd.Timestamp(start_date) - pd.Timedelta(warmup, unit='D')
-        else:
-            actual_start_date=None
-
         # Input checks on supplied simulation time
+        actual_start_date=None
         if isinstance(time, float):
-            time = [0, round(time)]
+            time = [0-warmup, round(time)]
         elif isinstance(time, int):
-            time = [0, time]
+            time = [0-warmup, time]
         elif isinstance(time, list):
-            if len(time) > 2:
-                raise ValueError(f"Maximumum length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
+            if not len(time) == 2:
+                raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
             else:
-                time = [round(item) for item in time]
-        elif isinstance(time, (str, pd.Timestamp)):
-            if not isinstance(start_date, (str, pd.Timestamp)):
-                raise TypeError(
-                    "When should the simulation start? Set the input argument 'start_date'.."
-                )
-            time = [0, self.date_to_diff(actual_start_date, time)]
+                # If they are all int or flat
+                if all([isinstance(item, (int,float)) for item in time]):
+                    time = [round(item) for item in time]
+                    time[0] -= warmup
+                # If they are all timestamps
+                elif all([isinstance(item, pd.Timestamp) for item in time]):
+                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                    time = [0, self.date_to_diff(actual_start_date, time[1])]
+                # If they are all strings
+                elif all([isinstance(item, str) for item in time]):
+                    time = [pd.Timestamp(item) for item in time]
+                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                    time = [0, self.date_to_diff(actual_start_date, time[1])]
+                else:
+                    raise TypeError(
+                        f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
+                        )
         else:
             raise TypeError(
                     "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
                 )
-        
         # Input check on draw function
         if draw_fcn:
             sig = inspect.signature(draw_fcn)

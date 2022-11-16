@@ -131,7 +131,7 @@ if __name__ == '__main__':
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
     # Simulate model
-    out = model.sim(end_date, start_date=start_date, warmup=warmup, samples={}, N=N)
+    out = model.sim([start_date, end_date], warmup=warmup, samples={}, N=N)
     # Add poisson obervational noise
     out = add_poisson_noise(out)
     # Visualize
@@ -205,7 +205,7 @@ if __name__ == '__main__':
         param_dict['f_a'] = np.array([samples_dict['f_a_0'][idx], samples_dict['f_a_1'][idx], samples_dict['f_a_2'][idx], samples_dict['f_a_3'][idx]])
         return param_dict
     # Simulate model
-    out = model.sim(end_date, start_date=start_date, warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
     # Add poisson observation noise
     out = add_poisson_noise(out)
     # Visualize
