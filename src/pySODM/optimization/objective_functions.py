@@ -269,6 +269,42 @@ class log_posterior_probability():
                 "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
                 )
 
+        ####################
+        ## Checks on data ##
+        ####################
+
+        self.additional_axes_data=[] 
+        for idx, df in enumerate(data):
+            # Does data contain NaN values anywhere?
+            if np.isnan(df).values.any():
+                raise Exception(
+                    f"{idx}th dataset contains nans"
+                    )
+            # Does data have 'date' or 'time' as index level? (required)
+            if (('date' not in df.index.names) & ('time' not in df.index.names)):
+                raise Exception(
+                    "Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
+                    )
+            elif (('date' in df.index.names) & ('time' not in df.index.names)):
+                self.time_index = 'date'
+                self.additional_axes_data.append([name for name in df.index.names if name != 'date'])
+            elif (('date' not in df.index.names) & ('time' in df.index.names)):
+                self.time_index = 'time'
+                self.additional_axes_data.append([name for name in df.index.names if name != 'time'])
+            else:
+                raise Exception(
+                    "Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
+                    )
+
+        # Extract start- and enddate of simulations
+        index_min=[]
+        index_max=[]
+        for idx, df in enumerate(data):
+            index_min.append(df.index.get_level_values(self.time_index).unique().min())
+            index_max.append(df.index.get_level_values(self.time_index).unique().max())
+        self.start_sim = min(index_min)
+        self.end_sim = max(index_max)
+
         ########################################
         ## Checks on parameters to calibrated ##
         ########################################
@@ -370,42 +406,6 @@ class log_posterior_probability():
         self.bounds=bounds
         self.labels=labels
         self.parameter_names_postprocessing=parameter_names_postprocessing
-
-        ####################
-        ## Checks on data ##
-        ####################
-
-        self.additional_axes_data=[] 
-        for idx, df in enumerate(data):
-            # Does data contain NaN values anywhere?
-            if np.isnan(df).any():
-                raise Exception(
-                    f"{idx}th dataset contains nans"
-                    )
-            # Does data have 'date' or 'time' as index level? (required)
-            if (('date' not in df.index.names) & ('time' not in df.index.names)):
-                raise Exception(
-                    "Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
-                    )
-            elif (('date' in df.index.names) & ('time' not in df.index.names)):
-                self.time_index = 'date'
-                self.additional_axes_data.append([name for name in df.index.names if name != 'date'])
-            elif (('date' not in df.index.names) & ('time' in df.index.names)):
-                self.time_index = 'time'
-                self.additional_axes_data.append([name for name in df.index.names if name != 'time'])
-            else:
-                raise Exception(
-                    "Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
-                    )
-
-        # Extract start- and enddate of simulations
-        index_min=[]
-        index_max=[]
-        for idx, df in enumerate(data):
-            index_min.append(df.index.get_level_values(self.time_index).unique().min())
-            index_max.append(df.index.get_level_values(self.time_index).unique().max())
-        self.start_sim = min(index_min)
-        self.end_sim = max(index_max)
 
         ############################################
         ## Compare data and model stratifications ##
