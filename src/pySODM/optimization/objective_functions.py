@@ -419,7 +419,7 @@ class log_posterior_probability():
                 # Verify the axes in additional_axes_data are valid model dimensions
                 if data_dim not in list(model.coordinates.keys()):
                     raise Exception(
-                        f"{i}th dataset coordinate '{data_dim}' is not a valid model stratification"
+                        f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
                     )
                 else:
                     # Verify all coordinates in the dataset can be found in the model
@@ -428,7 +428,7 @@ class log_posterior_probability():
                     for coord in coords_data:
                         if coord not in coords_model:
                             raise Exception(
-                                f"{i}th dataset coordinates for stratification {data_dim} were not found in the model coordinates for stratification {data_dim}"
+                                f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
                              )
                         else:
                             tmp2.append(coord)
