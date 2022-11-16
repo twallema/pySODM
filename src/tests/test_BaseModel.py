@@ -34,6 +34,7 @@ def test_SIR_time():
     output = model.sim(time)
 
     # Validate
+    assert 'time' in list(output.dims.keys())
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
     S = output["S"].values.squeeze()
     assert S[0] == 1_000_000 - 10
@@ -55,6 +56,7 @@ def test_SIR_date():
     output = model.sim('2020-02-20', start_date='2020-01-01')
 
     # Validate
+    assert 'date' in list(output.dims.keys())
     S = output["S"].values.squeeze()
     assert S[0] == 1_000_000 - 10
     assert S.shape == (51, )
@@ -240,7 +242,6 @@ def test_model_stratified_default_initial_state():
 ###############################
 
 # TDPF on a stratified parameter
-
 def test_TDPF_stratified():
     # states, parameters, coordinates
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
@@ -287,13 +288,13 @@ def test_TDPF_stratified():
         else:
             return param * gamma
 
-    parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9]), "prevention": 0.2}
+    parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
     model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
     output2 = model2.sim(time)
 
 # TDPF on a regular parameter
-def test_TDPF_stratified():
+def test_TDPF_nonstratified():
     # states, parameters, coordinates
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
     initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10]}
