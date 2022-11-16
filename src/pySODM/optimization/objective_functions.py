@@ -509,12 +509,14 @@ class log_posterior_probability():
                             f"Length of list containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' in the {idx}th dataset."
                         )
                 else:
-                    # never tested
-                    for i,l in enumerate(log_likelihood_fnc_args[idx].shape()):
-                        if not l == len(df.index.get_level_values(self.additional_axes_data[idx][i]).unique()):
-                            raise Exception(
-                                "Hakuna matata, I have only tested this module with two data axes."
-                            )
+                    shape = list(log_likelihood_fnc_args[idx].shape)
+                    desired_shape=[]
+                    for lst in self.coordinates_data_also_in_model[idx]:
+                        desired_shape.append(len(lst))
+                    if shape != desired_shape:
+                        raise Exception(
+                            f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}"
+                        )
 
         # Find out if 'warmup' needs to be estimated
         self.warmup_position=None
