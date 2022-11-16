@@ -53,7 +53,7 @@ class BaseModel:
         if self.stratification_names:
             if not self.coordinates:
                 raise ValueError(
-                    "Stratification name provided but no coordinates"
+                    "Stratification name provided in integrate function but no coordinates were given when model was initialised"
                 )
             else:
                 if set(self.stratification_names) != set(self.coordinates.keys()):
@@ -247,17 +247,17 @@ class BaseModel:
             values = np.asarray(values)
             if values.ndim != 1:
                 raise ValueError(
-                    "A {obj} value should be a 1D array, but {obj} '{name}' has "
-                    "dimension {val}".format(
+                    "A {obj} value should be a 1D array, but {obj} '{name}' is"
+                    "{val}-dimensional".format(
                         obj=object_name, name=name, val=values.ndim
                     )
                 )
             if len(values) != self.stratification_size[i]:
                 raise ValueError(
-                    "The stratification parameter '{strat}' indicates a "
+                    "The coordinates provided for stratification '{strat}' indicates a "
                     "stratification size of {strat_size}, but {obj} '{name}' "
                     "has length {val}".format(
-                        strat=self.stratification[i], strat_size=self.stratification_size[i],
+                        strat=list(self.coordinates.keys())[i], strat_size=self.stratification_size[i],
                         obj=object_name, name=name, val=len(values)
                     )
                 )
@@ -275,10 +275,10 @@ class BaseModel:
             else:
                 if list(values.shape) != self.stratification_size:
                     raise ValueError(
-                        "The stratification parameters '{strat}' indicates a "
-                        "stratification size of {strat_size}, but {obj} '{name}' "
+                        "The coordinates provided for the stratifications '{strat}' indicate a "
+                        "model states size of {strat_size}, but {obj} '{name}' "
                         "has length {val}".format(
-                            strat=self.stratification, strat_size=self.stratification_size,
+                            strat=list(self.coordinates.keys()), strat_size=self.stratification_size,
                             obj=object_name, name=name, val=list(values.shape)
                         )
                     )
