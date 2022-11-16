@@ -277,13 +277,13 @@ class log_posterior_probability():
         for idx, df in enumerate(data):
             # Does data contain NaN values anywhere?
             if np.isnan(df).values.any():
-                raise Exception(
+                raise ValueError(
                     f"{idx}th dataset contains nans"
                     )
             # Does data have 'date' or 'time' as index level? (required)
             if (('date' not in df.index.names) & ('time' not in df.index.names)):
-                raise Exception(
-                    "Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
+                raise ValueError(
+                    f"Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
                     )
             elif (('date' in df.index.names) & ('time' not in df.index.names)):
                 self.time_index = 'date'
@@ -292,8 +292,8 @@ class log_posterior_probability():
                 self.time_index = 'time'
                 self.additional_axes_data.append([name for name in df.index.names if name != 'time'])
             else:
-                raise Exception(
-                    "Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
+                raise ValueError(
+                    f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
                     )
 
         # Extract start- and enddate of simulations
@@ -416,6 +416,11 @@ class log_posterior_probability():
             tmp1=[]
             for data_dim in data_index_diff:
                 tmp2=[]
+                # Model has no stratifications: data can only contain 'date' or 'time'
+                if not model.coordinates:
+                    raise Exception(
+                        f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
+                    )
                 # Verify the axes in additional_axes_data are valid model dimensions
                 if data_dim not in list(model.coordinates.keys()):
                     raise Exception(
@@ -436,14 +441,17 @@ class log_posterior_probability():
             self.coordinates_data_also_in_model.append(tmp1)
 
         # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-        # Is the difference between  the data axes and model axes (excluding time/date)
+        # Is the difference between the data axes and model axes (excluding time/date)
         self.aggregate_over=[]
         for i, data_index_diff in enumerate(self.additional_axes_data):
             tmp=[]
-            for model_strat in list(model.coordinates.keys()):
-                if model_strat not in data_index_diff:
-                    tmp.append(model_strat)
-            self.aggregate_over.append(tmp)
+            if model.coordinates:
+                for model_strat in list(model.coordinates.keys()):
+                    if model_strat not in data_index_diff:
+                        tmp.append(model_strat)
+                self.aggregate_over.append(tmp)
+            else:
+                self.aggregate_over.append(tmp)
 
         ########################################
         ## Input checks on log_likelihood_fnc ##
@@ -559,7 +567,7 @@ class log_posterior_probability():
             # Select right axes
             if not self.additional_axes_data[idx]:
                 # Only dates must be matched
-                ymodel = interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values
+                ymodel = np.expand_dims(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values, axis=1)
                 if n_log_likelihood_extra_args[idx] == 0:
                     total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, df.values)
                 else:
@@ -596,7 +604,7 @@ class log_posterior_probability():
             self.model.parameters.update({param : value})
 
         # Perform simulation
-        out = self.model.sim(self.end_sim, start_date=self.start_sim, **simulation_kwargs)
+        out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
 
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
