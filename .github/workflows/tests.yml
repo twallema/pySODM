@@ -22,3 +22,4 @@ jobs:
     - name: Run tests
       run: |
         pytest src/tests/test_BaseModel.py
+        pytest src/tests/test_calibration.py
