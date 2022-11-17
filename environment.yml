@@ -1,0 +1,16 @@
+name: pySODM
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - jupyter
+  - pandas
+  - numpy
+  - scipy
+  - xarray
+  - emcee
+  - tqdm
+  - corner
+  - h5py 
+  - matplotlib  
