@@ -25,10 +25,7 @@ def ll_gaussian(ymodel, ydata, sigma):
     ll: float
         Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values, minus the constant terms if complete=True.
     """
-    
-    # Check if shapes are consistent
-    if ymodel.shape != ydata.shape:
-        raise Exception(f"Shapes of model prediction {ymodel.shape} and {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+
     # Expand first dimensions on 'alpha' to match the axes
     sigma = np.array(sigma)[np.newaxis, ...]
 
@@ -50,9 +47,6 @@ def ll_poisson(ymodel, ydata):
         Loglikelihood belonging to the comparison of the data points and the model prediction.
     """
 
-    # Check if shapes are consistent
-    if ymodel.shape != ydata.shape:
-        raise Exception(f"Shapes of model prediction {ymodel.shape} and {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
     # Convert datatype to float
     ymodel = ymodel.astype('float64')
     ydata = ydata.astype('float64')
@@ -91,9 +85,6 @@ def ll_negative_binomial(ymodel, ydata, alpha):
         Loglikelihood belonging to the comparison of the data points and the model prediction.
     """
 
-    # Check if shapes are consistent
-    if ymodel.shape != ydata.shape:
-        raise Exception(f"Shapes of model prediction {ymodel.shape} and {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
     # Expand first dimensions on 'alpha' to match the axes
     alpha = np.array(alpha)[np.newaxis, ...]
     # Convert datatype to float
@@ -487,7 +478,7 @@ class log_posterior_probability():
             if n_log_likelihood_extra_args[idx] == 0:
                 if ((isinstance(log_likelihood_fnc_args[idx], int)) | (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], np.ndarray))):
                     raise ValueError(
-                        "The likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided an int/float/np.array.".format(log_likelihood_fnc[idx], idx)
+                        "The likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided an {2}.".format(log_likelihood_fnc[idx], idx, type(log_likelihood_fnc_args[idx]))
                         )
                 elif log_likelihood_fnc_args[idx]:
                     raise ValueError(
@@ -496,26 +487,36 @@ class log_posterior_probability():
             else:
                 if not self.additional_axes_data[idx]:
                     if not (isinstance(log_likelihood_fnc_args[idx], int) | isinstance(log_likelihood_fnc_args[idx], float)):
-                        raise Exception(
-                            f"The provided arguments of the log likelihood function for the {idx}th dataset must be of type int or float"
+                        raise ValueError(
+                            f"The provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type int or float. You have provided '{type(log_likelihood_fnc_args[idx])}'"
                         )
                 elif len(self.additional_axes_data[idx]) == 1:
                     if (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], int)):
-                        raise Exception(
-                             f"Length of list containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' in the {idx}th dataset. You provided: int or float."
+                        raise ValueError(
+                             f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' in the {idx}th dataset. You provided: int or float."
                         )
+                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                        if log_likelihood_fnc_args[idx].ndim != 1:
+                            raise ValueError(
+                                f"np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must be 1 dimensional"
+                            )
                     if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
-                        raise Exception(
-                            f"Length of list containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' in the {idx}th dataset."
+                        len(log_likelihood_fnc_args[idx])
+                        raise ValueError(
+                            f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                         )
                 else:
-                    shape = list(log_likelihood_fnc_args[idx].shape)
                     desired_shape=[]
                     for lst in self.coordinates_data_also_in_model[idx]:
                         desired_shape.append(len(lst))
+                    if not isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                        raise TypeError(
+                            f"Expected a np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} of size {desired_shape}'"
+                        )
+                    shape = list(log_likelihood_fnc_args[idx].shape)
                     if shape != desired_shape:
-                        raise Exception(
-                            f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}"
+                        raise ValueError(
+                            f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}. You provided {shape}"
                         )
 
         # Find out if 'warmup' needs to be estimated
@@ -570,20 +571,28 @@ class log_posterior_probability():
             if not self.additional_axes_data[idx]:
                 # Only dates must be matched
                 ymodel = np.expand_dims(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values, axis=1)
+                ydata = df.values
+                # Check if shapes are consistent
+                if ymodel.shape != ydata.shape:
+                    raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
                 if n_log_likelihood_extra_args[idx] == 0:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, df.values)
+                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata)
                 else:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, df.values, *[log_likelihood_fnc_args[idx],])
+                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata, *[log_likelihood_fnc_args[idx],])
             else:
-                # Make a dictionary containing the axes names and the values we'd like to match
-                # TODO: get rid of this transpose, does this work in 3 dimensions?
-                ymodel = np.transpose(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).sel({k:self.coordinates_data_also_in_model[idx][jdx] for jdx,k in enumerate(self.additional_axes_data[idx])}).values)
+                # First reorder model output 
+                dims = [self.time_index,] + self.additional_axes_data[idx]
+                interp = interp.transpose(*dims)
+                ymodel = interp.sel({k:self.coordinates_data_also_in_model[idx][jdx] for jdx,k in enumerate(self.additional_axes_data[idx])}).values
                 # Automatically reorder the dataframe so that time/date is first index
-                df = df.reorder_levels([self.time_index,]+self.additional_axes_data[idx])
+                ydata = self.series_to_ndarray(df.reorder_levels([self.time_index,]+self.additional_axes_data[idx]))
+                # Check if shapes are consistent
+                if ymodel.shape != ydata.shape:
+                    raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
                 if n_log_likelihood_extra_args[idx] == 0:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, self.series_to_ndarray(df))
+                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata)
                 else:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, self.series_to_ndarray(df), *[log_likelihood_fnc_args[idx],])
+                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata, *[log_likelihood_fnc_args[idx],])
                 
         return total_ll
 
