@@ -1,5 +1,5 @@
 # pySODM
-*Simulating and Optimising Dynamical Models*
+*Simulating and Optimising Dynamical Models in Python 3*
 
 ## Aim & Scope
 
