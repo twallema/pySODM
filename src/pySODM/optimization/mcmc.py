@@ -36,6 +36,14 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             os.makedirs(directory)
     # Determine current date
     run_date = str(datetime.date.today())
+    # By default, put the calibrated model parameters in the settings dictionary so we can retrieve their sizes later
+    tmp={}
+    for par_name in objective_function.parameter_names:
+        if isinstance(objective_function.model.parameters[par_name], np.ndarray):
+            tmp.update({par_name: list(objective_function.model.parameters[par_name])})
+        else:
+            tmp.update({par_name: objective_function.model.parameters[par_name]})
+    settings_dict.update({'calibrated_parameters': tmp})
     # Save setings dictionary to samples_path
     with open(samples_path+'/'+str(identifier)+'_SETTINGS_'+run_date+'.json', 'w') as file:
         json.dump(settings_dict, file)
@@ -43,7 +51,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
     nwalkers, ndim = pos.shape
     # By default: set up a fresh hdf5 backend in samples_path
     if not backend:
-        filename = '/'+str(identifier)+'_BACKEND_'+run_date+'.h5'
+        filename = '/'+str(identifier)+'_BACKEND_'+run_date+'.hdf5'
         backend = emcee.backends.HDFBackend(samples_path+filename)
         backend.reset(nwalkers, ndim)
     # If user provides an existing backend: continue sampling 
@@ -51,6 +59,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
         pos = backend.get_chain(discard=0, thin=1, flat=False)[-1, ...]
     # This will be useful to testing convergence
     old_tau = np.inf
+
     # Start calibration
     print(f'\nMarkov-Chain Monte-Carlo sampling')
     print(f'=================================\n')
@@ -70,11 +79,11 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             #############################
             
             # Update autocorrelation plot
-            ax, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.labels,
+            ax, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
                                             filename=fig_path+'/autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={'linewidth':2, 'color': 'red'})
             # Update traceplot
-            traceplot(sampler.get_chain(),labels=objective_function.labels,
+            traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
                         filename=fig_path+'/traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth':2,'color': 'red','alpha': 0.15})
             # Garbage collection
@@ -185,11 +194,26 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
         sys.stdout.flush()
     return ndim, nwalkers, pos
 
-def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, settings={}, samples_path=None, identifier=None):
+def emcee_sampler_to_dictionary(discard=0, thin=1, samples_path=None, identifier=None, run_date=str(datetime.date.today())):
     """
     A function to discard and thin the samples available in the sampler object and subsequently convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
     Append a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).
     """
+
+    ###############################
+    ## Load sampler and settings ##
+    ###############################
+
+    import json
+
+    # Load settings
+    with open(os.path.join(os.getcwd(), samples_path+str(identifier)+'_SETTINGS_'+run_date+'.json'), 'r') as f:
+        settings = json.load(f)
+
+    # Load sampler 
+    filename =  samples_path+'/'+str(identifier)+'_BACKEND_'+run_date+'.hdf5'
+    sampler = emcee.backends.HDFBackend(os.path.join(os.getcwd(), filename))
+
     ####################
     # Discard and thin #
     ####################
@@ -207,29 +231,29 @@ def emcee_sampler_to_dictionary(sampler, parameter_names, discard=0, thin=1, set
     # Construct a dictionary of samples #
     #####################################
 
-    # Samples
     flat_samples = sampler.get_chain(discard=discard,thin=thin,flat=True)
     samples_dict = {}
-    for count,name in enumerate(parameter_names):
-        samples_dict[name] = flat_samples[:,count].tolist()
+    for i,(name,value) in enumerate(settings['calibrated_parameters'].items()):
+        if isinstance(value,list):
+            samples_dict[name] = flat_samples[:, i:i+len(value)]
+        else:
+            samples_dict[name] = flat_samples[:,i]
     
-    # Append settings
+    # Remove calibrated parameters from the settings
+    del settings['calibrated_parameters']
+    # Append settings to samples dictionary
     samples_dict.update(settings)
+    # Remove settings .json
+    os.remove(os.path.join(os.getcwd(), samples_path+str(identifier)+'_SETTINGS_'+run_date+'.json'))
 
     ###############
     # Save result #
     ###############
 
-    if not samples_path:
-        samples_path = os.getcwd()
-    else:
-        samples_path = os.path.join(os.getcwd(), samples_path)
-
-    # Determine current date
-    run_date = str(datetime.date.today())
-
-    # Dump samples
-    with open(os.path.join(os.getcwd(),samples_path+str(identifier)+'_SAMPLES_'+run_date+'.json'), 'w') as fp:
-        json.dump(samples_dict, fp)
+    import h5py
+    # Write samples to an .hdf5
+    with h5py.File(os.path.join(os.getcwd(),samples_path+str(identifier)+'_SAMPLES_'+run_date+'.hdf5'), "w") as f:
+        for k, v in samples_dict.items():
+            f.create_dataset(k, data=v)
 
     return samples_dict
