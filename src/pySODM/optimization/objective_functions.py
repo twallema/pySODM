@@ -394,8 +394,8 @@ class log_posterior_probability():
             labels = parameter_names_postprocessing
         
         # Assign to objective function
-        self.bounds=bounds
-        self.labels=labels
+        self.expanded_bounds=bounds
+        self.expanded_labels=labels
         self.parameter_names_postprocessing=parameter_names_postprocessing
 
         ############################################
