@@ -22,7 +22,7 @@ def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
     return np.array(f_ieqcons(x, *args, **kwargs))
 
 
-def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
+def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         swarmsize=100, omega=0.8, phip=0.8, phig=0.8, maxiter=100,
         minstep=1e-12, minfunc=1e-12, debug=False, processes=1,
         particle_output=False, transform_pars=None):
@@ -31,10 +31,11 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
 
     Parameters
     ==========
-    func : function
-        The function to be minimized
+    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        The objective function to be minimized
     bounds: tuple array
         The bounds of the design variable(s). In form [(lower, upper), ..., (lower, upper)]
+        Class 'log_posterior_probability' automatically contains bounds. If bounds are provided these overwrite the bounds available in the 'log_posterior_probability' object.
 
     Optional
     ========
@@ -86,6 +87,14 @@ def optimize(func, bounds, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         The objective values at each position in p
 
     """
+
+    if not bounds:
+        try:
+            bounds = func.expanded_bounds
+        except:
+            raise Exception(
+                "Variable 'expanded_bounds' not found in object 'func'. Provide bounds directly to `pso.optimize()`. "
+            )
 
     lb, ub = [], []
     for variable_bounds in bounds:
