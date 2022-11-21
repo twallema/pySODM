@@ -115,11 +115,11 @@ if __name__ == '__main__':
     log_prior_fnc = len(expanded_bounds)*[log_prior_uniform,]
     log_prior_fnc_args = expanded_bounds                                     
     # PSO
-    theta = pso.optimize(objective_function, expanded_bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
+    theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
                        swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
     step = len(expanded_bounds)*[0.05,]
-    theta = nelder_mead.optimize(objective_function, np.array(theta), expanded_bounds, step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
+    theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
     ######################
     ## Visualize result ##

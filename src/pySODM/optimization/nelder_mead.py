@@ -11,8 +11,8 @@ from functools import partial
 def _obj_wrapper(func, args, kwargs, x):
     return func(x, *args, **kwargs)
 
-def optimize(func, x_start, bounds,
-                step, args=(), kwargs={}, processes=1, no_improve_thr=1e-6,
+def optimize(func, x_start, step,
+                bounds=None, args=(), kwargs={}, processes=1, no_improve_thr=1e-6,
                 no_improv_break=100, max_iter=1000,
                 alpha=1., gamma=2., rho=-0.5, sigma=0.5):
     """
@@ -20,14 +20,15 @@ def optimize(func, x_start, bounds,
 
     Parameters
     ==========
-    func : function
-        The function to be minimized.
+    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        The objective function to be minimized
     x_start: list or np.array
         Starting estimate for the search algorithm. Length must equal the number of provided bounds.
+     step: list or np.array
+        Size of the initial search simplex       
     bounds: tuple array
         The bounds of the design variable(s). In form [(lower, upper), ..., (lower, upper)]
-    step: list or np.array
-        Size of the initial search simplex
+        Class 'log_posterior_probability' automatically contains bounds. If bounds are provided these overwrite the bounds available in the 'log_posterior_probability' object.
     args : tuple
         Additional arguments passed to objective function
         (Default: empty tuple)
@@ -45,6 +46,14 @@ def optimize(func, x_start, bounds,
     ##################
     ## Input checks ##
     ##################
+
+    if not bounds:
+        try:
+            bounds = func.expanded_bounds
+        except:
+            raise Exception(
+                "Variable 'expanded_bounds' not found in object 'func'. Provide bounds directly to `pso.optimize()`. "
+            )
 
     # Input check bounds
     lb, ub = [], []
