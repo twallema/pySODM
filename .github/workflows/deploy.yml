@@ -8,13 +8,10 @@ on:
 
 jobs:
   deploy:
-
     runs-on: ${{ matrix.os }}
-
     strategy:
-        matrix:
-            os: [ubuntu-latest]
-
+      matrix:
+        os: [ubuntu-latest]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
