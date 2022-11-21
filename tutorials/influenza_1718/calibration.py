@@ -195,11 +195,11 @@ if __name__ == '__main__':
     ######################
     ## Visualize result ##
     ######################
-
+ 
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
-        idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))  
-        param_dict['f_a'] =samples_dict['f_a'][idx,:]
+        idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
+        param_dict['f_a'] = np.array([slice[idx] for slice in samples_dict['f_a']])
         return param_dict
     # Simulate model
     out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)

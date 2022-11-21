@@ -233,11 +233,15 @@ def emcee_sampler_to_dictionary(discard=0, thin=1, samples_path=None, identifier
 
     flat_samples = sampler.get_chain(discard=discard,thin=thin,flat=True)
     samples_dict = {}
+
     for i,(name,value) in enumerate(settings['calibrated_parameters'].items()):
         if isinstance(value,list):
-            samples_dict[name] = flat_samples[:, i:i+len(value)]
+            vals=[]
+            for j in range(len(value)):
+                vals.append(list(flat_samples[:, i+j]))
+            samples_dict[name] = vals
         else:
-            samples_dict[name] = flat_samples[:,i]
+            samples_dict[name] = list(flat_samples[:,i])
     
     # Remove calibrated parameters from the settings
     del settings['calibrated_parameters']
@@ -250,10 +254,8 @@ def emcee_sampler_to_dictionary(discard=0, thin=1, samples_path=None, identifier
     # Save result #
     ###############
 
-    import h5py
-    # Write samples to an .hdf5
-    with h5py.File(os.path.join(os.getcwd(),samples_path+str(identifier)+'_SAMPLES_'+run_date+'.hdf5'), "w") as f:
-        for k, v in samples_dict.items():
-            f.create_dataset(k, data=v)
+    # Save setings dictionary to samples_path
+    with open(os.path.join(os.getcwd(),samples_path+str(identifier)+'_SAMPLES_'+run_date+'.json'), 'w') as file:
+        json.dump(samples_dict, file)
 
     return samples_dict
