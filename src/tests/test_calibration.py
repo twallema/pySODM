@@ -85,10 +85,10 @@ def test_correct_approach_wo_stratification():
                                                 log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
     # PSO
-    theta = pso.optimize(objective_function, bounds, kwargs={'simulation_kwargs':{'warmup': warmup}},
+    theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
                         swarmsize=10, maxiter=10, processes=1, debug=True)[0]
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), bounds, [0.05,], 
+    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], 
                         kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=1, max_iter=10)[0]
     if plot:
         # Visualize results
@@ -101,8 +101,8 @@ def test_correct_approach_wo_stratification():
         plt.close()
 
     # Setup prior functions and arguments
-    log_prior_fnc = len(objective_function.bounds)*[log_prior_uniform,]
-    log_prior_fnc_args = objective_function.bounds  
+    log_prior_fnc = len(objective_function.expanded_bounds)*[log_prior_uniform,]
+    log_prior_fnc_args = objective_function.expanded_bounds  
     # Variables
     n_mcmc = 10
     multiplier_mcmc = 5
@@ -124,7 +124,7 @@ def test_correct_approach_wo_stratification():
                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True,
                                    settings_dict=settings)
     #Generate samples dict
-    samples_dict = emcee_sampler_to_dictionary(sampler, pars, discard=discard, settings=settings, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
 
     #Visualize result
     if plot:
@@ -301,15 +301,14 @@ def test_correct_approach_with_one_stratification_0():
     objective_function = log_posterior_probability([],[],model,pars,bounds,data,states,
                                                 log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
     # Extract formatted parameter_names, bounds and labels
-    pars_postprocessing = objective_function.parameter_names_postprocessing
-    labels = objective_function.labels 
-    bounds = objective_function.bounds
+    labels = objective_function.expanded_labels 
+    bounds = objective_function.expanded_bounds
 
     # PSO
-    theta = pso.optimize(objective_function, objective_function.bounds,
+    theta = pso.optimize(objective_function,
                         swarmsize=10, maxiter=20, processes=1, debug=True)[0]
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), objective_function.bounds, [0.05, 0.05],
+    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
                         processes=1, max_iter=20)[0]
 
     # Assert equality of betas!
@@ -450,13 +449,13 @@ def test_correct_approach_with_two_stratifications():
                                                 log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
     # Extract formatted parameter_names, bounds and labels
     pars_postprocessing = objective_function.parameter_names_postprocessing
-    labels = objective_function.labels 
-    bounds = objective_function.bounds
+    labels = objective_function.expanded_labels 
+    bounds = objective_function.expanded_bounds
     # PSO
-    theta = pso.optimize(objective_function, objective_function.bounds,
+    theta = pso.optimize(objective_function,
                         swarmsize=10, maxiter=30, processes=1, debug=True)[0]
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), objective_function.bounds, [0.05, 0.05],
+    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
                         processes=1, max_iter=30)[0]
 
     # Assert equality of betas!
