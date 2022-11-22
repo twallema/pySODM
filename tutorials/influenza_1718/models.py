@@ -45,24 +45,24 @@ class SDE_influenza_model(SDEModel):
 
         # Rates per model state
         rates = {
-            'S': beta*np.matmul(Nc, (Ia+Im)/T),
+            'S': [beta*np.matmul(Nc, (Ia+Im)/T),],
             'E': [f_a*(1/sigma), (1-f_a)*(1/sigma)],
-            'Ia': 1/gamma,
-            'Im': 1/gamma,
-            'I_inc': (1-f_a)*(1/sigma)
+            'Ia': [(1/gamma)*np.ones(T.shape),],
+            'Im': [(1/gamma)*np.ones(T.shape),],
+            'Im_inc': [(1-f_a)*(1/sigma),]
         }
 
         return rates
 
     @staticmethod
     def apply_transitionings(t, transitionings, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
-
-        S_new  = S - transitionings['S']
-        E_new = E + transitionings['S'] - transitionings['E'][0] - transitionings['E'][1]
-        Ia_new = Ia + transitionings['E'][0] - transitionings['Ia']
-        Im_new = Im + transitionings['E'][1] - transitionings['Im']
-        R_new = R + transitionings['Ia'] + transitionings['Im']
-        Im_inc_new = transitionings['Im_inc']
+        
+        S_new  = S - transitionings['S'][0]
+        E_new = E + transitionings['S'][0] - transitionings['E'][0] - transitionings['E'][1]
+        Ia_new = Ia + transitionings['E'][0] - transitionings['Ia'][0]
+        Im_new = Im + transitionings['E'][1] - transitionings['Im'][0]
+        R_new = R + transitionings['Ia'][0] + transitionings['Im'][0]
+        Im_inc_new = transitionings['Im_inc'][0]
 
         return S_new, E_new, Ia_new, Im_new, R_new, Im_inc_new
 

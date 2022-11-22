@@ -299,7 +299,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
 
 
 def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
-                        parameters_stratified_names, _function_parameters, _create_fun, compute_rates_func, apply_transitionings_func):
+                        parameters_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):
     """
     This does some basic validation of the model + initialization:
 
@@ -563,30 +563,50 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # sort the initial states to match the state_names
     initial_states = {state: initial_states[state] for state in state_names}
 
-    import sys
-    sys.exit()
+    #########################################################################
+    # Validate the 'compute_rates' and 'apply_transitionings' by calling it #
+    #########################################################################
 
-    ####################################
-    # Validate the model by calling it #
-    ####################################
+    # compute_rates
+    # ~~~~~~~~~~~~~
 
-    # Call integrate function with initial values to check if the function returns all states
-    fun = _create_fun(None)
-    y0 = list(itertools.chain(*initial_states.values()))
-    while np.array(y0).ndim > 1:
-        y0 = list(itertools.chain(*y0))
-    check = True
-    try:
-        result = fun(pd.Timestamp('2020-09-01'), np.array(y0), parameters)
-    except:
-        try:
-            result = fun(1, np.array(y0), parameters)
-        except:
-            check = False
-    if check:
-        if len(result) != len(y0):
+    # Call the function with initial values to check if the function returns the right format of dictionary
+    rates = compute_rates_func(10, *initial_states.values(), *list(parameters.values())[:-_n_function_params])
+    # Check if a dictionary is returned
+    if not isinstance(rates, dict):
+        raise TypeError("Output of function 'compute_rates' should be of type dictionary")
+    # Check if all states present are valid model parameters
+    for state in rates.keys():
+        if not state in state_names:
             raise ValueError(
-                "The return value of the integrate function does not have the correct length."
+                f"Rate found for an invalid model state '{state}'"
             )
+    # Check if all rates are given as a list
+    for state_name, rate_list in rates.items():
+        if not isinstance(rate_list, list):
+            raise ValueError(
+                f"Rate(s) of model state '{state_name}' are not containted within a list."
+            )
+    # Check if the sizes are correct
+    for state_name, rate_list in rates.items():
+        for i,rate in enumerate(rate_list):
+            if not isinstance(rate, np.ndarray):
+                raise TypeError(f"Rate of the {i}th transitioning for state {state_name} is not of type 'np.ndarray' but {type(rate)}")
+            if list(rate.shape) != stratification_size:
+                raise ValueError(f"The provided coordinates indicate a state size of {stratification_size}, but rate of the {i}th transitioning for state '{state_name}' has shape {list(rate.shape)}")
     
+    # apply_transitionings
+    # ~~~~~~~~~~~~~~~~~~~~
+
+    new_states = apply_transitionings_func(10, rates, *initial_states.values(), *list(parameters.values())[:-_n_function_params])
+
+    # Check
+    if len(list(new_states)) != len(state_names):
+        raise ValueError(f"The number of outputs of function 'apply_transitionings_func' ({len(list(new_states))}) is not equal to the number of states ({len(state_names)})")
+    for i, new_state in enumerate(list(new_states)):
+        if not isinstance(new_state, np.ndarray):
+            raise TypeError(f"Output state of function 'apply_transitionings_func' in position {i} is not a np.ndarray")
+        if list(new_state.shape) != stratification_size:
+            raise ValueError(f"The provided coordinates indicate a state size of {stratification_size}, but the {i}th output of function 'apply_transitionings_func' has shape {list(new_state.shape)}")
+
     return initial_states, parameters, _n_function_params

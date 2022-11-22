@@ -41,12 +41,7 @@ class SDEModel:
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
                                                                                             self.parameter_names, self.parameters_stratified_names, self._function_parameters,
-                                                                                            self._create_fun, self.compute_rates, self.apply_transitionings)
-
-
-        print('succeeded')
-        print(self.initial_states)
-        print(self.parameters)
+                                                                                            self.compute_rates, self.apply_transitionings)
 
     # Overwrite integrate class
     @staticmethod
@@ -59,7 +54,35 @@ class SDEModel:
         """to overwrite in subclasses"""
         raise NotImplementedError
 
-    def _create_fun():
+    def _update_time_dependent_parameters(self, actual_start_date):
+        pass
+
+    def _stochastic_simulation_algorithm(self):
+        pass
+
+    def _tau_leaping_algorithm(self):
+        pass
+
+    def _sim_single(self):
+
+        # Prepare time
+
+        # Initialize output
+
+        # Start time loop
+
+            ## Update TDPFs, remove parameters of TDPFs from dictionary
+
+            ## Compute rates
+
+            ## Perform Gillespie step
+
+            ## Update states
+
+            ## Append
+        
+        # Extrapolate
+
         pass
 
 ################
