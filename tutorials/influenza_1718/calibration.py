@@ -105,15 +105,11 @@ if __name__ == '__main__':
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
     bounds = [(1e-6,0.20), (0,1)]
-    # Setup objective function without priors and with negative weights 
-    objective_function = log_posterior_probability([],[],model,pars,bounds,data,states,
-                                               log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    # Setup objective function (no priors --> uniform priors based on bounds)
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Extract expanded bounds and labels
     expanded_labels = objective_function.expanded_labels 
-    expanded_bounds = objective_function.expanded_bounds
-    # Setup prior functions and arguments
-    log_prior_fnc = len(expanded_bounds)*[log_prior_uniform,]
-    log_prior_fnc_args = expanded_bounds                                     
+    expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
     theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
                        swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
@@ -164,11 +160,8 @@ if __name__ == '__main__':
     fig_path='sampler_output/'
     identifier = 'username'
     run_date = str(datetime.date.today())
-
-    # initialize objective function
-    objective_function = log_posterior_probability(log_prior_fnc,log_prior_fnc_args,model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=log_prior_fnc_args)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'warmup': warmup, 'starting_estimate': list(theta), 'labels': expanded_labels}
