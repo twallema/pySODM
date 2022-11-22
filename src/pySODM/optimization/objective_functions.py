@@ -398,6 +398,18 @@ class log_posterior_probability():
         self.expanded_labels=labels
         self.parameter_names_postprocessing=parameter_names_postprocessing
 
+        ##########################################################################
+        ## TODO: Input check on number of prior functions + potential expansion ##
+        ##########################################################################
+
+        # Make priors optional
+        ## If no priors provided: setup uniform prior using the bounds
+        ## If priors provided:
+            ### CHECK
+            ### Number of functions and arguments the same?
+            ### Expanded size or non-expanded size?
+            ### If not expanded --> expand
+
         ############################################
         ## Compare data and model stratifications ##
         ############################################
