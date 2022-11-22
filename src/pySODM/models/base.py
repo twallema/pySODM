@@ -11,7 +11,7 @@ import pandas as pd
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
-from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel
+from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
 
 class SDEModel:
     """
@@ -22,14 +22,45 @@ class SDEModel:
     parameter_names = None
     parameters_stratified_names = None
     stratification_names = None
-    state_2d = None
 
-def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
         self.parameters = parameters
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
+        # Validate and compute the stratification sizes
+        self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
+
+        # Validate the time-dependent parameter functions
+        if time_dependent_parameters:
+            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameters_stratified_names, self.time_dependent_parameters)
+        else:
+            self._function_parameters = []
+        
+        # Validate the model
+        self.initial_states, self.parameters, self._n_function_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
+                                                                                            self.parameter_names, self.parameters_stratified_names, self._function_parameters,
+                                                                                            self._create_fun, self.compute_rates, self.apply_transitionings)
+
+
+        print('succeeded')
+        print(self.initial_states)
+        print(self.parameters)
+
+    # Overwrite integrate class
+    @staticmethod
+    def compute_rates():
+        """to overwrite in subclasses"""
+        raise NotImplementedError
+
+    @staticmethod
+    def apply_transitionings():
+        """to overwrite in subclasses"""
+        raise NotImplementedError
+
+    def _create_fun():
+        pass
 
 ################
 ## ODE Models ##
@@ -80,9 +111,9 @@ class ODEModel:
             self._function_parameters = []
 
         # Validate the model
-        self.initial_states, self.parameters, self._n_function_params, self.discrete = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.integrate,
-                                                                                                        self.state_names, self.parameter_names, self.parameters_stratified_names,
-                                                                                                        self._function_parameters, self._create_fun, self.state_2d)
+        self.initial_states, self.parameters, self._n_function_params, self.discrete = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
+                                                                                                        self.parameter_names, self.parameters_stratified_names, self._function_parameters,
+                                                                                                        self._create_fun, self.integrate, self.state_2d)
 
         # Experimental: added to use 2D states for the Economic IO model
         if self.state_2d:

@@ -50,7 +50,7 @@ initN = pd.Series(index=age_groups, data=[606938, 1328733, 7352492, 2204478])
 ## Load model ##
 ################
 
-from models import ODE_influenza_model as influenza_model
+from models import SDE_influenza_model as influenza_model
 
 #################
 ## Setup model ##
@@ -74,11 +74,19 @@ Nc = np.array([[1.3648649, 1.1621622, 5.459459, 0.3918919],
 # Define model parameters
 params={'beta':0.10,'sigma':1,'f_a':0.75*np.ones(4),'gamma':5,'Nc':np.transpose(Nc)}
 # Define initial condition
-init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
+init_states = {'S': initN.values,'Ei': np.rint(initN.values/initN.values[0])}
 # Define model coordinates
 coordinates={'age_group': age_groups}
+
+# Some dummy TDPF
+def Ncfunc(t,states, param, someparam):
+    return param
+params.update({'someparam': 4})
+
 # Initialize model
-model = influenza_model(init_states,params,coordinates)
+model = influenza_model(init_states,params,coordinates,time_dependent_parameters={'Nc': Ncfunc})
+
+sys.exit()
 
 #####################
 ## Calibrate model ##

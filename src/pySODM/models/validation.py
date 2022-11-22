@@ -84,8 +84,8 @@ def validate_time_dependent_parameters(parameter_names, parameters_stratified_na
 
     return extra_params
 
-def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, integrate_func,
-                    state_names, parameter_names, parameters_stratified_names, _function_parameters, _create_fun, state_2d=None):
+def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
+                        parameters_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
     """
     This does some basic validation of the model + initialization:
 
@@ -295,3 +295,299 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             )
     
     return initial_states, parameters, _n_function_params, discrete
+
+
+
+def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
+                        parameters_stratified_names, _function_parameters, _create_fun, compute_rates_func, apply_transitionings_func):
+    """
+    This does some basic validation of the model + initialization:
+
+    1) Validation of the integrate function to ensure it matches with
+    the specified `state_names`, `parameter_names`, etc.
+    This is actually a validation of the model class itself, but it is
+    easier to do this only on initialization of a model instance.
+
+    2) Validation of the actual initialization with initial values for the
+    states and parameter values.
+    TODO: For now, we require that those are passed in the exact same
+    order, but this requirement could in principle be relaxed, if we ensure
+    to pass the states and parameters as keyword arguments and not as
+    positional arguments to the `integrate` function.
+    """
+
+    #############################
+    ## Validate the signatures ##
+    #############################
+
+    # Compute_rates function
+    # ~~~~~~~~~~~~~~~~~~~~~~
+
+    sig = inspect.signature(compute_rates_func)
+    keywords = list(sig.parameters.keys())
+    if keywords[0] != "t":
+        raise ValueError(
+            "The first argument of the 'compute_rates' function should always be 't'"
+        )
+    else:
+        start_index = 1
+
+    # Get names of states and parameters that follow after 't'
+    N_states = len(state_names)
+    compute_rates_states = keywords[start_index : start_index + N_states]
+    if compute_rates_states != state_names:
+        raise ValueError(
+            "The states in the 'compute_rates' function definition do not match "
+            "the provided 'state_names': {0} vs {1}".format(compute_rates_states, state_names)
+        )
+    compute_rates_params = keywords[start_index + N_states :]
+    specified_params = parameter_names.copy()
+
+    if parameters_stratified_names:
+        if not isinstance(parameters_stratified_names[0], list):
+            if len(parameters_stratified_names) == 1:
+                specified_params += parameters_stratified_names
+            else:
+                for stratified_names in parameters_stratified_names:
+                    specified_params += [stratified_names,]
+        else:
+            for stratified_names in parameters_stratified_names:
+                specified_params += stratified_names
+
+    if compute_rates_params != specified_params:
+        raise ValueError(
+            "The parameters in the 'compute_rates' function definition do not match "
+            "the provided 'parameter_names' + 'parameters_stratified_names': "
+            "{0} vs {1}".format(compute_rate_params, specified_params)
+        )
+
+    # additional parameters from time-dependent parameter functions
+    # are added to specified_params after the above check
+
+    if _function_parameters:
+        extra_params = [item for sublist in _function_parameters for item in sublist]
+
+        # TODO check that it doesn't duplicate any existing parameter (completed?)
+        # Line below removes duplicate arguments in time dependent parameter functions
+        extra_params = OrderedDict((x, True) for x in extra_params).keys()
+        specified_params += extra_params
+        len_before = len(specified_params)
+        # Line below removes duplicate arguments with integrate defenition
+        specified_params = OrderedDict((x, True) for x in specified_params).keys()
+        len_after = len(specified_params)
+        # Line below computes number of integrate arguments used in time dependent parameter functions
+        n_duplicates = len_before - len_after
+        _n_function_params = len(extra_params) - n_duplicates
+    else:
+        _n_function_params = 0
+
+    # Validate the params
+    if set(parameters.keys()) != set(specified_params):
+        raise ValueError(
+            "The specified parameters don't exactly match the predefined parameters. "
+            "Redundant parameters: {0}. Missing parameters: {1}".format(
+            set(parameters.keys()).difference(set(specified_params)),
+            set(specified_params).difference(set(parameters.keys())))
+        )
+
+    parameters_compute_rates = {param: parameters[param] for param in specified_params}
+
+    # apply_transitionings function
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    sig = inspect.signature(apply_transitionings_func)
+    keywords = list(sig.parameters.keys())
+    if keywords[0] != "t":
+        raise ValueError(
+            "The first argument of the 'apply_transitionings' function should always be 't'"
+        )
+    elif keywords[1] != 'transitionings':
+        raise ValueError(
+            "The second argument of the 'apply_transitionings' function should always be 'transitionings'"
+        )
+    else:
+        start_index = 2
+
+    # Get names of states and parameters that follow after 't'
+    N_states = len(state_names)
+    apply_transitionings_states = keywords[start_index : start_index + N_states]
+    if apply_transitionings_states != state_names:
+        raise ValueError(
+            "The states in the 'apply_transitionings' function definition do not match "
+            "the provided 'state_names': {0} vs {1}".format(apply_transitionings_states, state_names)
+        )
+    apply_transitionings_params = keywords[start_index + N_states :]
+    specified_params = parameter_names.copy()
+
+    if parameters_stratified_names:
+        if not isinstance(parameters_stratified_names[0], list):
+            if len(parameters_stratified_names) == 1:
+                specified_params += parameters_stratified_names
+            else:
+                for stratified_names in parameters_stratified_names:
+                    specified_params += [stratified_names,]
+        else:
+            for stratified_names in parameters_stratified_names:
+                specified_params += stratified_names
+
+    if apply_transitionings_params != specified_params:
+        raise ValueError(
+            "The parameters in the 'apply_transitionings' function definition do not match "
+            "the provided 'parameter_names' + 'parameters_stratified_names': "
+            "{0} vs {1}".format(apply_transitionings_params, specified_params)
+        )
+
+    # additional parameters from time-dependent parameter functions
+    # are added to specified_params after the above check
+
+    if _function_parameters:
+        extra_params = [item for sublist in _function_parameters for item in sublist]
+
+        # TODO check that it doesn't duplicate any existing parameter (completed?)
+        # Line below removes duplicate arguments in time dependent parameter functions
+        extra_params = OrderedDict((x, True) for x in extra_params).keys()
+        specified_params += extra_params
+        len_before = len(specified_params)
+        # Line below removes duplicate arguments with integrate defenition
+        specified_params = OrderedDict((x, True) for x in specified_params).keys()
+        len_after = len(specified_params)
+        # Line below computes number of integrate arguments used in time dependent parameter functions
+        n_duplicates = len_before - len_after
+        _n_function_params = len(extra_params) - n_duplicates
+    else:
+        _n_function_params = 0
+
+    # Validate the params
+    if set(parameters.keys()) != set(specified_params):
+        raise ValueError(
+            "The specified parameters don't exactly match the predefined parameters. "
+            "Redundant parameters: {0}. Missing parameters: {1}".format(
+            set(parameters.keys()).difference(set(specified_params)),
+            set(specified_params).difference(set(parameters.keys())))
+        )
+
+    parameters = {param: parameters[param] for param in specified_params}
+
+    # Assert equality as a sanity check
+    if set(parameters.keys()) != set(parameters_compute_rates.keys()):
+        raise ValueError(
+            "The model parameters derived from the 'compute_rates' function do not match the model parameters of the 'apply_transitionings' function."
+            "Different keys: {0}".format(
+            set(parameters.keys()).difference(set(parameters_compute_rates.keys())))
+        )
+
+    # After building the list of all model parameters, verify no parameters 't' was used
+    if 't' in parameters:
+        raise ValueError(
+            "Parameter name 't' is reserved for the simulation time.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
+            )
+
+    ###############################################################################
+    ## Validate the initial_states / stratified params having the correct length ##
+    ###############################################################################
+
+    def validate_stratified_parameters(values, name, object_name,i):
+        values = np.asarray(values)
+        if values.ndim != 1:
+            raise ValueError(
+                "A {obj} value should be a 1D array, but {obj} '{name}' is"
+                "{val}-dimensional".format(
+                    obj=object_name, name=name, val=values.ndim
+                )
+            )
+        if len(values) != stratification_size[i]:
+            raise ValueError(
+                "The coordinates provided for stratification '{strat}' indicates a "
+                "stratification size of {strat_size}, but {obj} '{name}' "
+                "has length {val}".format(
+                    strat=list(coordinates.keys())[i], strat_size=stratification_size[i],
+                    obj=object_name, name=name, val=len(values)
+                )
+            )
+
+    def validate_initial_states(values, name, object_name):
+        values = np.asarray(values)
+        if list(values.shape) != stratification_size:
+            raise ValueError(
+                "The coordinates provided for the stratifications '{strat}' indicate a "
+                "model states size of {strat_size}, but {obj} '{name}' "
+                "has length {val}".format(
+                    strat=list(coordinates.keys()), strat_size=stratification_size,
+                    obj=object_name, name=name, val=list(values.shape)
+                )
+            )
+
+    # the size of the stratified parameters
+    if parameters_stratified_names:
+        i = 0
+        if not isinstance(parameters_stratified_names[0], list):
+            if len(parameters_stratified_names) == 1:
+                for param in parameters_stratified_names:
+                    validate_stratified_parameters(
+                            parameters[param], param, "stratified parameter",i
+                        )
+                i = i + 1
+            else:
+                for param in parameters_stratified_names:
+                    validate_stratified_parameters(
+                            parameters[param], param, "stratified parameter",i
+                        )
+                i = i + 1
+        else:
+            for stratified_names in parameters_stratified_names:
+                for param in stratified_names:
+                    validate_stratified_parameters(
+                        parameters[param], param, "stratified parameter",i
+                    )
+                i = i + 1
+
+    # the size of the initial states + fill in defaults
+    for state in state_names:
+        if state in initial_states:
+            # if present, check that the length is correct
+            validate_initial_states(
+                initial_states[state], state, "initial state"
+            )
+        else:
+            # otherwise add default of 0
+            initial_states[state] = np.zeros(stratification_size)
+
+    # validate the states (using `set` to ignore order)
+    if set(initial_states.keys()) != set(state_names):
+        raise ValueError(
+            "The specified initial states don't exactly match the predefined states. "
+            "Redundant states: {0}. Missing states: {1}".format(
+            set(initial_states.keys()).difference(set(state_names)),
+            set(state_names).difference(set(initial_states.keys())))
+        )
+
+    # sort the initial states to match the state_names
+    initial_states = {state: initial_states[state] for state in state_names}
+
+    import sys
+    sys.exit()
+
+    ####################################
+    # Validate the model by calling it #
+    ####################################
+
+    # Call integrate function with initial values to check if the function returns all states
+    fun = _create_fun(None)
+    y0 = list(itertools.chain(*initial_states.values()))
+    while np.array(y0).ndim > 1:
+        y0 = list(itertools.chain(*y0))
+    check = True
+    try:
+        result = fun(pd.Timestamp('2020-09-01'), np.array(y0), parameters)
+    except:
+        try:
+            result = fun(1, np.array(y0), parameters)
+        except:
+            check = False
+    if check:
+        if len(result) != len(y0):
+            raise ValueError(
+                "The return value of the integrate function does not have the correct length."
+            )
+    
+    return initial_states, parameters, _n_function_params
