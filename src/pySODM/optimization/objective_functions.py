@@ -436,9 +436,6 @@ class log_posterior_probability():
         self.log_prior_prob_fnc = log_prior_prob_fnc
         self.log_prior_prob_fnc_args = log_prior_prob_fnc_args
 
-        print(log_prior_prob_fnc)
-        print(log_prior_prob_fnc_args)
-
         ############################################
         ## Compare data and model stratifications ##
         ############################################
