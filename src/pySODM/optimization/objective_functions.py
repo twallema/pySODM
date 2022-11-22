@@ -240,21 +240,15 @@ class log_posterior_probability():
     """ Computation of log posterior probability
 
     A generic implementation to compute the log posterior probability of a model given some data, computed as the sum of the log prior probabilities and the log likelihoods.
-    The class allows the user to compare model states to multiple datasets, using a different observation model (gaussian, poisson, neg. binomial) for each dataset.
-    The data must be of type pd.DataFrame and must contain the axes "date". 
-    # TODO: update docstring
+    # TODO: fully document docstring
     """
-    def __init__(self, log_prior_prob_fnc, log_prior_prob_fnc_args, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, labels=None):
+    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights,
+                    log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, labels=None):
 
-        ###########################################################################################################################
-        ## Check provided number of log_prior functions/arguments, number of datasets, states, weights, log_likelihood functions ##
-        ###########################################################################################################################
+        ############################################################################################
+        ## Check provided number of number of datasets, states, weights, log_likelihood functions ##
+        ############################################################################################
 
-        # Some inputs must have the same length
-        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
-            raise ValueError(
-                f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
-                )
         if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args]):
             raise ValueError(
                 "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
@@ -364,12 +358,11 @@ class log_posterior_probability():
                         new_bounds.append(bounds[i])
                 else:
                     new_bounds.append(bounds[i])
-            bounds = new_bounds
-        elif len(bounds) == expanded_length:
+        elif len(new_bounds) == expanded_length:
             pass
         else:
             raise Exception(
-                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                f"The number of provided bounds ({len(new_bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
             )
 
         # Expand labels if provided
@@ -394,21 +387,57 @@ class log_posterior_probability():
             labels = parameter_names_postprocessing
         
         # Assign to objective function
-        self.expanded_bounds=bounds
+        self.expanded_bounds=new_bounds
         self.expanded_labels=labels
         self.parameter_names_postprocessing=parameter_names_postprocessing
 
-        ##########################################################################
-        ## TODO: Input check on number of prior functions + potential expansion ##
-        ##########################################################################
+        ####################################################################
+        ## Input check on number of prior functions + potential expansion ##
+        ####################################################################
 
-        # Make priors optional
-        ## If no priors provided: setup uniform prior using the bounds
-        ## If priors provided:
-            ### CHECK
-            ### Number of functions and arguments the same?
-            ### Expanded size or non-expanded size?
-            ### If not expanded --> expand
+        if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
+            # Setup uniform priors
+            log_prior_prob_fnc = len(self.expanded_bounds)*[log_prior_uniform,]
+            log_prior_prob_fnc_args = self.expanded_bounds
+        elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
+            raise Exception(
+                f"Invalid input. Prior probability functions provided but no prior probability function arguments."
+            )
+        elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
+            raise Exception(
+                f"Invalid input. Prior probability function arguments provided but no prior probability functions."
+            )
+        else:
+            if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
+                raise ValueError(
+                    f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
+                ) 
+            if ((len(log_prior_prob_fnc) != len(bounds))&(len(log_prior_prob_fnc) != len(new_bounds))):
+                raise Exception(
+                    f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                    )
+            if len(log_prior_prob_fnc) == len(bounds):
+                # Expand
+                new_log_prior_prob_fnc = []
+                new_log_prior_prob_fnc_args = []
+                for i, param_name in enumerate(parameter_names):
+                    if i in idx_par_with_multiple_entries:
+                        l = len(model.parameters[param_name])
+                        for j in range(l):
+                            new_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
+                            new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+                    else:
+                        new_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
+                        new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+                log_prior_prob_fnc = new_log_prior_prob_fnc
+                log_prior_prob_fnc_args = new_log_prior_prob_fnc_args
+
+        # Assign to class
+        self.log_prior_prob_fnc = log_prior_prob_fnc
+        self.log_prior_prob_fnc_args = log_prior_prob_fnc_args
+
+        print(log_prior_prob_fnc)
+        print(log_prior_prob_fnc_args)
 
         ############################################
         ## Compare data and model stratifications ##
@@ -537,8 +566,7 @@ class log_posterior_probability():
             self.warmup_position=parameter_names.index('warmup')
 
         # Assign attributes to class
-        self.log_prior_prob_fnc = log_prior_prob_fnc
-        self.log_prior_prob_fnc_args = log_prior_prob_fnc_args
+
         self.model = model
         self.data = data
         self.states = states
