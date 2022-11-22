@@ -44,7 +44,6 @@ class ODEModel:
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
         self.parameters = parameters
-        self.initial_states = states
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
@@ -58,21 +57,24 @@ class ODEModel:
             self._function_parameters = []
 
         # Validate the model
-        validate_model()
-
+        self.initial_states, self.parameters, self._n_function_params, self.discrete = validate_model(states, parameters, coordinates, self.stratification_size, self.integrate,
+                                                                                                        self.state_names, self.parameter_names, self.parameters_stratified_names,
+                                                                                                        self._function_parameters, self._create_fun, self.state_2d)
+                                                                                                        
         # Experimental: added to use 2D states for the Economic IO model
         if self.state_2d:
             self.split_point = (len(self.state_names) - 1) * self.stratification_size[0]
 
+    # Overwrite integrate class
     @staticmethod
     def integrate():
         """to overwrite in subclasses"""
         raise NotImplementedError
 
-    def _create_fun(self, actual_start_date):
+    def _create_fun(self, actual_start_date, discrete):
         """Convert integrate statement to scipy-compatible function"""
 
-        if self.discrete == False:
+        if discrete == False:
                 
             def func(t, y, pars={}):
                 """As used by scipy -> flattend in, flattend out"""
@@ -194,7 +196,7 @@ class ODEModel:
 
     def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, l=1/2):
         """"""
-        fun = self._create_fun(actual_start_date)
+        fun = self._create_fun(actual_start_date,self.discrete)
 
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
