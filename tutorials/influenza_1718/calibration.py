@@ -107,7 +107,7 @@ if __name__ == '__main__':
     bounds = [(1e-6,0.20), (0,1)]
     # Setup objective function without priors and with negative weights 
     objective_function = log_posterior_probability([],[],model,pars,bounds,data,states,
-                                               log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                               log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Extract expanded bounds and labels
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds
