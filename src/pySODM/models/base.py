@@ -13,6 +13,28 @@ from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel
 
+class SDEModel:
+    """
+    Complete docstring
+    """
+
+    state_names = None
+    parameter_names = None
+    parameters_stratified_names = None
+    stratification_names = None
+    state_2d = None
+
+def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+
+        self.parameters = parameters
+        self.coordinates = coordinates
+        self.time_dependent_parameters = time_dependent_parameters
+
+
+################
+## ODE Models ##
+################
+
 class ODEModel:
     """
     Initialise the models
@@ -43,6 +65,7 @@ class ODEModel:
     state_2d = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+
         self.parameters = parameters
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
@@ -105,7 +128,7 @@ class ODEModel:
 
                 if self.time_dependent_parameters:
                     if actual_start_date is not None:
-                        date = self.int_to_date(actual_start_date, t)
+                        date = int_to_date(actual_start_date, t)
                     else:
                         date = t
                     for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
@@ -165,7 +188,7 @@ class ODEModel:
 
                 if self.time_dependent_parameters:
                     if actual_start_date is not None:
-                        date = self.int_to_date(actual_start_date, t)
+                        date = int_to_date(actual_start_date, t)
                     else:
                         date = t
                     for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
@@ -320,12 +343,12 @@ class ODEModel:
                 # If they are all timestamps
                 elif all([isinstance(item, pd.Timestamp) for item in time]):
                     actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, self.date_to_diff(actual_start_date, time[1])]
+                    time = [0, date_to_diff(actual_start_date, time[1])]
                 # If they are all strings
                 elif all([isinstance(item, str) for item in time]):
                     time = [pd.Timestamp(item) for item in time]
                     actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, self.date_to_diff(actual_start_date, time[1])]
+                    time = [0, date_to_diff(actual_start_date, time[1])]
                 else:
                     raise TypeError(
                         f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
@@ -443,13 +466,13 @@ class ODEModel:
 ## Helper functions ##
 ######################
 
-def date_to_diff(self, actual_start_date, end_date):
+def date_to_diff(actual_start_date, end_date):
     """
     Convert date string to int (i.e. number of days since day 0 of simulation,
     which is warmup days before actual_start_date)
     """
     return int((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
 
-def int_to_date(self, actual_start_date, t):
+def int_to_date(actual_start_date, t):
     date = actual_start_date + pd.Timedelta(t, unit='D')
     return date
