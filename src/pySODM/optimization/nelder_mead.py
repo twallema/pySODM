@@ -9,7 +9,7 @@ from functools import partial
 '''
 
 def _obj_wrapper(func, args, kwargs, x):
-    return func(x, *args, **kwargs)
+    return -func(x, *args, **kwargs)
 
 def optimize(func, x_start, step,
                 bounds=None, args=(), kwargs={}, processes=1, no_improve_thr=1e-6,
