@@ -3,7 +3,7 @@ import numpy as np
 from functools import partial
 
 def _obj_wrapper(func, args, kwargs, x):
-    return func(x, *args, **kwargs)
+    return -func(x, *args, **kwargs)
 
 
 def _is_feasible_wrapper(func, x):
