@@ -11,7 +11,7 @@ import pandas as pd
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
-from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_model, fill_initial_state_with_zero
+from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel
 
 class ODEModel:
     """
@@ -57,10 +57,10 @@ class ODEModel:
             self._function_parameters = []
 
         # Validate the model
-        self.initial_states, self.parameters, self._n_function_params, self.discrete = validate_model(states, parameters, coordinates, self.stratification_size, self.integrate,
+        self.initial_states, self.parameters, self._n_function_params, self.discrete = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.integrate,
                                                                                                         self.state_names, self.parameter_names, self.parameters_stratified_names,
                                                                                                         self._function_parameters, self._create_fun, self.state_2d)
-                                                                                                        
+
         # Experimental: added to use 2D states for the Economic IO model
         if self.state_2d:
             self.split_point = (len(self.state_names) - 1) * self.stratification_size[0]
@@ -246,17 +246,6 @@ class ODEModel:
         self.parameters.update(drawn_parameters)
         out = self._sim_single(time, actual_start_date, method, rtol, l)
         return out
-
-    def date_to_diff(self, actual_start_date, end_date):
-        """
-        Convert date string to int (i.e. number of days since day 0 of simulation,
-        which is warmup days before actual_start_date)
-        """
-        return int((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
-
-    def int_to_date(self, actual_start_date, t):
-        date = actual_start_date + pd.Timedelta(t, unit='D')
-        return date
 
     def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', rtol=1e-3, l=1/2, processes=None):
 
@@ -449,3 +438,18 @@ class ODEModel:
             data[self.state_names[-1]] = xarr
 
         return xarray.Dataset(data)
+
+######################
+## Helper functions ##
+######################
+
+def date_to_diff(self, actual_start_date, end_date):
+    """
+    Convert date string to int (i.e. number of days since day 0 of simulation,
+    which is warmup days before actual_start_date)
+    """
+    return int((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
+
+def int_to_date(self, actual_start_date, t):
+    date = actual_start_date + pd.Timedelta(t, unit='D')
+    return date

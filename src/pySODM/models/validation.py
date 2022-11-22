@@ -84,7 +84,7 @@ def validate_time_dependent_parameters(parameter_names, parameters_stratified_na
 
     return extra_params
 
-def validate_model(initial_states, parameters, coordinates, stratification_size, integrate_func,
+def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, integrate_func,
                     state_names, parameter_names, parameters_stratified_names, _function_parameters, _create_fun, state_2d=None):
     """
     This does some basic validation of the model + initialization:

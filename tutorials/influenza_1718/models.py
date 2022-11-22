@@ -1,7 +1,7 @@
 import numpy as np
-from pySODM.models.base import BaseModel
+from pySODM.models.base import ODEModel
 
-class ODE_influenza_model(BaseModel):
+class ODE_influenza_model(ODEModel):
     """
     Simple SEIR model for influenza with undetected carriers
     """
@@ -27,7 +27,7 @@ class ODE_influenza_model(BaseModel):
 
         return dS, dE, dIa, dIm, dR, dIm_inc_new
 
-class SDE_influenza_model(BaseModel):
+class SDE_influenza_model(ODEModel):
     """
     Simple stochastic SEIR model for influenza with undetected carriers
     """
