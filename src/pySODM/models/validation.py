@@ -556,9 +556,8 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     if set(initial_states.keys()) != set(state_names):
         raise ValueError(
             "The specified initial states don't exactly match the predefined states. "
-            "Redundant states: {0}. Missing states: {1}".format(
-            set(initial_states.keys()).difference(set(state_names)),
-            set(state_names).difference(set(initial_states.keys())))
+            "Redundant states: {0}".format(
+            set(initial_states.keys()).difference(set(state_names)))
         )
 
     # sort the initial states to match the state_names

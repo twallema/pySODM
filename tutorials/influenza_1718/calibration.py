@@ -74,7 +74,7 @@ Nc = np.array([[1.3648649, 1.1621622, 5.459459, 0.3918919],
 # Define model parameters
 params={'beta':0.10,'sigma':1,'f_a':0.75*np.ones(4),'gamma':5,'Nc':np.transpose(Nc)}
 # Define initial condition
-init_states = {'S': initN.values,'Ei': np.rint(initN.values/initN.values[0])}
+init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
 # Define model coordinates
 coordinates={'age_group': age_groups}
 
