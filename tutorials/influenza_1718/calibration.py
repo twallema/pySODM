@@ -77,7 +77,6 @@ params={'beta':0.10,'sigma':1,'f_a':0.75*np.ones(4),'gamma':5,'Nc':np.transpose(
 init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
 # Define model coordinates
 coordinates={'age_group': age_groups}
-
 # Some dummy TDPF
 def Ncfunc(t,states, param, someparam):
     return param

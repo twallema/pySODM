@@ -2,12 +2,14 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Packages
+import random
 import inspect
 import itertools
 import xarray
 import copy
 import numpy as np
 import pandas as pd
+from numba import jit
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
@@ -54,9 +56,69 @@ class SDEModel:
         """to overwrite in subclasses"""
         raise NotImplementedError
 
-    def _create_fun(self, actual_start_date, method):
+    @staticmethod
+    def SSA(states, rates):
+
+        # Calculate overall reaction rate
+        R=0
+        for k,v in rates.items():
+            for i,lst in enumerate(v):
+                R += np.sum(states[k]*lst, axis=None)
+
+        if R != 0:
+            # Compute tau
+            u1 = np.random.random()
+            tau = 1/R * np.log(1/u1)
+
+            # Compute the propensities
+            propensities = {k: v[:] for k, v in rates.items()}
+            for k,v in propensities.items():
+                for i,lst in enumerate(v):
+                    propensities[k][i] = states[k]*lst/R
+
+            # Flatten propensities
+            flat_propensities=[]
+            for element in list(itertools.chain(*propensities.values())):
+                flat_propensities += (list(element.flatten()))
+
+            # Compute transitioning index
+            idx = flat_propensities.index(random.choices(flat_propensities, flat_propensities))
+
+            # Construct transitionings
+            transitionings = {k: v[:] for k, v in propensities.items()}
+            index = 0
+            for i, (k,v) in enumerate(transitionings.items()):
+                for j,lst in enumerate(v):
+                    # Set to zeros and flatten
+                    shape=transitionings[k][j].shape
+                    transitionings[k][j] = np.zeros(shape).flatten()
+                    # Find index
+                    for l in range(len(transitionings[k][j])):
+                        if index == idx:
+                            transitionings[k][j][l] = 1
+                        index += 1    
+                    transitionings[k][j] = np.reshape(transitionings[k][j], shape)
+        else:
+            # Default to tau=1
+            tau = 1
+            # Set all transitionings to zero
+            # Construct transitionings
+            transitionings = {k: v[:] for k, v in rates.items()}
+            index = 0
+            for i, (k,v) in enumerate(transitionings.items()):
+                for j,lst in enumerate(v):
+                    transitionings[k][j] = np.zeros(transitionings[k][j].shape)
+
+        return transitionings, tau
+
+
+    @staticmethod
+    def tau_leaping(states, rates):
+        pass
+
+    def _create_fun(self, actual_start_date, method='SSA'):
         
-        def func(t, y, method, pars={}):
+        def func(t, y, pars={}):
                 """As used by scipy -> flattend in, flattend out"""
 
                 # -------------------------------------------------------------
@@ -68,7 +130,7 @@ class SDEModel:
                 for size in self.stratification_size:
                     size_lst.append(size)
                 y_reshaped = y.reshape(tuple(size_lst))
-                state_params = dict(zip(self.state_names, y_reshaped))
+                states = dict(zip(self.state_names, y_reshaped))
 
                 # --------------------------------------
                 # update time-dependent parameter values
@@ -83,7 +145,7 @@ class SDEModel:
                         date = t
                     for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
                         func_params = {key: params[key] for key in self._function_parameters[i]}
-                        params[param] = param_func(date, state_params, pars[param], **func_params)
+                        params[param] = param_func(date, states, pars[param], **func_params)
 
                 # ----------------------------------
                 # construct list of model parameters
@@ -104,60 +166,11 @@ class SDEModel:
                 # Gillespie step
                 # --------------
 
-                # TODO: to function + jit
                 if method == 'SSA':
-
-                    # Calculate overall reaction rate
-                    R=0
-                    for k,v in rates.items():
-                        for i,lst in enumerate(v):
-                            R += np.sum(state_params[k]*lst, axis=None)
-
-                    if R != 0:
-                        # Compute tau
-                        u1 = np.random.random()
-                        tau = 1/R * np.log(1/u1)
-
-                        # Compute the propensities
-                        propensities = {k: v[:] for k, v in rates.items()}
-                        for k,v in propensities.items():
-                            for i,lst in enumerate(v):
-                                propensities[k][i] = state_params[k]*lst/R
-
-                        # Flatten propensities
-                        flat_propensities=[]
-                        for element in list(itertools.chain(*propensities.values())):
-                            flat_propensities += (list(element.flatten()))
-
-                        # Compute transitioning index
-                        import random
-                        idx = flat_propensities.index(random.choices(flat_propensities, flat_propensities))
-
-                        # Construct transitionings
-                        transitionings = {k: v[:] for k, v in propensities.items()}
-                        index = 0
-                        for i, (k,v) in enumerate(transitionings.items()):
-                            for j,lst in enumerate(v):
-                                # Set to zeros and flatten
-                                shape=transitionings[k][j].shape
-                                transitionings[k][j] = np.zeros(shape).flatten()
-                                # Find index
-                                for l in range(len(transitionings[k][j])):
-                                    if index == idx:
-                                        transitionings[k][j][l] = 1
-                                    index += 1    
-                                transitionings[k][j] = np.reshape(transitionings[k][j], shape)
-                    else:
-                        # Default to tau=1
-                        tau = 1
-                        # Set all transitionings to zero
-                        # Construct transitionings
-                        transitionings = {k: v[:] for k, v in rates.items()}
-                        index = 0
-                        for i, (k,v) in enumerate(transitionings.items()):
-                            for j,lst in enumerate(v):
-                                transitionings[k][j] = np.zeros(transitionings[k][j].shape)
-
+                    transitionings, tau = self.SSA(states, rates)
+                elif method == 't-leap':
+                    transitionings, tau = self.tau_leap(states, rates)
+                    
                 # -------------
                 # update states 
                 # -------------
@@ -168,7 +181,7 @@ class SDEModel:
 
         return func
 
-    def solve_discrete(self, fun, t_eval, y, method, args):
+    def solve_discrete(self, fun, t_eval, y, args):
         # Preparations
         y=np.asarray(y) # otherwise error in func : y.reshape does not work
         y=np.reshape(y,[y.size,1])
@@ -177,7 +190,7 @@ class SDEModel:
         t_lst=[t_eval[0]]
         t = t_eval[0]
         while t < t_eval[-1]:
-            out, tau = fun(t, y_prev, method, args)
+            out, tau = fun(t, y_prev, args)
             y_prev=out
             out = np.reshape(out,[out.size,1])
             y = np.append(y,out,axis=1)
@@ -205,7 +218,7 @@ class SDEModel:
             y0 = list(itertools.chain(*y0))
 
         # Run the time loop
-        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), method, self.parameters)
+        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), self.parameters)
 
         return self._output_to_xarray_dataset(output, actual_start_date)
 
