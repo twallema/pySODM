@@ -54,36 +54,238 @@ class SDEModel:
         """to overwrite in subclasses"""
         raise NotImplementedError
 
-    def _update_time_dependent_parameters(self, actual_start_date):
-        pass
+    def _create_fun(self, actual_start_date, method):
+        
+        def func(t, y, pars={}, method='SSA'):
+                """As used by scipy -> flattend in, flattend out"""
 
-    def _stochastic_simulation_algorithm(self):
-        pass
+                # -------------------------------------------------------------
+                # Flatten y and construct dictionary of states and their values
+                # -------------------------------------------------------------
 
-    def _tau_leaping_algorithm(self):
-        pass
+                # for the moment assume sequence of parameters, vars,... is correct
+                size_lst=[len(self.state_names)]
+                for size in self.stratification_size:
+                    size_lst.append(size)
+                y_reshaped = y.reshape(tuple(size_lst))
+                state_params = dict(zip(self.state_names, y_reshaped))
 
-    def _sim_single(self):
+                # --------------------------------------
+                # update time-dependent parameter values
+                # --------------------------------------
+
+                params = pars.copy()
+
+                if self.time_dependent_parameters:
+                    if actual_start_date is not None:
+                        date = int_to_date(actual_start_date, t)
+                    else:
+                        date = t
+                    for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
+                        func_params = {key: params[key] for key in self._function_parameters[i]}
+                        params[param] = param_func(date, state_params, pars[param], **func_params)
+
+                # ----------------------------------
+                # construct list of model parameters
+                # ----------------------------------
+
+                if self._n_function_params > 0:
+                    model_pars = list(params.values())[:-self._n_function_params]
+                else:
+                    model_pars = list(params.values())
+
+                # -------------
+                # compute rates
+                # -------------
+
+                rates = self.compute_rates(t, *y_reshaped, *model_pars)
+
+                # --------------
+                # Gillespie step
+                # --------------
+
+                if method == 'SSA':
+                    transitionings = rates
+                    tau = 0.5
+
+                # -------------
+                # update states 
+                # -------------
+
+                dstates = self.apply_transitionings(t, transitionings, *y_reshaped, *model_pars)
+
+                return np.array(dstates).flatten(), tau
+
+        return func
+
+    def solve_discrete(self, fun, t_eval, y, args):
+        # Preparations
+        y=np.asarray(y) # otherwise error in func : y.reshape does not work
+        y=np.reshape(y,[y.size,1])
+        y_prev=y
+        # Simulation loop
+        t_lst=[t_eval[0]]
+        t = t_eval[0]
+        while t < t_eval[-1]:
+            out, tau = fun(t, y_prev, args)
+            y_prev=out
+            out = np.reshape(out,[out.size,1])
+            y = np.append(y,out,axis=1)
+            t = t + tau
+            t_lst.append(t)
+        # Interpolate output y to times t_eval
+        y_eval = np.zeros([y.shape[0], len(t_eval)])
+        for row_idx in range(y.shape[0]):
+            y_eval[row_idx,:] = np.interp(t_eval, t_lst, y[row_idx,:])
+        return {'y': y_eval, 't': t_eval}
+
+    def _sim_single(self, time, actual_start_date=None, method='SSA'):
+
+        # Initialize wrapper
+        fun = self._create_fun(actual_start_date, method)
 
         # Prepare time
+        t0, t1 = time
+        t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
 
-        # Initialize output
+        # Flatten the initial condition
+        y0 = list(itertools.chain(*self.initial_states.values()))
+        while np.array(y0).ndim > 1:
+            y0 = list(itertools.chain(*y0))
 
-        # Start time loop
+        # Run the time loop
+        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), args=self.parameters)
 
-            ## Update TDPFs, remove parameters of TDPFs from dictionary
+        return self._output_to_xarray_dataset(output, actual_start_date)
 
-            ## Compute rates
 
-            ## Perform Gillespie step
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method):
+        """
+        A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
+        """
+        self.parameters.update(drawn_parameters)
+        return self._sim_single(time, actual_start_date, method)
 
-            ## Update states
+    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', processes=None):
 
-            ## Append
+        # Input checks on supplied simulation time
+        actual_start_date=None
+        if isinstance(time, float):
+            time = [0-warmup, round(time)]
+        elif isinstance(time, int):
+            time = [0-warmup, time]
+        elif isinstance(time, list):
+            if not len(time) == 2:
+                raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
+            else:
+                # If they are all int or flat
+                if all([isinstance(item, (int,float)) for item in time]):
+                    time = [round(item) for item in time]
+                    time[0] -= warmup
+                # If they are all timestamps
+                elif all([isinstance(item, pd.Timestamp) for item in time]):
+                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                    time = [0, date_to_diff(actual_start_date, time[1])]
+                # If they are all strings
+                elif all([isinstance(item, str) for item in time]):
+                    time = [pd.Timestamp(item) for item in time]
+                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                    time = [0, date_to_diff(actual_start_date, time[1])]
+                else:
+                    raise TypeError(
+                        f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
+                        )
+        else:
+            raise TypeError(
+                    "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
+                )
+
+        # Input check on draw function
+        if draw_fcn:
+            sig = inspect.signature(draw_fcn)
+            keywords = list(sig.parameters.keys())
+            # Verify that names of draw function are param_dict, samples_dict
+            if keywords[0] != "param_dict":
+                raise ValueError(
+                    f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
+                )
+            elif keywords[1] != "samples_dict":
+                raise ValueError(
+                    f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
+                )
+            elif len(keywords) > 2:
+                raise ValueError(
+                    f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
+                )
+
+        # Copy parameter dictionary --> dict is global
+        cp = copy.deepcopy(self.parameters)
+
+        # Construct list of drawn dictionaries
+        drawn_dictionaries=[]
+        for n in range(N):
+            if draw_fcn:
+                out={} # Need because of global dictionaries and voodoo magic
+                out.update(draw_fcn(self.parameters,samples))
+                drawn_dictionaries.append(out)
+            else:
+                drawn_dictionaries.append({})
+
+        # Run simulations
+        if processes: # Needed 
+            with mp.Pool(processes) as p:
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method), drawn_dictionaries)
+        else:
+            output=[]
+            for dictionary in drawn_dictionaries:
+                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method))
+
+        # Append results
+        out = output[0]
+        for xarr in output[1:]:
+            out = xarray.concat([out, xarr], "draws")
+
+        # Reset parameter dictionary
+        self.parameters = cp
+
+        return out
+
+    def _output_to_xarray_dataset(self, output, actual_start_date=None):
+        """
+        Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
+        """
+
+        if self.coordinates:
+            dims = list(self.coordinates.keys()).copy()
+        else:
+            dims = []
         
-        # Extrapolate
+        if actual_start_date is not None:
+            dims.append('date')
+            coords = {"date": actual_start_date + pd.to_timedelta(output["t"], unit='D')}
+        else:
+            dims.append('time')
+            coords = {"time": output["t"]}
 
-        pass
+        if self.coordinates:
+            coords.update(self.coordinates)
+
+        size_lst = [len(self.state_names)]
+        if self.coordinates:
+            for size in self.stratification_size:
+                size_lst.append(size)
+        size_lst.append(len(output["t"]))
+
+
+        y_reshaped = output["y"].reshape(tuple(size_lst))
+        zip_star = zip(self.state_names, y_reshaped)
+     
+        data = {}
+        for var, arr in zip_star:
+            xarr = xarray.DataArray(arr, coords=coords, dims=dims)
+            data[var] = xarr
+        
+        return xarray.Dataset(data)
 
 ################
 ## ODE Models ##
