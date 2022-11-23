@@ -56,7 +56,7 @@ class SDEModel:
 
     def _create_fun(self, actual_start_date, method):
         
-        def func(t, y, pars={}, method='SSA'):
+        def func(t, y, method, pars={}):
                 """As used by scipy -> flattend in, flattend out"""
 
                 # -------------------------------------------------------------
@@ -104,9 +104,59 @@ class SDEModel:
                 # Gillespie step
                 # --------------
 
+                # TODO: to function + jit
                 if method == 'SSA':
-                    transitionings = rates
-                    tau = 0.5
+
+                    # Calculate overall reaction rate
+                    R=0
+                    for k,v in rates.items():
+                        for i,lst in enumerate(v):
+                            R += np.sum(state_params[k]*lst, axis=None)
+
+                    if R != 0:
+                        # Compute tau
+                        u1 = np.random.random()
+                        tau = 1/R * np.log(1/u1)
+
+                        # Compute the propensities
+                        propensities = {k: v[:] for k, v in rates.items()}
+                        for k,v in propensities.items():
+                            for i,lst in enumerate(v):
+                                propensities[k][i] = state_params[k]*lst/R
+
+                        # Flatten propensities
+                        flat_propensities=[]
+                        for element in list(itertools.chain(*propensities.values())):
+                            flat_propensities += (list(element.flatten()))
+
+                        # Compute transitioning index
+                        import random
+                        idx = flat_propensities.index(random.choices(flat_propensities, flat_propensities))
+
+                        # Construct transitionings
+                        transitionings = {k: v[:] for k, v in propensities.items()}
+                        index = 0
+                        for i, (k,v) in enumerate(transitionings.items()):
+                            for j,lst in enumerate(v):
+                                # Set to zeros and flatten
+                                shape=transitionings[k][j].shape
+                                transitionings[k][j] = np.zeros(shape).flatten()
+                                # Find index
+                                for l in range(len(transitionings[k][j])):
+                                    if index == idx:
+                                        transitionings[k][j][l] = 1
+                                    index += 1    
+                                transitionings[k][j] = np.reshape(transitionings[k][j], shape)
+                    else:
+                        # Default to tau=1
+                        tau = 1
+                        # Set all transitionings to zero
+                        # Construct transitionings
+                        transitionings = {k: v[:] for k, v in rates.items()}
+                        index = 0
+                        for i, (k,v) in enumerate(transitionings.items()):
+                            for j,lst in enumerate(v):
+                                transitionings[k][j] = np.zeros(transitionings[k][j].shape)
 
                 # -------------
                 # update states 
@@ -118,7 +168,7 @@ class SDEModel:
 
         return func
 
-    def solve_discrete(self, fun, t_eval, y, args):
+    def solve_discrete(self, fun, t_eval, y, method, args):
         # Preparations
         y=np.asarray(y) # otherwise error in func : y.reshape does not work
         y=np.reshape(y,[y.size,1])
@@ -127,7 +177,7 @@ class SDEModel:
         t_lst=[t_eval[0]]
         t = t_eval[0]
         while t < t_eval[-1]:
-            out, tau = fun(t, y_prev, args)
+            out, tau = fun(t, y_prev, method, args)
             y_prev=out
             out = np.reshape(out,[out.size,1])
             y = np.append(y,out,axis=1)
@@ -137,16 +187,17 @@ class SDEModel:
         y_eval = np.zeros([y.shape[0], len(t_eval)])
         for row_idx in range(y.shape[0]):
             y_eval[row_idx,:] = np.interp(t_eval, t_lst, y[row_idx,:])
+
         return {'y': y_eval, 't': t_eval}
 
-    def _sim_single(self, time, actual_start_date=None, method='SSA'):
+    def _sim_single(self, time, actual_start_date=None, method='SSA', output_timestep=1):
 
         # Initialize wrapper
         fun = self._create_fun(actual_start_date, method)
 
         # Prepare time
         t0, t1 = time
-        t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
+        t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
 
         # Flatten the initial condition
         y0 = list(itertools.chain(*self.initial_states.values()))
@@ -154,19 +205,18 @@ class SDEModel:
             y0 = list(itertools.chain(*y0))
 
         # Run the time loop
-        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), args=self.parameters)
+        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), method, self.parameters)
 
         return self._output_to_xarray_dataset(output, actual_start_date)
 
-
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, output_timestep):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
         self.parameters.update(drawn_parameters)
-        return self._sim_single(time, actual_start_date, method)
+        return self._sim_single(time, actual_start_date, method, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', processes=None):
+    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', output_timestep=1, processes=None):
 
         # Input checks on supplied simulation time
         actual_start_date=None
@@ -234,11 +284,11 @@ class SDEModel:
         # Run simulations
         if processes: # Needed 
             with mp.Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method), drawn_dictionaries)
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, output_timestep=output_timestep), drawn_dictionaries)
         else:
             output=[]
             for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method))
+                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, output_timestep=output_timestep))
 
         # Append results
         out = output[0]
