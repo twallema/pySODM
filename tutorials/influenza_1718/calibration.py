@@ -44,7 +44,7 @@ names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
 df_influenza = pd.Series(index=index, name='CASES', data=data.values)
 # Hardcode Belgian demographics
-initN = pd.Series(index=age_groups, data=[606938, 1328733, 7352492, 2204478])
+initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 2204478])/100000)
 
 ################
 ## Load model ##
@@ -85,6 +85,17 @@ params.update({'someparam': 4})
 
 # Initialize model
 model = influenza_model(init_states,params,coordinates,time_dependent_parameters={'Nc': Ncfunc})
+
+out = model.sim([0, 35], N=N, samples={}, output_timestep=1e-3)
+
+fig,ax = plt.subplots(figsize=(12,3))
+for i in range(N):
+    ax.plot(out['time'], out['S'].sum(dim=['age_group']).isel(draws=i), color='black', alpha=0.20)
+    ax.plot(out['time'], out['Ia'].sum(dim=['age_group']).isel(draws=i), color='orange', alpha=0.20)
+    ax.plot(out['time'], out['Im'].sum(dim=['age_group']).isel(draws=i), color='red', alpha=0.20)
+    ax.plot(out['time'], out['R'].sum(dim=['age_group']).isel(draws=i), color='green', alpha=0.20)
+plt.show()
+plt.close()
 
 sys.exit()
 
