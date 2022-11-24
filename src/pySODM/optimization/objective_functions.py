@@ -607,7 +607,7 @@ class log_posterior_probability():
             # Select right axes
             if not self.additional_axes_data[idx]:
                 # Only dates must be matched
-                ymodel = np.expand_dims(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values, axis=1)
+                ymodel = interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values
                 ydata = df.values
                 # Check if shapes are consistent
                 if ymodel.shape != ydata.shape:
