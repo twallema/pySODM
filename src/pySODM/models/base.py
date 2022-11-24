@@ -115,13 +115,12 @@ class SDEModel:
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
-            print(k)
             transitionings[k] = self.draw_transitionings(states[k], rate, tau)
-        #import sys
-        #sys.exit()
+
         return transitionings, tau
 
     @staticmethod
+    @jit(nopython=True)
     def draw_transitionings(states, rates, tau):
 
         # Step 1: flatten states and rates
@@ -139,7 +138,7 @@ class SDEModel:
             # Append the chance of no transitioning
             p = np.append(p, 1-np.sum(p))
             # Sample from a multinomial and omit chance of no transition
-            samples = np.random.multinomial(state, p)[:-1]
+            samples = np.random.multinomial(int(state), p)[:-1]
             # Assign to transitioning
             for j,sample in enumerate(samples):
                 transitioning[j][i] = sample
