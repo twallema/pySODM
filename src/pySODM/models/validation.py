@@ -401,12 +401,16 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
         raise ValueError(
             "The first argument of the 'apply_transitionings' function should always be 't'"
         )
-    elif keywords[1] != 'transitionings':
+    elif keywords[1] != 'tau':
         raise ValueError(
-            "The second argument of the 'apply_transitionings' function should always be 'transitionings'"
+            "The second argument of the 'apply_transitionings' function should always be 'tau'"
+        )
+    elif keywords[2] != 'transitionings':
+        raise ValueError(
+            "The third argument of the 'apply_transitionings' function should always be 'transitionings'"
         )
     else:
-        start_index = 2
+        start_index = 3
 
     # Get names of states and parameters that follow after 't'
     N_states = len(state_names)

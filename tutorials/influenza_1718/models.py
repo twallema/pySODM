@@ -54,7 +54,7 @@ class SDE_influenza_model(SDEModel):
         return rates
 
     @staticmethod
-    def apply_transitionings(t, transitionings, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
+    def apply_transitionings(t, tau, transitionings, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
 
         S_new  = S - transitionings['S'][0]
         E_new = E + transitionings['S'][0] - transitionings['E'][0] - transitionings['E'][1]
