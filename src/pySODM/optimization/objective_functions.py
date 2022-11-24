@@ -358,11 +358,11 @@ class log_posterior_probability():
                         new_bounds.append(bounds[i])
                 else:
                     new_bounds.append(bounds[i])
-        elif len(new_bounds) == expanded_length:
-            pass
+        elif len(bounds) == expanded_length:
+            new_bounds=bounds
         else:
             raise Exception(
-                f"The number of provided bounds ({len(new_bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
             )
 
         # Expand labels if provided
