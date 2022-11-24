@@ -327,7 +327,7 @@ class SDEModel:
 
         return {'y': y_eval, 't': t_eval}
 
-    def _sim_single(self, time, actual_start_date=None, method='SSA', tau=0.5, output_timestep=1):
+    def _sim_single(self, time, actual_start_date=None, method='tau_leap', tau=0.5, output_timestep=1):
 
         # Initialize wrapper
         fun = self._create_fun(actual_start_date, method, tau)
@@ -353,7 +353,7 @@ class SDEModel:
         self.parameters.update(drawn_parameters)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', tau=0.5, output_timestep=1, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
