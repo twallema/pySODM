@@ -412,11 +412,11 @@ class log_posterior_probability():
                 raise ValueError(
                     f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
                 ) 
-            if ((len(log_prior_prob_fnc) != len(bounds))&(len(log_prior_prob_fnc) != len(new_bounds))):
+            if ((len(log_prior_prob_fnc) != len(parameter_names))&(len(log_prior_prob_fnc) != len(parameter_names_postprocessing))):
                 raise Exception(
                     f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
                     )
-            if len(log_prior_prob_fnc) == len(bounds):
+            if len(log_prior_prob_fnc) != len(self.expanded_bounds):
                 # Expand
                 new_log_prior_prob_fnc = []
                 new_log_prior_prob_fnc_args = []
@@ -431,6 +431,8 @@ class log_posterior_probability():
                         new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
                 log_prior_prob_fnc = new_log_prior_prob_fnc
                 log_prior_prob_fnc_args = new_log_prior_prob_fnc_args
+            else:
+                pass
 
         # Assign to class
         self.log_prior_prob_fnc = log_prior_prob_fnc
@@ -563,7 +565,6 @@ class log_posterior_probability():
             self.warmup_position=parameter_names.index('warmup')
 
         # Assign attributes to class
-
         self.model = model
         self.data = data
         self.states = states
@@ -607,8 +608,8 @@ class log_posterior_probability():
             # Select right axes
             if not self.additional_axes_data[idx]:
                 # Only dates must be matched
-                ymodel = interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values
-                ydata = df.values
+                ymodel = np.expand_dims(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values, axis=1)
+                ydata = np.expand_dims(df.values, axis=1)
                 # Check if shapes are consistent
                 if ymodel.shape != ydata.shape:
                     raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
@@ -630,7 +631,7 @@ class log_posterior_probability():
                     total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata)
                 else:
                     total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata, *[log_likelihood_fnc_args[idx],])
-                
+        
         return total_ll
 
     def __call__(self, thetas, simulation_kwargs={}):
@@ -655,6 +656,7 @@ class log_posterior_probability():
         out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
 
         # Compute log prior probability 
+        print(f'thetas: {thetas}')
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
 
         # Add log likelihood
