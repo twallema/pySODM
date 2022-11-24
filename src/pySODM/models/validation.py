@@ -109,13 +109,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
         raise ValueError(
             "The first argument of the integrate function should always be 't'"
         )
-    elif keywords[1] == "l":
-        # Tau-leaping Gillespie
-        discrete = True
-        start_index = 2
     else:
-        # ODE model
-        discrete = False
         start_index = 1
 
     # Get names of states and parameters that follow after 't' or 't' and 'l'
@@ -182,11 +176,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     if 't' in parameters:
         raise ValueError(
         "Parameter name 't' is reserved for the timestep of scipy.solve_ivp.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
-            )
-    if discrete == True:
-        if 'l' in parameters:
-            raise ValueError(
-                "Parameter name 'l' is reserved for the leap size of the tau-leaping Gillespie algorithm.\nPlease verify no model parameters named 'l' are present in the model parameters dictionary or in the time-dependent parameter functions."
             )
 
     # Validate the initial_states / stratified params having the correct length
@@ -276,7 +265,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     initial_states = {state: initial_states[state] for state in state_names}
 
     # Call integrate function with initial values to check if the function returns all states
-    fun = _create_fun(None,discrete)
+    fun = _create_fun(None)
     y0 = list(itertools.chain(*initial_states.values()))
     while np.array(y0).ndim > 1:
         y0 = list(itertools.chain(*y0))
@@ -294,7 +283,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
                 "The return value of the integrate function does not have the correct length."
             )
     
-    return initial_states, parameters, _n_function_params, discrete
+    return initial_states, parameters, _n_function_params
 
 
 
