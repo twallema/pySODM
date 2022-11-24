@@ -18,7 +18,28 @@ from pySODM.models.validation import validate_stratifications, validate_time_dep
 
 class SDEModel:
     """
-    Complete docstring
+    Initialise a stochastic differential equations model
+
+    Parameters
+    ----------
+    To initialise the model, provide following inputs:
+
+    states : dictionary
+        contains the initial values of all non-zero model states
+        e.g. {'S': N, 'E': np.ones(n_stratification)} with N being the total population and n_stratifications the number of stratified layers
+        initialising zeros is thus not required
+    parameters : dictionary
+        containing the values of all parameters (both stratified and not)
+    time_dependent_parameters : dictionary, optional
+        Optionally specify a function for time-dependent parameters. The
+        signature of the function should be ``fun(t, states, param, ...)`` taking
+        the time, the initial parameter value, and potentially additional
+        keyword argument, and should return the new parameter value for
+        time `t`.
+    coordinates: dictionary, optional
+        Specify for each 'stratification_name' the coordinates to be used.
+        These coordinates can then be used to acces data easily in the output xarray.
+        Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
     state_names = None
@@ -59,6 +80,28 @@ class SDEModel:
 
     @staticmethod
     def SSA(states, rates):
+        """
+        Stochastic simulation algorithm by Gillespie
+        Based on: https://lewiscoleblog.com/gillespie-algorithm
+
+        Inputs
+        ------
+
+        states: dict
+            Dictionary containing the values of the model states.
+
+        rates: dict
+            Dictionary containing the rates associated with each transitionings of the model states.
+
+        Returns
+        -------
+
+        transitionings: dict
+            Dictionary containing the number of transitionings for every model state
+
+        tau: int/float
+            Timestep
+        """
 
         # Calculate overall reaction rate
         R=0
@@ -113,6 +156,32 @@ class SDEModel:
         return transitionings, tau
 
     def tau_leap(self, states, rates, tau):
+        """
+        Tau-leaping algorithm by Gillespie
+        Loops over the model states, extracts the values of the states and the rates, passes them to `draw_transitionings()`
+
+        Inputs
+        ------
+
+        states: dict
+            Dictionary containing the values of the model states.
+
+        rates: dict
+            Dictionary containing the rates associated with each transitionings of the model states.
+
+        tau: int/float
+            Timestep
+        
+        Returns
+        -------
+
+        transitionings: dict
+            Dictionary containing the number of transitionings for every model state
+        
+        tau: int/float
+            Timestep
+        
+        """
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
@@ -123,6 +192,27 @@ class SDEModel:
     @staticmethod
     @jit(nopython=True)
     def draw_transitionings(states, rates, tau):
+        """
+        Draw the transitionings from a multinomial distribution
+        The use of the multinomial distribution is necessary to avoid states with two transitionings from becoming negative
+
+        Inputs
+        ------
+        states: np.ndarray
+            n-dimensional matrix representing a given model state (passed down from `tau_leap()`)
+
+        rates: list
+            List containing the transitioning rates of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
+
+        tau: int/float
+            Timestep
+
+        Returns
+        -------
+        Transitionings: list
+            List containing the drawn transitionings of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
+
+        """
         
         # Step 1: flatten states and rates
         size = states.shape
@@ -265,6 +355,51 @@ class SDEModel:
 
     def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', tau=0.5, output_timestep=1, processes=None):
 
+        """
+        Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
+        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_fcn`
+
+
+        Parameters
+        ----------
+        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
+            The start and stop "time" for the simulation run.
+            1) Input is converted to [0, time]. Floats are automatically rounded.
+            2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
+            3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
+
+        warmup : int
+            Number of days to simulate prior to start time or date
+
+        N : int
+            Number of repeated simulations (useful for stochastic models). One by default.
+
+        draw_fcn : function
+            A function which takes as its input the dictionary of model parameters and a samples dictionary
+            and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
+
+        samples : dictionary
+            Sample dictionary used by draw_fcn. Does not need to be supplied if samples_dict is not used in draw_fcn.
+
+        method: str
+            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' (SSA), or its tau-leaping approximation (tau_leap).
+        
+        tau: int/float
+            Timestep used by the tau-leaping algorithm
+
+        output_timestep: int/flat
+            Interpolate model output to every `output_timestep` time
+            For datetimes: expressed in days
+
+        processes: int
+            Number of cores to distribute the N draws over.
+
+        Returns
+        -------
+        xarray.Dataset
+
+        """
+
         # Input checks on supplied simulation time
         actual_start_date=None
         if isinstance(time, float):
@@ -390,7 +525,7 @@ class SDEModel:
 
 class ODEModel:
     """
-    Initialise the models
+    Initialise an ordinary differential equations model
 
     Parameters
     ----------
@@ -402,13 +537,16 @@ class ODEModel:
         initialising zeros is thus not required
     parameters : dictionary
         containing the values of all parameters (both stratified and not)
-        these can be obtained with the function parameters.get_COVID19_SEIRD_parameters()
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time-dependent parameters. The
         signature of the function should be ``fun(t, states, param, ...)`` taking
         the time, the initial parameter value, and potentially additional
         keyword argument, and should return the new parameter value for
         time `t`.
+    coordinates: dictionary, optional
+        Specify for each 'stratification_name' the coordinates to be used.
+        These coordinates can then be used to acces data easily in the output xarray.
+        Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
     state_names = None
@@ -624,10 +762,9 @@ class ODEModel:
         return out
 
     def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, l=1/2, processes=None):
-
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
-        Can use samples drawn using MCMC to perform the repeated simulations.
+        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_fcn`
 
 
         Parameters
