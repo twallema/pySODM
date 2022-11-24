@@ -111,12 +111,45 @@ class SDEModel:
 
         return transitionings, tau
 
+    def tau_leap(self, states, rates, tau):
+
+        transitionings={k: v[:] for k, v in rates.items()}
+        for k,rate in rates.items():
+            print(k)
+            transitionings[k] = self.draw_transitionings(states[k], rate, tau)
+        #import sys
+        #sys.exit()
+        return transitionings, tau
 
     @staticmethod
-    def tau_leaping(states, rates):
-        pass
+    def draw_transitionings(states, rates, tau):
 
-    def _create_fun(self, actual_start_date, method='SSA'):
+        # Step 1: flatten states and rates
+        size = states.shape
+        states = states.flatten()
+        transitioning = rates
+        rates = [rate.flatten() for rate in rates]
+
+        # Step 2: loop + draw
+        for i, state in enumerate(states):
+            p=np.zeros(len(rates),np.float64)
+            # Make a list with the transitioning probabilities
+            for j,rate in enumerate(rates):
+                p[j] = 1 - np.exp(-tau*rate[i])
+            # Append the chance of no transitioning
+            p = np.append(p, 1-np.sum(p))
+            # Sample from a multinomial and omit chance of no transition
+            samples = np.random.multinomial(state, p)[:-1]
+            # Assign to transitioning
+            for j,sample in enumerate(samples):
+                transitioning[j][i] = sample
+            # Reshape transitioning
+            for j,trans in enumerate(transitioning):
+                transitioning[j] = np.reshape(transitioning[j], size)
+
+        return transitioning
+
+    def _create_fun(self, actual_start_date, method='SSA', tau_input=0.5):
         
         def func(t, y, pars={}):
                 """As used by scipy -> flattend in, flattend out"""
@@ -168,8 +201,8 @@ class SDEModel:
 
                 if method == 'SSA':
                     transitionings, tau = self.SSA(states, rates)
-                elif method == 't-leap':
-                    transitionings, tau = self.tau_leap(states, rates)
+                elif method == 'tau_leap':
+                    transitionings, tau = self.tau_leap(states, rates, tau_input)
                     
                 # -------------
                 # update states 
@@ -203,10 +236,10 @@ class SDEModel:
 
         return {'y': y_eval, 't': t_eval}
 
-    def _sim_single(self, time, actual_start_date=None, method='SSA', output_timestep=1):
+    def _sim_single(self, time, actual_start_date=None, method='SSA', tau=0.5, output_timestep=1):
 
         # Initialize wrapper
-        fun = self._create_fun(actual_start_date, method)
+        fun = self._create_fun(actual_start_date, method, tau)
 
         # Prepare time
         t0, t1 = time
@@ -222,14 +255,14 @@ class SDEModel:
 
         return self._output_to_xarray_dataset(output, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, tau, output_timestep):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
         self.parameters.update(drawn_parameters)
-        return self._sim_single(time, actual_start_date, method, output_timestep)
+        return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', output_timestep=1, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='SSA', tau=0.5, output_timestep=1, processes=None):
 
         # Input checks on supplied simulation time
         actual_start_date=None
@@ -297,11 +330,11 @@ class SDEModel:
         # Run simulations
         if processes: # Needed 
             with mp.Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, output_timestep=output_timestep), drawn_dictionaries)
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), drawn_dictionaries)
         else:
             output=[]
             for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, output_timestep=output_timestep))
+                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
 
         # Append results
         out = output[0]
