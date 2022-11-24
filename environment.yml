@@ -13,4 +13,5 @@ dependencies:
   - tqdm
   - corner
   - h5py 
-  - matplotlib  
+  - matplotlib
+  - numba  
