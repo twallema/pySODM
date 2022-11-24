@@ -570,12 +570,12 @@ class ODEModel:
 
             return func
 
-    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, l=1/2):
+    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, l=1/2, output_timestep=1):
         """"""
         fun = self._create_fun(actual_start_date,self.discrete)
 
         t0, t1 = time
-        t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
+        t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
 
         if self.state_2d:
             for state in self.state_2d:
@@ -615,15 +615,15 @@ class ODEModel:
             y_eval[row_idx,:] = np.interp(t_eval, t_lst, y[row_idx,:])
         return {'y': y_eval, 't': t_eval}
 
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, l):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, l, output_timestep):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
         self.parameters.update(drawn_parameters)
-        out = self._sim_single(time, actual_start_date, method, rtol, l)
+        out = self._sim_single(time, actual_start_date, method, rtol, l, output_timestep)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', rtol=1e-3, l=1/2, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, l=1/2, processes=None):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
@@ -657,6 +657,10 @@ class ODEModel:
         method: str
             Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK23'.
         
+        output_timestep: int/flat
+            Interpolate model output to every `output_timestep` time
+            For datetimes: expressed in days
+
         rtol: float
             Relative tolerance of Scipy `solve_ivp`. Default: 1e-3. Quick and dirty: 5e-3.
 
@@ -748,11 +752,11 @@ class ODEModel:
         # Run simulations
         if processes: # Needed 
             with mp.Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, l=l), drawn_dictionaries)
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, l=l, output_timestep=output_timestep), drawn_dictionaries)
         else:
             output=[]
             for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, l=l))
+                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, l=l, output_timestep=output_timestep))
 
         # Append results
         out = output[0]
@@ -814,18 +818,3 @@ class ODEModel:
             data[self.state_names[-1]] = xarr
 
         return xarray.Dataset(data)
-
-######################
-## Helper functions ##
-######################
-
-def date_to_diff(actual_start_date, end_date):
-    """
-    Convert date string to int (i.e. number of days since day 0 of simulation,
-    which is warmup days before actual_start_date)
-    """
-    return int((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
-
-def int_to_date(actual_start_date, t):
-    date = actual_start_date + pd.Timedelta(t, unit='D')
-    return date
