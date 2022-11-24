@@ -299,7 +299,7 @@ class SDEModel:
                 # update states 
                 # -------------
 
-                dstates = self.apply_transitionings(t, transitionings, *y_reshaped, *model_pars)
+                dstates = self.apply_transitionings(t, tau, transitionings, *y_reshaped, *model_pars)
 
                 return np.array(dstates).flatten(), tau
 
