@@ -656,7 +656,6 @@ class log_posterior_probability():
         out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
 
         # Compute log prior probability 
-        print(f'thetas: {thetas}')
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
 
         # Add log likelihood
