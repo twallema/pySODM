@@ -13,6 +13,7 @@ from numba import jit
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
+from pySODM.models.utils import date_to_diff, int_to_date
 from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
 
 class SDEModel:
