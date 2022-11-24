@@ -602,7 +602,7 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # apply_transitionings
     # ~~~~~~~~~~~~~~~~~~~~
 
-    new_states = apply_transitionings_func(10, rates, tau, *initial_states.values(), *list(parameters.values())[:-_n_function_params])
+    new_states = apply_transitionings_func(10, rates, 1, *initial_states.values(), *list(parameters.values())[:-_n_function_params])
 
     # Check
     if len(list(new_states)) != len(state_names):
