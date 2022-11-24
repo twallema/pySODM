@@ -122,19 +122,20 @@ class SDEModel:
     @staticmethod
     @jit(nopython=True)
     def draw_transitionings(states, rates, tau):
-
+        
         # Step 1: flatten states and rates
         size = states.shape
         states = states.flatten()
-        transitioning = rates
-        rates = [rate.flatten() for rate in rates]
+        transitioning_out = rates
+        transitioning = [rate.flatten() for rate in rates]
+        rates  = [rate.flatten() for rate in rates]
 
         # Step 2: loop + draw
         for i, state in enumerate(states):
             p=np.zeros(len(rates),np.float64)
             # Make a list with the transitioning probabilities
-            for j,rate in enumerate(rates):
-                p[j] = 1 - np.exp(-tau*rate[i])
+            for j in range(len(rates)):
+                p[j] = 1 - np.exp(-tau*rates[j][i])
             # Append the chance of no transitioning
             p = np.append(p, 1-np.sum(p))
             # Sample from a multinomial and omit chance of no transition
@@ -142,11 +143,11 @@ class SDEModel:
             # Assign to transitioning
             for j,sample in enumerate(samples):
                 transitioning[j][i] = sample
-            # Reshape transitioning
-            for j,trans in enumerate(transitioning):
-                transitioning[j] = np.reshape(transitioning[j], size)
-
-        return transitioning
+        # Reshape transitioning
+        for j,trans in enumerate(transitioning):
+            transitioning_out[j] = np.reshape(transitioning[j], size)
+            
+        return transitioning_out
 
     def _create_fun(self, actual_start_date, method='SSA', tau_input=0.5):
         
