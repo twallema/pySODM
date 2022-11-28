@@ -1,13 +1,13 @@
 import pytest
 import pandas as pd
 import numpy as np
-from pySODM.models.base import BaseModel
+from pySODM.models.base import ODEModel
 
 ##################################
 ## Model without stratification ##
 ##################################
 
-class SIR(BaseModel):
+class SIR(ODEModel):
 
     # state variables and parameters
     state_names = ['S', 'I', 'R']
@@ -119,7 +119,7 @@ def test_model_init_validation():
 ## Model with one stratification ##
 ###################################
 
-class SIRstratified(BaseModel):
+class SIRstratified(ODEModel):
 
     # state variables and parameters
     state_names = ['S', 'I', 'R']
