@@ -50,7 +50,7 @@ initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 220
 ## Load model ##
 ################
 
-from models import SDE_influenza_model as influenza_model
+from models import ODE_influenza_model as influenza_model
 
 #################
 ## Setup model ##
