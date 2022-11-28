@@ -594,7 +594,7 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     for state_name, rate_list in rates.items():
         for i,rate in enumerate(rate_list):
             if not isinstance(rate, np.ndarray):
-                raise TypeError(f"Rate of the {i}th transitioning for state {state_name} is not of type 'np.ndarray' but {type(rate)}")
+                raise TypeError(f"the rate of the {i}th transitioning for state '{state_name}' coming from function `compute_rates` is not of type 'np.ndarray' but {type(rate)}")
             if list(rate.shape) != stratification_size:
                 raise ValueError(f"The provided coordinates indicate a state size of {stratification_size}, but rate of the {i}th transitioning for state '{state_name}' has shape {list(rate.shape)}")
     
