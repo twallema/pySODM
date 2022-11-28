@@ -101,16 +101,16 @@ def test_model_init_validation():
 
     # validate model class itself
     SIR.state_names = ["S", "R"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The states in the 'compute_rates' function definition do not match the provided 'state_names'"):
         SIR(initial_states, parameters)
 
     SIR.state_names = ["S", "II", "R"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The states in the 'compute_rates' function definition"):
         SIR(initial_states, parameters)
 
     SIR.state_names = ["S", "I", "R"]
     SIR.parameter_names = ['beta', 'alpha']
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The parameters in the 'compute_rates' function"):
         SIR(initial_states, parameters)
 
     # ensure to set back to correct ones
@@ -130,14 +130,17 @@ class SIRstratified(SDEModel):
     stratification_names = ['age_groups']
 
     @staticmethod
-    def integrate(t, S, I, R, gamma, beta):
+    def compute_rates(t, S, I, R, gamma, beta):
         """Basic SIR model"""
-        # Model equations
-        N = S + I + R
-        dS = -beta*S*I/N
-        dI = beta*S*I/N - gamma*I
-        dR = gamma*I
-        return dS, dI, dR
+        size_dummy=np.ones(S.shape)
+        return {'S': [beta*(I/(S + I + R)),], 'I': [size_dummy*gamma,]}
+
+    @staticmethod
+    def apply_transitionings(t, tau, transitionings, S, I, R, gamma, beta):
+        S_new = S - transitionings['S'][0]
+        I_new = I + transitionings['S'][0] - transitionings['I'][0]
+        R_new = R + transitionings['I'][0]
+        return S_new, I_new, R_new
 
 def test_stratified_SIR_time():
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
@@ -223,7 +226,7 @@ def test_model_stratified_init_validation():
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     # validate model class itself
-    msg = "The parameters in the 'integrate' function definition do not match"
+    msg = "The parameters in the 'compute_rates' function definition do not match"
     SIRstratified.parameter_names = ["gamma", "alpha"]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
@@ -271,7 +274,7 @@ def test_TDPF_stratified():
         if t < 0:
             return param
         else:
-            return param / 1.5
+            return param/1.5
 
     # simulate model
     model = SIRstratified(initial_states, parameters, coordinates=coordinates,
@@ -279,7 +282,7 @@ def test_TDPF_stratified():
     output = model.sim(time)
 
     # without the reduction in infectivity, the recovered/dead pool will always be larger
-    assert np.less_equal(output['R'].values, output_without['R'].values).all()
+    assert np.less_equal(output['R'].values[20:], output_without['R'].values[20:]).all()
 
     # define TDPF with extra argument
     def compliance_func(t, states, param, prevention):
@@ -292,7 +295,7 @@ def test_TDPF_stratified():
     model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
     output2 = model2.sim(time)
-    assert np.less_equal(output['R'].values, output_without['R'].values).all()
+    assert np.less_equal(output['R'].values[20:], output_without['R'].values[20:]).all()
 
     # Define a TDPF which uses an existing model parameter as extra argument (which doesn't make sense)
     def compliance_func(t, states, param, gamma):
@@ -305,6 +308,8 @@ def test_TDPF_stratified():
     model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
     output2 = model2.sim(time)
+
+test_TDPF_stratified()
 
 # TDPF on a regular parameter
 def test_TDPF_nonstratified():
@@ -332,6 +337,8 @@ def test_TDPF_nonstratified():
 
     # without the rise in time to recovery, the infected pool will be larger over the first 10 timesteps
     assert np.less_equal(output_without['I'].values, output['I'].values).all()
+
+test_TDPF_nonstratified()
 
 ####################
 ## Draw functions ##

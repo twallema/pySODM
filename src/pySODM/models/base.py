@@ -9,7 +9,7 @@ import xarray
 import copy
 import numpy as np
 import pandas as pd
-from numba import jit
+import numba as nb
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
@@ -185,12 +185,12 @@ class SDEModel:
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
-            transitionings[k] = self.draw_transitionings(states[k], rate, tau)
+            transitionings[k] = self.draw_transitionings(states[k], nb.typed.List(rate), tau)
 
         return transitionings, tau
 
     @staticmethod
-    @jit(nopython=True)
+    @nb.jit(nopython=True)
     def draw_transitionings(states, rates, tau):
         """
         Draw the transitionings from a multinomial distribution

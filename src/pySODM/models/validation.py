@@ -347,7 +347,7 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
         raise ValueError(
             "The parameters in the 'compute_rates' function definition do not match "
             "the provided 'parameter_names' + 'parameters_stratified_names': "
-            "{0} vs {1}".format(compute_rate_params, specified_params)
+            "{0} vs {1}".format(compute_rates_params, specified_params)
         )
 
     # additional parameters from time-dependent parameter functions
@@ -562,6 +562,7 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
 
     # 'func' in class 'SDEModel' of 'base.py' automatically converts states to np.array
     # However, we do not wish to validate the output of 'func' but rather of its consituent functions: compute_rates, apply_transitionings
+    initial_states_copy={k: v[:] for k, v in initial_states.items()}
     for k,v in initial_states.items():
         initial_states[k] = np.asarray(initial_states[k])
 
@@ -609,5 +610,8 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
             raise TypeError(f"Output state of function 'apply_transitionings_func' in position {i} is not a np.ndarray")
         if list(new_state.shape) != stratification_size:
             raise ValueError(f"The provided coordinates indicate a state size of {stratification_size}, but the {i}th output of function 'apply_transitionings_func' has shape {list(new_state.shape)}")
+    
+    # Reset initial states
+    initial_states={k: v[:] for k, v in initial_states_copy.items()}
 
     return initial_states, parameters, _n_function_params
