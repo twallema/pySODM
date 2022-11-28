@@ -560,6 +560,11 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # Validate the 'compute_rates' and 'apply_transitionings' by calling it #
     #########################################################################
 
+    # 'func' in class 'SDEModel' of 'base.py' automatically converts states to np.array
+    # However, we do not wish to validate the output of 'func' but rather of its consituent functions: compute_rates, apply_transitionings
+    for k,v in initial_states.items():
+        initial_states[k] = np.asarray(initial_states[k])
+
     # compute_rates
     # ~~~~~~~~~~~~~
 
