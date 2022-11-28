@@ -78,6 +78,28 @@ def test_SIR_date():
     with pytest.raises(TypeError, match="List-like input of simulation start"):
         output = model.sim(['2020-01-01', pd.Timestamp('2020-02-20')])
 
+def test_SSA():
+
+    # Define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2}
+    initial_states = {"S": [1000 - 10], "I": [10], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+
+    # Simulate using dates
+    output = model.sim(['2020-01-01', '2020-02-20'], method='SSA')
+    output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')], method='SSA')
+
+    # Validate
+    assert 'date' in list(output.dims.keys())
+    S = output["S"].values.squeeze()
+    assert S[0] == 1000 - 10
+    assert S.shape == (51, )
+    assert S[-1] < 30
+    I = output["I"].squeeze()
+    assert I[0] == 10
+    assert S.shape == (51, )
+    
 def test_model_init_validation():
     # valid initialization
     parameters = {"beta": 0.9, "gamma": 0.2}
@@ -336,7 +358,7 @@ def test_TDPF_nonstratified():
     output = model.sim(time)
 
     # without the rise in time to recovery, the infected pool will be larger over the first 10 timesteps
-    assert np.less_equal(output_without['I'].values, output['I'].values).all()
+    assert np.less_equal(output_without['I'].values[20:], output['I'].values[20:]).all()
 
 test_TDPF_nonstratified()
 
