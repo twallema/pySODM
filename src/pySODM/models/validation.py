@@ -564,7 +564,11 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # ~~~~~~~~~~~~~
 
     # Call the function with initial values to check if the function returns the right format of dictionary
-    rates = compute_rates_func(10, *initial_states.values(), *list(parameters.values())[:-_n_function_params])
+    if _n_function_params > 0:
+        parameters_list = list(parameters.values())[:-_n_function_params]
+    else:
+        parameters_list = list(parameters.values())
+    rates = compute_rates_func(10, *initial_states.values(), *parameters_list)
     # Check if a dictionary is returned
     if not isinstance(rates, dict):
         raise TypeError("Output of function 'compute_rates' should be of type dictionary")
@@ -591,8 +595,7 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # apply_transitionings
     # ~~~~~~~~~~~~~~~~~~~~
 
-    new_states = apply_transitionings_func(10, 1, rates, *initial_states.values(), *list(parameters.values())[:-_n_function_params])
-
+    new_states = apply_transitionings_func(10, 1, rates, *initial_states.values(), *parameters_list)
     # Check
     if len(list(new_states)) != len(state_names):
         raise ValueError(f"The number of outputs of function 'apply_transitionings_func' ({len(list(new_states))}) is not equal to the number of states ({len(state_names)})")
