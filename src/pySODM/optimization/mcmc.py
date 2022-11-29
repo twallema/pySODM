@@ -233,15 +233,16 @@ def emcee_sampler_to_dictionary(discard=0, thin=1, samples_path=None, identifier
 
     flat_samples = sampler.get_chain(discard=discard,thin=thin,flat=True)
     samples_dict = {}
-
+    count=0
     for i,(name,value) in enumerate(settings['calibrated_parameters'].items()):
         if isinstance(value,list):
             vals=[]
             for j in range(len(value)):
                 vals.append(list(flat_samples[:, i+j]))
+            count += len(value)-1
             samples_dict[name] = vals
         else:
-            samples_dict[name] = list(flat_samples[:,i])
+            samples_dict[name] = list(flat_samples[:,i+count])
     
     # Remove calibrated parameters from the settings
     del settings['calibrated_parameters']

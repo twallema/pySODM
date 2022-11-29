@@ -44,7 +44,7 @@ names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
 df_influenza = pd.Series(index=index, name='CASES', data=data.values)
 # Hardcode Belgian demographics
-initN = pd.Series(index=age_groups, data=[606938, 1328733, 7352492, 2204478])
+initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 2204478]))
 
 ################
 ## Load model ##
@@ -74,11 +74,15 @@ Nc = np.array([[1.3648649, 1.1621622, 5.459459, 0.3918919],
 # Define model parameters
 params={'beta':0.10,'sigma':1,'f_a':0.75*np.ones(4),'gamma':5,'Nc':np.transpose(Nc)}
 # Define initial condition
-init_states = {'S': initN.values,'E': np.rint(initN.values/initN.values[0])}
+init_states = {'S':initN.values ,'E':np.rint(initN.values/initN.values[0])}
 # Define model coordinates
 coordinates={'age_group': age_groups}
+# Some dummy TDPF
+def Ncfunc(t,states, param, someparam):
+    return param
+params.update({'someparam': 4})
 # Initialize model
-model = influenza_model(init_states,params,coordinates)
+model = influenza_model(init_states,params,coordinates,time_dependent_parameters={'Nc': Ncfunc})
 
 #####################
 ## Calibrate model ##
@@ -92,9 +96,8 @@ if __name__ == '__main__':
 
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 5
-    multiplier_pso = 30
-
+    n_pso = 30
+    multiplier_pso = 20
     # Define dataset
     data=[df_influenza[start_date:end_date], ]
     states = ["Im_inc",]
@@ -104,16 +107,17 @@ if __name__ == '__main__':
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
-    bounds = [(1e-6,0.20), (0,1)]
+    bounds = [(1e-6,0.20), (0,0.96)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Extract expanded bounds and labels
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
-                       swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
+    #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
+    #                   swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
+    theta = [0.03, 0.20, 0.20, 0.85, 0.85]
     step = len(expanded_bounds)*[0.05,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
@@ -152,16 +156,16 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 10
+    n_mcmc = 100
     multiplier_mcmc = 9
     print_n = 5
-    discard=5
+    discard=50
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
     run_date = str(datetime.date.today())
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.01*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'warmup': warmup, 'starting_estimate': list(theta), 'labels': expanded_labels}
