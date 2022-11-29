@@ -3,11 +3,13 @@ import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from pySODM.models.base import BaseModel
+from pySODM.models.base import ODEModel
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
 from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_poisson, ll_negative_binomial
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+
+# Only tested for ODEModel but the model output is identical so this shouldn't matter
 
 ##############
 ## Settings ##
@@ -44,7 +46,7 @@ for age_group in age_groups:
 ## Model without stratification ##
 ##################################
 
-class SIR(BaseModel):
+class SIR(ODEModel):
 
     # state variables and parameters
     state_names = ['S', 'I', 'R']
@@ -257,7 +259,7 @@ break_log_likelihood_functions_wo_stratification()
 ## Model with one stratification ##
 ###################################
 
-class SIRstratified(BaseModel):
+class SIRstratified(ODEModel):
 
     # state variables and parameters
     state_names = ['S', 'I', 'R']
@@ -405,7 +407,7 @@ break_log_likelihood_functions_with_one_stratification()
 ## Model with two stratifications ##
 ####################################
 
-class SIRdoublestratified(BaseModel):
+class SIRdoublestratified(ODEModel):
 
     # state variables and parameters
     state_names = ['S', 'I', 'R']
