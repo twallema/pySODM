@@ -1,4 +1,4 @@
-<!-- If you have a question or issue about the `covid-19 model`, please use following template. -->
+<!-- If you have a question or issue about `pySODM`, please use following template. -->
 
 ## Technical questions
 If you have questions related to code or implementation, please fill in the template in this section.
@@ -18,5 +18,5 @@ Paste the command(s) you ran and the output.
 If there was a crash, please include the traceback here.
 ```
 
-## Content-related questions
+## Content-related questions or suggestions
 If you have model-specific questions, describe your questions below and add @twallema to contact Tijs Alleman.
