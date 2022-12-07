@@ -69,7 +69,6 @@ if __name__ == '__main__':
     dataset = experiments[-1]['Es']
     model.initial_states.update({'S': [experiments[-1].loc[0]['S'],], 'A': [experiments[-1].loc[0]['A'],],
                                  'W': [experiments[-1].loc[0]['W'],], 'Es': [experiments[-1].loc[0]['Es'],]})
-    print(model.initial_states)
     data=[experiments[-1]['Es'], ]
     states = ['Es',]
     weights = np.array([1,])
@@ -99,7 +98,7 @@ if __name__ == '__main__':
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
     # Simulate model
-    out = model.sim(1000)
+    out = model.sim(1500)
     # Visualize
     fig,ax=plt.subplots(figsize=(12,4))
     ax.plot(out['time'], out['S'], color='black', label='D-glucose')
