@@ -411,7 +411,7 @@ class SDEModel:
                 raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
             else:
                 # If they are all int or flat
-                if all([isinstance(item, (int,float)) for item in time]):
+                if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
                     time = [round(item) for item in time]
                     time[0] -= warmup
                 # If they are all timestamps
@@ -744,8 +744,8 @@ class ODEModel:
             if not len(time) == 2:
                 raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
             else:
-                # If they are all int or flat
-                if all([isinstance(item, (int,float)) for item in time]):
+                # If they are all int or flat (or commonly occuring np.int64/np.float64)
+                if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
                     time = [round(item) for item in time]
                     time[0] -= warmup
                 # If they are all timestamps
