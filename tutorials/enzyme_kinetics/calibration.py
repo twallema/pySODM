@@ -45,9 +45,10 @@ from models import PPBB_model
 #################
 
 # Define model parameters
-params={'c_enzyme': 10, 'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, 'R_Es': 0.57, 'K_eq': 0.89, 'K_W': 1e6, 'K_iEs':1e6}
+params={'c_enzyme': 10, 'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, # Forward
+        'R_Es': 0.57, 'K_eq': 0.89, 'K_W': 1e6, 'K_iEs':1e6}            # Backward
 # Define initial condition
-init_states = {'S': [46], 'A': [61], 'W': [37], 'Es': [0]}
+init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
 # Initialize model
 model = PPBB_model(init_states,params)
 

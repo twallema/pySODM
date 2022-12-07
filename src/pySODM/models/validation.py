@@ -172,14 +172,13 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
 
     parameters = {param: parameters[param] for param in specified_params}
 
-    # After building the list of all model parameters, verify no parameters 'l' or 't' were used
+    # After building the list of all model parameters, verify no parameters 't' were used
     if 't' in parameters:
         raise ValueError(
         "Parameter name 't' is reserved for the timestep of scipy.solve_ivp.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
             )
 
-    # Validate the initial_states / stratified params having the correct length
-
+    # Validate the stratified params having the correct length
     def validate_stratified_parameters(values, name, object_name,i):
         values = np.asarray(values)
         if values.ndim != 1:
@@ -199,8 +198,20 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
                 )
             )
 
+    # Validate the initial states being the correct types/having the correct length
     def validate_initial_states(values, name, object_name):
+        # If the model doesn't have stratifications, initial states can be defined as: [int/float], int or float
+        # However these still need to converted to a np.array
+        if stratification_size == [1]:
+            if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64)):
+                raise TypeError(
+                    f"{object_name} {name} must be of type int, float, or list. found {type(values)}"
+                )
+            else:
+                if isinstance(values,(int,float)):
+                    values = np.asarray([values,])
         values = np.asarray(values)
+
         if state_2d:
             if name in state_2d:
                 if list(values.shape) != [stratification_size[0],stratification_size[0]]:
@@ -219,6 +230,8 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
                         obj=object_name, name=name, val=list(values.shape)
                     )
                 )
+
+        return values
 
     # the size of the stratified parameters
     if parameters_stratified_names:
@@ -248,10 +261,9 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     for state in state_names:
         if state in initial_states:
             # if present, check that the length is correct
-            validate_initial_states(
-                initial_states[state], state, "initial state"
-            )
-
+            initial_states[state] = validate_initial_states(
+                                        initial_states[state], state, "initial state"
+                                        )
         else:
             # otherwise add default of 0
             initial_states[state] = np.zeros(stratification_size)
