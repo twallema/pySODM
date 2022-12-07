@@ -67,14 +67,14 @@ if __name__ == '__main__':
     n_pso = 30
     multiplier_pso = 20
     # Define dataset
-    dataset = experiments[-1]['Es']
     model.initial_states.update({'S': [experiments[-1].loc[0]['S'],], 'A': [experiments[-1].loc[0]['A'],],
                                  'W': [experiments[-1].loc[0]['W'],], 'Es': [experiments[-1].loc[0]['Es'],]})
+
     data=[experiments[-1]['Es'], ]
     states = ['Es',]
     weights = np.array([1,])
     log_likelihood_fnc = [ll_gaussian,]
-    log_likelihood_fnc_args = [0.10,]
+    log_likelihood_fnc_args = [experiments[-1]['sigma'].values,]
     # Calibated parameters and bounds
     pars = ['R_Es', 'K_eq', 'K_W', 'K_iEs']
     labels = ['$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     ax.plot(out['time'], out['A'], color='black', linestyle='--', label='Lauric')
     ax.plot(out['time'], out['Es'], color='red', label='Glucose laurate')
     ax.plot(out['time'], out['W'], color='red', linestyle='--', label='Water')
-    ax.scatter(dataset.index, dataset.values)
+    ax.scatter(data[0].index, data[0].values)
     ax.legend()
     ax.grid(False)
     plt.show()

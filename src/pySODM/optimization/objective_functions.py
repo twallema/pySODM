@@ -10,25 +10,28 @@ from pySODM.optimization.utils import thetas_to_thetas_dict
 ##############################
 
 def ll_gaussian(ymodel, ydata, sigma):
-    """Loglikelihood of Gaussian distribution (minus constant terms). NOTE: ymodel must not be zero anywhere.
+    """Loglikelihood of a Gaussian distribution (minus constant terms).
     
     Parameters
     ----------
-    ymodel: list of floats
-        List with average values of the Gaussian distribution at a particular time (i.e. "mu" values), predicted by the model at hand
-    ydata: list of floats
-        List with actual time series values at a particlar time that are to be fitted to the model
-    sigma: float or list of floats
-        (List of) standard deviation(s) defining the Gaussian distribution around the central value 'ymodel'. If float, the same value for the standard deviation is used for all timeseries values
+    ymodel: np.ndarray
+        mean values of the Gaussian distribution (i.e. "mu" values), as predicted by the model
+    ydata: np.ndarray
+        data time series values to be matched with the model predictions
+    sigma: float/list of floats/np.ndarray
+        standard deviation(s) of the Gaussian distribution around the mean value 'ymodel'
+        Two options are possible: 1) one error per model stratification, applied uniformly to all datapoints corresponding to that stratification OR
+        2) one error for every datapoint, corresponding to a weighted least-squares estimator
 
     Returns
     -------
     ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values, minus the constant terms if complete=True.
+        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
     """
 
-    # Expand first dimensions on 'alpha' to match the axes
-    sigma = np.array(sigma)[np.newaxis, ...]
+    if not sigma.shape == ymodel.shape:
+        # Expand first dimensions on 'alpha' to match the axes
+        sigma = np.array(sigma)[np.newaxis, ...]   
 
     return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
 
@@ -37,10 +40,10 @@ def ll_poisson(ymodel, ydata):
     
     Parameters
     ----------
-    ymodel: list of floats
-        List with average values of the Poisson distribution at a particular time (i.e. "lambda" values), predicted by the model at hand
-    ydata: list of floats
-        List with actual time series values at a particlar time that are to be fitted to the model
+    ymodel: np.ndarray
+        mean values of the Poisson distribution (i.e. "lambda" values), as predicted by the model
+    ydata: np.ndarray
+        data time series values to be matched with the model predictions
 
     Returns
     -------
@@ -73,12 +76,12 @@ def ll_negative_binomial(ymodel, ydata, alpha):
 
     Parameters
     ----------
-    ymodel: list of floats
-        List with average values of the Poisson distribution at a particular time (i.e. "lambda" values), predicted by the model at hand
-    ydata: list of floats
-        List with actual time series values at a particlar time that are to be fitted to the model
-    alpha: float
-        Dispersion factor. The variance in the dataseries is equal to 1/dispersion and hence dispersion is bounded [0,1].
+    ymodel: np.ndarray
+        mean values of the negative binomial distribution, as predicted by the model
+    ydata: np.ndarray
+        data time series values to be matched with the model predictions
+    alpha: float/list
+        Dispersion. The variance in the dataseries is equal to 1/dispersion and hence dispersion is bounded [0,1].
  
     Returns
     -------
@@ -537,11 +540,21 @@ class log_posterior_probability():
                         "The likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided a non-empty list.".format(log_likelihood_fnc[idx], idx)
                         )
             else:
+
                 if not self.additional_axes_data[idx]:
-                    if not (isinstance(log_likelihood_fnc_args[idx], int) | isinstance(log_likelihood_fnc_args[idx], float)):
+                    # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, ll_gaussian can also take an error for every datapoint
+                    # Thus, its additional argument must be a np.array of the same dimensions as the model prediction
+                    if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray)):
                         raise ValueError(
-                            f"The provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type int or float. You have provided '{type(log_likelihood_fnc_args[idx])}'"
+                            f"The provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type np.array for log likelihood function 'WLS' or int/float otherwise. You have provided '{type(log_likelihood_fnc_args[idx])}'"
                         )
+                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                        if log_likelihood_fnc_args[idx].shape != df.values.shape:
+                            raise ValueError(
+                                f"The shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
+                            )
+                        else:
+                            log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
                 elif len(self.additional_axes_data[idx]) == 1:
                     if (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], int)):
                         raise ValueError(
