@@ -184,6 +184,45 @@ def break_stuff_wo_stratification():
     with pytest.raises(Exception, match="Your model has no stratifications."):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+    
+    # Wrong type of dataset
+    # ~~~~~~~~~~~~~~~~~~~~~
+
+    # Define dataset
+    data=[np.array([0,1,2,3,4,5]),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_poisson,]
+    log_likelihood_fnc_args = [[],]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    with pytest.raises(Exception, match="expected pd.Series or pd.DataFrame"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+
+    # pd.DataFrame with more than one column
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    # Add extra column to dataset
+    d = df.groupby(by=['time']).sum()
+    d['bluh'] = df.groupby(by=['time']).sum().values
+    # Define dataset
+    data=[d,]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_poisson,]
+    log_likelihood_fnc_args = [[],]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    with pytest.raises(Exception, match="expected one column."):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
 # For some weird ass reason this doesn't run if I don't call it..
 break_stuff_wo_stratification()

@@ -1,4 +1,5 @@
 import inspect
+import pandas as pd
 import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
@@ -260,6 +261,17 @@ class log_posterior_probability():
 
         self.additional_axes_data=[] 
         for idx, df in enumerate(data):
+            # Is dataset either a pd.Series or a pd.Dataframe?
+            if not isinstance(df, (pd.Series,pd.DataFrame)):
+                raise TypeError(
+                    f"{idx}th dataset is of type {type(df)}. expected pd.Series or pd.DataFrame"
+                )
+            # If it is a pd.DataFrame, does it have one column?
+            if isinstance(df, pd.DataFrame):
+                if len(df.columns) != 1:
+                    raise ValueError(
+                        f"{idx}th dataset is a pd.DataFrame with {len(df.columns)} columns. expected one column."
+                    )
             # Does data contain NaN values anywhere?
             if np.isnan(df).values.any():
                 raise ValueError(
