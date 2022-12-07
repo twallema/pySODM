@@ -275,6 +275,9 @@ class log_posterior_probability():
                     raise ValueError(
                         f"{idx}th dataset is a pd.DataFrame with {len(df.columns)} columns. expected one column."
                     )
+                else:
+                    # Convert to a series for ease
+                    data[idx] = df.squeeze()
             # Does data contain NaN values anywhere?
             if np.isnan(df).values.any():
                 raise ValueError(
@@ -540,10 +543,9 @@ class log_posterior_probability():
                         "The likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided a non-empty list.".format(log_likelihood_fnc[idx], idx)
                         )
             else:
-
                 if not self.additional_axes_data[idx]:
-                    # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, ll_gaussian can also take an error for every datapoint
-                    # Thus, its additional argument must be a np.array of the same dimensions as the model prediction
+                    # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, but ll_gaussian can also take an error for every datapoint (= weighted least-squares)
+                    # Thus, its additional argument must be a np.array of the same dimensions as the data
                     if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray)):
                         raise ValueError(
                             f"The provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type np.array for log likelihood function 'WLS' or int/float otherwise. You have provided '{type(log_likelihood_fnc_args[idx])}'"
@@ -555,21 +557,32 @@ class log_posterior_probability():
                             )
                         else:
                             log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
+
                 elif len(self.additional_axes_data[idx]) == 1:
-                    if (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], int)):
+                    # Shape of data
+                    data_shape = self.series_to_ndarray(df).shape
+                    # If it is an int/float --> not possible
+                    if isinstance(log_likelihood_fnc_args[idx], (int,float)):
                         raise ValueError(
-                             f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' in the {idx}th dataset. You provided: int or float."
+                             f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type int or float."
                         )
+                    # If it is a np.ndarray --> either one error per datapoint, or one error per stratification axis
                     if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
-                        if log_likelihood_fnc_args[idx].ndim != 1:
+                        if log_likelihood_fnc_args[idx].shape != data_shape:
+                            if log_likelihood_fnc_args[idx].ndim != 1:
+                                raise ValueError(
+                                    f"np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must be 1 dimensional"
+                                )
+                            elif not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
+                                raise ValueError(
+                                    f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                )
+                    # If it is a list --> one error per stratification axis
+                    if isinstance(log_likelihood_fnc_args[idx], list):
+                        if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                             raise ValueError(
-                                f"np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must be 1 dimensional"
-                            )
-                    if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
-                        len(log_likelihood_fnc_args[idx])
-                        raise ValueError(
-                            f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
-                        )
+                                    f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                )
                 else:
                     desired_shape=[]
                     for lst in self.coordinates_data_also_in_model[idx]:
