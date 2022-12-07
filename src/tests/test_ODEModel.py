@@ -77,7 +77,7 @@ def test_SIR_date():
         output = model.sim(['2020-01-01', pd.Timestamp('2020-02-20')])
 
 def test_model_init_validation():
-    # valid initialization
+    # valid initialization: initial states as lists
     parameters = {"beta": 0.9, "gamma": 0.2}
     initial_states = {"S": [1_000_000 - 10], "I": [10], "R": [0]}
     model = SIR(initial_states, parameters)
@@ -86,6 +86,29 @@ def test_model_init_validation():
     # model state/parameter names didn't change
     assert model.state_names == ['S', 'I', 'R']
     assert model.parameter_names == ['beta', 'gamma']
+
+    # valid initialization: initial states as int
+    initial_states = {"S": 1_000_000 - 10, "I": 10, "R": 0}
+    model = SIR(initial_states, parameters)
+    assert model.initial_states == initial_states
+    assert model.parameters == parameters
+    # model state/parameter names didn't change
+    assert model.state_names == ['S', 'I', 'R']
+    assert model.parameter_names == ['beta', 'gamma']
+
+    # valid initialization: initial states as np.array
+    initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
+    model = SIR(initial_states, parameters)
+    assert model.initial_states == initial_states
+    assert model.parameters == parameters
+    # model state/parameter names didn't change
+    assert model.state_names == ['S', 'I', 'R']
+    assert model.parameter_names == ['beta', 'gamma']
+
+    # wrong length initial states
+    initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
+    with pytest.raises(ValueError, match="The abscence of model coordinates indicate a desired model"):
+        SIR(initial_states2, parameters)
 
     # wrong initial states
     initial_states2 = {"S": [1_000_000 - 10], "II": [10]}

@@ -200,36 +200,57 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
 
     # Validate the initial states being the correct types/having the correct length
     def validate_initial_states(values, name, object_name):
-        # If the model doesn't have stratifications, initial states can be defined as: [int/float], int or float
+        # If the model doesn't have stratifications, initial states can be defined as: np.array([int/float]), [int/float], int or float
         # However these still need to converted to a np.array
         if stratification_size == [1]:
-            if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64)):
+            if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64,np.ndarray)):
                 raise TypeError(
                     f"{object_name} {name} must be of type int, float, or list. found {type(values)}"
                 )
             else:
                 if isinstance(values,(int,float)):
                     values = np.asarray([values,])
-        values = np.asarray(values)
+            values = np.asarray(values)
 
-        if state_2d:
-            if name in state_2d:
-                if list(values.shape) != [stratification_size[0],stratification_size[0]]:
+            if state_2d:
+                if name in state_2d:
+                    if list(values.shape) != [stratification_size[0],stratification_size[0]]:
+                        raise ValueError(
+                            "{obj} {name} was defined as a two-dimensional state "
+                            "but has size {size}, instead of {desired_size}"
+                            .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
+                            )
+            else:
+                if list(values.shape) != stratification_size:
                     raise ValueError(
-                        "{obj} {name} was defined as a two-dimensional state "
-                        "but has size {size}, instead of {desired_size}"
-                        .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
+                        "The abscence of model coordinates indicate a desired "
+                        "model states size of {strat_size}, but {obj} '{name}' "
+                        "has length {val}".format(
+                            strat_size=stratification_size,
+                            obj=object_name, name=name, val=list(values.shape)
                         )
-        else:
-            if list(values.shape) != stratification_size:
-                raise ValueError(
-                    "The coordinates provided for the stratifications '{strat}' indicate a "
-                    "model states size of {strat_size}, but {obj} '{name}' "
-                    "has length {val}".format(
-                        strat=list(coordinates.keys()), strat_size=stratification_size,
-                        obj=object_name, name=name, val=list(values.shape)
                     )
-                )
+
+        else:
+            values = np.asarray(values)
+            if state_2d:
+                if name in state_2d:
+                    if list(values.shape) != [stratification_size[0],stratification_size[0]]:
+                        raise ValueError(
+                            "{obj} {name} was defined as a two-dimensional state "
+                            "but has size {size}, instead of {desired_size}"
+                            .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
+                            )
+            else:
+                if list(values.shape) != stratification_size:
+                    raise ValueError(
+                        "The coordinates provided for the stratifications '{strat}' indicate a "
+                        "model states size of {strat_size}, but {obj} '{name}' "
+                        "has length {val}".format(
+                            strat=list(coordinates.keys()), strat_size=stratification_size,
+                            obj=object_name, name=name, val=list(values.shape)
+                        )
+                    )
 
         return values
 
