@@ -609,7 +609,7 @@ class log_posterior_probability():
             if not self.additional_axes_data[idx]:
                 # Only dates must be matched
                 ymodel = np.expand_dims(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values, axis=1)
-                ydata = df.values
+                ydata = np.expand_dims(df.values,axis=1)
                 # Check if shapes are consistent
                 if ymodel.shape != ydata.shape:
                     raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
