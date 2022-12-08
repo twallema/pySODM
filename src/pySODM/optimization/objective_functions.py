@@ -247,13 +247,26 @@ class log_posterior_probability():
     # TODO: fully document docstring
     """
     def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights,
-                    log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, labels=None):
+                    log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+
+        ##################################
+        ## Construct initial conditions ##
+        ##################################
+        
+        if not initial_states:
+            # Assume equal initial conditions for all datasets
+            initial_states=[]
+            for i in range(len(data)):
+                initial_states.append(model.initial_states)
+        else:
+            # Validate intial conditions provided
+            pass
 
         ############################################################################################
         ## Check provided number of number of datasets, states, weights, log_likelihood functions ##
         ############################################################################################
 
-        if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args]):
+        if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
             raise ValueError(
                 "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
                 )

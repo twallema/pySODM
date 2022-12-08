@@ -30,9 +30,37 @@ import corner
 ###############
 
 experiments=[]
+log_likelihood_fnc_args = []
 names = os.listdir(os.path.join(os.path.dirname(__file__),'data/'))
 for name in names:
-    experiments.append(pd.read_csv(os.path.join(os.path.dirname(__file__),'data/'+name), index_col=0))
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/'+name), index_col=0)
+    experiments.append(df)
+    log_likelihood_fnc_args.append(df['sigma'])
+
+# Log likelihood function
+log_likelihood_fnc = len(log_likelihood_fnc_args)*[ll_gaussian,]
+
+# Datasets
+data = [
+    experiments[0]['Es'],
+    experiments[1]['Es'],
+    experiments[2]['S'],
+    experiments[3]['Es'],
+    experiments[4]['Es'],
+]
+
+# States to match
+states = ['Es','Es','S','Es','Es']
+
+# Equal weights
+weights = len(states)*[1,]
+
+# Initial concentrations: each dataset has a different initial condition
+initial_concentrations=[]
+for i in range(len(data)):
+    initial_concentrations.append(
+        {'S': [experiments[i].loc[0]['S'],], 'A': [experiments[i].loc[0]['A'],], 'Es': [experiments[i].loc[0]['Es'],], 'W': [experiments[i].loc[0]['W'],]},
+    )
 
 ################
 ## Load model ##
@@ -66,31 +94,18 @@ if __name__ == '__main__':
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     n_pso = 30
     multiplier_pso = 20
-    # Define dataset
-    model.initial_states.update({'S': [experiments[-1].loc[0]['S'],], 'A': [experiments[-1].loc[0]['A'],],
-                                 'W': [experiments[-1].loc[0]['W'],], 'Es': [experiments[-1].loc[0]['Es'],]})
-
-    data=[experiments[-1]['Es'], ]
-    states = ['Es',]
-    weights = np.array([1,])
-    log_likelihood_fnc = [ll_gaussian,]
-    print(type(experiments[-1]['sigma'].values))
-    log_likelihood_fnc_args = [experiments[-1]['sigma'],]
     # Calibated parameters and bounds
     pars = ['R_Es', 'K_eq', 'K_W', 'K_iEs']
     labels = ['$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']
     bounds = [(1e-6,1e6), (1e-6,10), (1e-6,1e6), (1e-6,1e6)]
     # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
-    # Extract expanded bounds and labels
-    expanded_labels = objective_function.expanded_labels 
-    expanded_bounds = objective_function.expanded_bounds                                   
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,initial_states=initial_concentrations,labels=labels)                               
     # PSO
     #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
     #                   swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
     theta = [0.57, 0.89, 1e4, 1e4]
-    step = len(expanded_bounds)*[0.05,]
+    step = len(theta)*[0.05,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
 
     ######################
