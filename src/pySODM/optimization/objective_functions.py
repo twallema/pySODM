@@ -253,12 +253,15 @@ class log_posterior_probability():
         ##################################
         ## Construct initial conditions ##
         ##################################
+        #####################################################################################################
+        ## Check provided number of datasets, states, weights, log_likelihood functions and initial states ##
+        #####################################################################################################
         
         if not initial_states:
-            # Assume equal initial conditions for all datasets
-            initial_states=[]
-            for i in range(len(data)):
-                initial_states.append(model.initial_states)
+            if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args]):
+                raise ValueError(
+                    "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
+                    )
         else:
             # Validate intial conditions provided
             for i,initial_states_dict in enumerate(initial_states):
@@ -284,14 +287,12 @@ class log_posterior_probability():
                 # Assign 
                 initial_states[i] = initial_states_dict
 
-        #####################################################################################################
-        ## Check provided number of datasets, states, weights, log_likelihood functions and initial states ##
-        #####################################################################################################
+            if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
+                raise ValueError(
+                    "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), weights ({4}) and initial states ({5}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights), len(initial_states))
+                    )
 
-        if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
-            raise ValueError(
-                "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), weights ({4}) and initial states ({5}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights), len(initial_states))
-                )
+        self.initial_states = initial_states
 
         ####################
         ## Checks on data ##
@@ -692,48 +693,47 @@ class log_posterior_probability():
             shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
             return df.to_numpy().reshape(shape)
 
-    def compute_log_likelihood(self, out, states, data, weights, log_likelihood_fnc, log_likelihood_fnc_args, n_log_likelihood_extra_args):
+    def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args, time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model):
         """
         Matches the model output of the desired states to the datasets provided by the user and then computes the log likelihood using the user-specified function.
         """
 
         total_ll=0
-        # Loop over dataframes
-        for idx,df in enumerate(data):
-            # Reduce dimensions on the model prediction
-            out_copy = out[states[idx]]
-            for dimension in out.dims:
-                if dimension in self.aggregate_over[idx]:
-                    out_copy = out_copy.sum(dim=dimension)
-            # Interpolate to right times/dates
-            interp = out_copy.interp({self.time_index: df.index.get_level_values(self.time_index).unique().values}, method="linear")
-            # Select right axes
-            if not self.additional_axes_data[idx]:
-                # Only dates must be matched
-                ymodel = np.expand_dims(interp.sel({self.time_index: df.index.get_level_values(self.time_index).unique().values}).values, axis=1)
-                ydata = np.expand_dims(df.squeeze().values,axis=1)
-                # Check if shapes are consistent
-                if ymodel.shape != ydata.shape:
-                    raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
-                if n_log_likelihood_extra_args[idx] == 0:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata)
-                else:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata, *[log_likelihood_fnc_args[idx],])
+
+        # Reduce dimensions on the model prediction
+        out_copy = out[states]
+        for dimension in out.dims:
+            if dimension in aggregate_over:
+                out_copy = out_copy.sum(dim=dimension)
+        # Interpolate to right times/dates
+        interp = out_copy.interp({time_index: df.index.get_level_values(time_index).unique().values}, method="linear")
+        # Select right axes
+        if not additional_axes_data:
+            # Only dates must be matched
+            ymodel = np.expand_dims(interp.sel({time_index: df.index.get_level_values(time_index).unique().values}).values, axis=1)
+            ydata = np.expand_dims(df.squeeze().values,axis=1)
+            # Check if shapes are consistent
+            if ymodel.shape != ydata.shape:
+                raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+            if n_log_likelihood_extra_args == 0:
+                total_ll += weights*log_likelihood_fnc(ymodel, ydata)
             else:
-                # First reorder model output 
-                dims = [self.time_index,] + self.additional_axes_data[idx]
-                interp = interp.transpose(*dims)
-                ymodel = interp.sel({k:self.coordinates_data_also_in_model[idx][jdx] for jdx,k in enumerate(self.additional_axes_data[idx])}).values
-                # Automatically reorder the dataframe so that time/date is first index
-                ydata = self.series_to_ndarray(df.reorder_levels([self.time_index,]+self.additional_axes_data[idx]))
-                # Check if shapes are consistent
-                if ymodel.shape != ydata.shape:
-                    raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
-                if n_log_likelihood_extra_args[idx] == 0:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata)
-                else:
-                    total_ll += weights[idx]*log_likelihood_fnc[idx](ymodel, ydata, *[log_likelihood_fnc_args[idx],])
-        
+                total_ll += weights*log_likelihood_fnc(ymodel, ydata, *[log_likelihood_fnc_args,])
+        else:
+            # First reorder model output 
+            dims = [time_index,] + additional_axes_data
+            interp = interp.transpose(*dims)
+            ymodel = interp.sel({k:coordinates_data_also_in_model[jdx] for jdx,k in enumerate(additional_axes_data)}).values
+            # Automatically reorder the dataframe so that time/date is first index
+            ydata = self.series_to_ndarray(df.reorder_levels([time_index,]+additional_axes_data))
+            # Check if shapes are consistent
+            if ymodel.shape != ydata.shape:
+                raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+            if n_log_likelihood_extra_args == 0:
+                total_ll += weights*log_likelihood_fnc(ymodel, ydata)
+            else:
+                total_ll += weights*log_likelihood_fnc(ymodel, ydata, *[log_likelihood_fnc_args,])
+    
         return total_ll
 
     def __call__(self, thetas, simulation_kwargs={}):
@@ -754,13 +754,27 @@ class log_posterior_probability():
         for param,value in thetas_dict.items():
             self.model.parameters.update({param : value})
 
-        # Perform simulation
-        out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
-
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
 
-        # Add log likelihood
-        lp += self.compute_log_likelihood(out, self.states, self.data, self.weights, self.log_likelihood_fnc, self.log_likelihood_fnc_args, self.n_log_likelihood_extra_args)
-
+        if not self.initial_states:
+            # Perform simulation only once
+            out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+            # Loop over dataframes
+            for idx,df in enumerate(self.data):
+                # Compute log likelihood
+                lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
+                                                  self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
+                                                  self.coordinates_data_also_in_model[idx])
+        else:
+            # Loop over dataframes
+            for idx,df in enumerate(self.data):
+                # Replace initial condition
+                self.model.initial_states.update(self.initial_states[idx])
+                # Perform simulation
+                out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+                # Compute log likelihood
+                lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
+                                                  self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
+                                                  self.coordinates_data_also_in_model[idx])
         return lp

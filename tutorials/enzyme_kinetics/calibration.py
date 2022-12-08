@@ -12,6 +12,7 @@ __copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University
 
 import sys,os
 import random
+import datetime
 import emcee
 import pandas as pd
 import numpy as np
@@ -92,19 +93,17 @@ if __name__ == '__main__':
 
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 30
-    multiplier_pso = 20
+    n_pso = 20
+    multiplier_pso = 10
     # Calibated parameters and bounds
     pars = ['R_Es', 'K_eq', 'K_W', 'K_iEs']
     labels = ['$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']
-    bounds = [(1e-6,1e6), (1e-6,10), (1e-6,1e6), (1e-6,1e6)]
+    bounds = [(1e-2,1e6), (1e-2,3), (1e1,1e6), (1e1,1e6)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,initial_states=initial_concentrations,labels=labels)                               
     # PSO
-    #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
-    #                   swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
+    theta = pso.optimize(objective_function, swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
-    theta = [0.57, 0.89, 1e4, 1e4]
     step = len(theta)*[0.05,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
 
@@ -114,20 +113,91 @@ if __name__ == '__main__':
 
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
-    # Simulate model
-    out = model.sim(1500)
-    # Visualize
-    fig,ax=plt.subplots(figsize=(12,4))
-    ax.plot(out['time'], out['S'], color='black', label='D-glucose')
-    ax.plot(out['time'], out['A'], color='black', linestyle='--', label='Lauric')
-    ax.plot(out['time'], out['Es'], color='red', label='Glucose laurate')
-    ax.plot(out['time'], out['W'], color='red', linestyle='--', label='Water')
-    ax.scatter(data[0].index, data[0].values)
-    ax.legend()
-    ax.grid(False)
-    plt.show()
-    plt.close()
-    plt.tight_layout()
+
+    # Loop over datasets
+    for i,df in enumerate(data):
+        # Update initial condition
+        model.initial_states.update(initial_concentrations[i])
+        # Simulate model
+        out = model.sim(3000)
+        # Visualize
+        fig,ax=plt.subplots(figsize=(12,4))
+        ax.plot(out['time'], out['S'], color='black', label='D-glucose')
+        ax.plot(out['time'], out['Es'], color='red', label='Glucose laurate')
+        ax.scatter(df.index, df.values, color='black', alpha=0.5, linestyle='None', facecolors='none', s=60, linewidth=2)
+        #ax.errorbar(df.index, df.values, yerr=log_likelihood_fnc_args[i], fmt='x', color='black')
+        ax.legend()
+        ax.grid(False)
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
+    ##########
+    ## MCMC ##
+    ##########
+
+    # Variables
+    n_mcmc = 50
+    multiplier_mcmc = 9
+    print_n = 10
+    discard = 50
+    samples_path='sampler_output/'
+    fig_path='sampler_output/'
+    identifier = 'username'
+    run_date = str(datetime.date.today())
+    # Perturbate previously obtained estimate
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.50*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
+    # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
+    settings={'start_calibration': 0, 'end_calibration': 3000,
+              'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': labels}
+    # Sample 100 iterations
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {},
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
+                                    settings_dict=settings)
+    # Sample 100 more
+    backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.hdf5'))
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {},
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
+                                    settings_dict=settings)
+    # Generate a sample dictionary and save it as .json for long-term storage
+    # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
+    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    # Look at the resulting distributions in a cornerplot
+    CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
+    fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=labels, **CORNER_KWARGS)
+    for idx,ax in enumerate(fig.get_axes()):
+        ax.grid(False)
     plt.show()
     plt.close()
 
+    ######################
+    ## Visualize result ##
+    ######################
+
+    N = 50
+
+    def draw_fcn(param_dict, samples_dict):
+        idx, param_dict['R_Es'] = random.choice(list(enumerate(samples_dict['R_Es'])))
+        param_dict['K_eq'] = samples_dict['K_eq'][idx]
+        param_dict['K_W'] = samples_dict['K_W'][idx]
+        param_dict['K_iEs'] = samples_dict['K_iEs'][idx]
+        return param_dict
+
+    # Loop over datasets
+    for i,df in enumerate(data):
+        # Update initial condition
+        model.initial_states.update(initial_concentrations[i])
+        # Simulate model
+        out = model.sim(3000, N=N, draw_fcn=draw_fcn, samples=samples_dict)
+        # Visualize
+        fig,ax=plt.subplots(figsize=(12,4))
+        ax.scatter(df.index, df.values, color='black', alpha=0.5, linestyle='None', facecolors='none', s=60, linewidth=2)
+        for i in range(N):
+            ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.10, linewidth=0.2)
+            ax.plot(out['time'], out['Es'].isel(draws=i), color='red', alpha=0.10, linewidth=0.2)
+        #ax.errorbar(df.index, df.values, yerr=log_likelihood_fnc_args[i], fmt='x', color='black')
+        ax.legend(['data', 'D-glucose', 'Glucose laurate'])
+        ax.grid(False)
+        plt.tight_layout()
+        plt.show()
+        plt.close()
