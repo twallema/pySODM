@@ -536,11 +536,11 @@ class log_posterior_probability():
             if n_log_likelihood_extra_args[idx] == 0:
                 if ((isinstance(log_likelihood_fnc_args[idx], int)) | (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], np.ndarray))):
                     raise ValueError(
-                        "The likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided an {2}.".format(log_likelihood_fnc[idx], idx, type(log_likelihood_fnc_args[idx]))
+                        "the likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided an {2}.".format(log_likelihood_fnc[idx], idx, type(log_likelihood_fnc_args[idx]))
                         )
                 elif log_likelihood_fnc_args[idx]:
                     raise ValueError(
-                        "The likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided a non-empty list.".format(log_likelihood_fnc[idx], idx)
+                        "the likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided a non-empty list.".format(log_likelihood_fnc[idx], idx)
                         )
             else:
                 if not self.additional_axes_data[idx]:
@@ -548,12 +548,12 @@ class log_posterior_probability():
                     # Thus, its additional argument must be a np.array of the same dimensions as the data
                     if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray)):
                         raise ValueError(
-                            f"The provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type np.array for log likelihood function 'WLS' or int/float otherwise. You have provided '{type(log_likelihood_fnc_args[idx])}'"
+                            f"the provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type np.array for log likelihood function 'WLS' or int/float otherwise. You have provided '{type(log_likelihood_fnc_args[idx])}'"
                         )
                     if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
                         if log_likelihood_fnc_args[idx].shape != df.values.shape:
                             raise ValueError(
-                                f"The shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
+                                f"the shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
                             )
                         else:
                             log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
@@ -561,41 +561,64 @@ class log_posterior_probability():
                 elif len(self.additional_axes_data[idx]) == 1:
                     # Shape of data
                     data_shape = self.series_to_ndarray(df).shape
-                    # If it is an int/float --> not possible
-                    if isinstance(log_likelihood_fnc_args[idx], (int,float)):
-                        raise ValueError(
-                             f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type int or float."
+
+                    if not isinstance(log_likelihood_fnc_args[idx],(list,np.ndarray,pd.Series)):
+                        raise TypeError(
+                             f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
+                             "accepted types are list, np.ndarray or pd.Series "
                         )
-                    # If it is a np.ndarray --> either one error per datapoint, or one error per stratification axis
-                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
-                        if log_likelihood_fnc_args[idx].shape != data_shape:
+                    else:
+                        # list
+                        if isinstance(log_likelihood_fnc_args[idx], list):
+                            if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
+                                raise ValueError(
+                                    f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                    )
+                        # np.ndarray
+                        if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
                             if log_likelihood_fnc_args[idx].ndim != 1:
                                 raise ValueError(
                                     f"np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must be 1 dimensional"
                                 )
                             elif not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                                 raise ValueError(
-                                    f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                    f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                                 )
-                    # If it is a list --> one error per stratification axis
-                    if isinstance(log_likelihood_fnc_args[idx], list):
-                        if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
-                            raise ValueError(
-                                    f"Length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                        # pd.Series
+                        if isinstance(log_likelihood_fnc_args[idx], pd.Series):
+                            if not log_likelihood_fnc_args[idx].index.equals(df.index):
+                                raise ValueError(
+                                    f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
                                 )
+                            else:
+                                # Make sure time index is in first position
+                                log_likelihood_fnc_args[idx] = self.series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([self.time_index,]+self.additional_axes_data[idx]))                 
                 else:
+                    # Compute desired shape in case of one parameter per stratfication
                     desired_shape=[]
                     for lst in self.coordinates_data_also_in_model[idx]:
                         desired_shape.append(len(lst))
-                    if not isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                    # Input checks
+                    if not isinstance(log_likelihood_fnc_args[idx], (np.ndarray, pd.Series)):
                         raise TypeError(
-                            f"Expected a np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} of size {desired_shape}'"
+                            f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
+                            "accepted types are np.darray and pd.Series"
                         )
-                    shape = list(log_likelihood_fnc_args[idx].shape)
-                    if shape != desired_shape:
-                        raise ValueError(
-                            f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}. You provided {shape}"
-                        )
+                    else:
+                        if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                            shape = list(log_likelihood_fnc_args[idx].shape)
+                            if shape != desired_shape:
+                                raise ValueError(
+                                    f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}. You provided {shape}"
+                                )
+                        if isinstance(log_likelihood_fnc_args[idx], pd.Series):
+                            if not log_likelihood_fnc_args[idx].index.equals(df.index):
+                                raise ValueError(
+                                    f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
+                                )
+                            else:
+                                # Make sure time index is in first position
+                                log_likelihood_fnc_args[idx] = self.series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([self.time_index,]+self.additional_axes_data[idx]))
 
         # Find out if 'warmup' needs to be estimated
         self.warmup_position=None
