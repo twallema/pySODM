@@ -74,7 +74,8 @@ if __name__ == '__main__':
     states = ['Es',]
     weights = np.array([1,])
     log_likelihood_fnc = [ll_gaussian,]
-    log_likelihood_fnc_args = [experiments[-1]['sigma'].values,]
+    print(type(experiments[-1]['sigma'].values))
+    log_likelihood_fnc_args = [experiments[-1]['sigma'],]
     # Calibated parameters and bounds
     pars = ['R_Es', 'K_eq', 'K_W', 'K_iEs']
     labels = ['$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']

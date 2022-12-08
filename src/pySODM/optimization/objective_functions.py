@@ -546,22 +546,28 @@ class log_posterior_probability():
                 if not self.additional_axes_data[idx]:
                     # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, but ll_gaussian can also take an error for every datapoint (= weighted least-squares)
                     # Thus, its additional argument must be a np.array of the same dimensions as the data
-                    if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray)):
+                    if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray,pd.Series)):
                         raise ValueError(
-                            f"the provided arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset must be of type np.array for log likelihood function 'WLS' or int/float otherwise. You have provided '{type(log_likelihood_fnc_args[idx])}'"
+                            f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
+                            "accepted types are int, float, np.ndarray and pd.Series"
                         )
-                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
-                        if log_likelihood_fnc_args[idx].shape != df.values.shape:
-                            raise ValueError(
-                                f"the shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
-                            )
-                        else:
-                            log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
+                    else:
+                        if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                            if log_likelihood_fnc_args[idx].shape != df.values.shape:
+                                raise ValueError(
+                                    f"the shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
+                                )
+                            else:
+                                log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
+                        if isinstance(log_likelihood_fnc_args[idx], pd.Series):
+                            if not log_likelihood_fnc_args[idx].index.equals(df.index):
+                                raise ValueError(
+                                    f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
+                                )
+                            else:
+                                log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx].values,axis=1)
 
                 elif len(self.additional_axes_data[idx]) == 1:
-                    # Shape of data
-                    data_shape = self.series_to_ndarray(df).shape
-
                     if not isinstance(log_likelihood_fnc_args[idx],(list,np.ndarray,pd.Series)):
                         raise TypeError(
                              f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
@@ -602,7 +608,7 @@ class log_posterior_probability():
                     if not isinstance(log_likelihood_fnc_args[idx], (np.ndarray, pd.Series)):
                         raise TypeError(
                             f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
-                            "accepted types are np.darray and pd.Series"
+                            "accepted types are np.ndarray and pd.Series"
                         )
                     else:
                         if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
