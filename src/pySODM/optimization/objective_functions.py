@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
 from pySODM.optimization.utils import thetas_to_thetas_dict
+from pySODM.models.validation import validate_initial_states
 
 ##############################
 ## Log-likelihood functions ##
@@ -260,15 +261,36 @@ class log_posterior_probability():
                 initial_states.append(model.initial_states)
         else:
             # Validate intial conditions provided
-            pass
+            for i,initial_states_dict in enumerate(initial_states):
+                for state in model.state_names:
+                    if state in initial_states_dict:
+                        # if present, check that the length is correct
+                        initial_states_dict[state] = validate_initial_states(initial_states_dict[state], state, "initial state", model.stratification_size, model.coordinates, None)
+                    else:
+                        # otherwise add default of 0
+                        initial_states_dict[state] = np.zeros(model.stratification_size)
 
-        ############################################################################################
-        ## Check provided number of number of datasets, states, weights, log_likelihood functions ##
-        ############################################################################################
+                # check if the states match with model states
+                if set(initial_states_dict.keys()) != set(model.state_names):
+                    raise ValueError(
+                        "The initial states in position {0} don't exactly match the model's predefined states. "
+                        "Redundant states: {1}".format(
+                        i,set(initial_states_dict.keys()).difference(set(model.state_names)))
+                    )
+
+                # sort the initial states to match the state_names
+                initial_states_dict = {state: initial_states_dict[state] for state in model.state_names}
+
+                # Assign 
+                initial_states[i] = initial_states_dict
+
+        #####################################################################################################
+        ## Check provided number of datasets, states, weights, log_likelihood functions and initial states ##
+        #####################################################################################################
 
         if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
             raise ValueError(
-                "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
+                "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), weights ({4}) and initial states ({5}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights), len(initial_states))
                 )
 
         ####################
