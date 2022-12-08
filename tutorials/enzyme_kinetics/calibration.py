@@ -33,6 +33,7 @@ import corner
 experiments=[]
 log_likelihood_fnc_args = []
 names = os.listdir(os.path.join(os.path.dirname(__file__),'data/'))
+names.sort()
 for name in names:
     df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/'+name), index_col=0)
     experiments.append(df)
@@ -43,15 +44,18 @@ log_likelihood_fnc = len(log_likelihood_fnc_args)*[ll_gaussian,]
 
 # Datasets
 data = [
-    experiments[0]['Es'],
+    experiments[0]['S'],
     experiments[1]['Es'],
-    experiments[2]['S'],
+    experiments[2]['Es'],
     experiments[3]['Es'],
     experiments[4]['Es'],
+    experiments[5]['Es'],
+    experiments[6]['Es'],
+    experiments[7]['Es'],
 ]
 
 # States to match
-states = ['Es','Es','S','Es','Es']
+states = ['S',] + 7*['Es',]
 
 # Equal weights
 weights = len(states)*[1,]
@@ -94,11 +98,11 @@ if __name__ == '__main__':
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     n_pso = 20
-    multiplier_pso = 10
+    multiplier_pso = 5
     # Calibated parameters and bounds
-    pars = ['R_Es', 'K_eq', 'K_W', 'K_iEs']
-    labels = ['$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']
-    bounds = [(1e-2,1e6), (1e-2,3), (1e1,1e6), (1e1,1e6)]
+    pars = ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq', 'K_W', 'K_iEs']
+    labels = ['$V_f/K_S$','$R_{AS}$','$R_{AW}$','$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']
+    bounds = [(1e-5,1e-2), (1e-2,10), (1e-2,10), (1e-2,10), (1e-2,2), (1e1,1e6), (1e1,1e6)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,initial_states=initial_concentrations,labels=labels)                               
     # PSO
@@ -137,7 +141,7 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 50
+    n_mcmc = 200
     multiplier_mcmc = 9
     print_n = 10
     discard = 50
@@ -174,10 +178,13 @@ if __name__ == '__main__':
     ## Visualize result ##
     ######################
 
-    N = 50
+    N = 100
 
     def draw_fcn(param_dict, samples_dict):
-        idx, param_dict['R_Es'] = random.choice(list(enumerate(samples_dict['R_Es'])))
+        idx, param_dict['Vf_Ks'] = random.choice(list(enumerate(samples_dict['Vf_Ks'])))
+        param_dict['R_AS'] = samples_dict['R_AS'][idx]
+        param_dict['R_AW'] = samples_dict['R_AW'][idx]
+        param_dict['R_Es'] = samples_dict['R_Es'][idx]
         param_dict['K_eq'] = samples_dict['K_eq'][idx]
         param_dict['K_W'] = samples_dict['K_W'][idx]
         param_dict['K_iEs'] = samples_dict['K_iEs'][idx]
