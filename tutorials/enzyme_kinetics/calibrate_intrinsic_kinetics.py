@@ -174,7 +174,7 @@ if __name__ == '__main__':
         out = add_relative_gaussian_noise(out, 0.05)
         # Visualize
         fig,ax=plt.subplots(figsize=(12,4))
-        ax.scatter(df.index, df.values, color='black', alpha=0.8, linestyle='None', facecolors='none', s=60, linewidth=2)
+        ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
         for i in range(N):
             ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.03, linewidth=0.2)
             ax.plot(out['time'], out['Es'].isel(draws=i), color='red', alpha=0.03, linewidth=0.2)

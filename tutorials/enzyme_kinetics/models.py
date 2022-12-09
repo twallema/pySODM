@@ -29,7 +29,9 @@ class packed_PFR(ODEModel):
         N = C_F.shape[0]
         X = C_F.shape[1]
 
+        # Loop over species: S, A, Es, W
         for i in range(N):
+            # Loop over reactor length
             for j in range(1,X):
                 # Evaluate the enzyme kinetic model
                 v = (Vf_Ks*(C_S[0,j]*C_S[1,j] - (1/K_eq)*C_S[2,j]*C_S[3,j])/(C_S[1,j] + R_AS*C_S[0,j] + R_AW*C_S[3,j] + R_Es*C_S[2,j]))/60 # mmol/(s.g_catalyst)
