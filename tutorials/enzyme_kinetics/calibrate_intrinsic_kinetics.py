@@ -20,11 +20,14 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
-from pySODM.optimization.utils import add_poisson_noise, assign_theta
+from pySODM.optimization.utils import add_relative_gaussian_noise, assign_theta
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_gaussian
 # pySODM dependecies
 import corner
+
+# Number of repeated simulations with sampled parameters to visualize goodness-of-fit
+N = 50
 
 ###############
 ## Load data ##
@@ -97,8 +100,8 @@ if __name__ == '__main__':
 
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 20
-    multiplier_pso = 5
+    n_pso = 30
+    multiplier_pso = 10
     # Calibated parameters and bounds
     pars = ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
     labels = ['$V_f/K_S$','$R_{AS}$','$R_{AW}$','$R_{Es}$', '$K_{eq}$']
@@ -111,39 +114,14 @@ if __name__ == '__main__':
     step = len(theta)*[0.05,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
 
-    ######################
-    ## Visualize result ##
-    ######################
-
-    # Assign results to model
-    model.parameters = assign_theta(model.parameters, pars, theta)
-
-    # Loop over datasets
-    for i,df in enumerate(data):
-        # Update initial condition
-        model.initial_states.update(initial_concentrations[i])
-        # Simulate model
-        out = model.sim(3000)
-        # Visualize
-        fig,ax=plt.subplots(figsize=(12,4))
-        ax.plot(out['time'], out['S'], color='black', label='D-glucose')
-        ax.plot(out['time'], out['Es'], color='red', label='Glucose laurate')
-        ax.scatter(df.index, df.values, color='black', alpha=0.5, linestyle='None', facecolors='none', s=60, linewidth=2)
-        #ax.errorbar(df.index, df.values, yerr=log_likelihood_fnc_args[i], fmt='x', color='black')
-        ax.legend()
-        ax.grid(False)
-        plt.tight_layout()
-        plt.show()
-        plt.close()
-
     ##########
     ## MCMC ##
     ##########
 
     # Variables
-    n_mcmc = 200
+    n_mcmc = 100
     multiplier_mcmc = 9
-    print_n = 10
+    print_n = 20
     discard = 50
     samples_path='sampler_output/'
     fig_path='sampler_output/'
@@ -178,16 +156,12 @@ if __name__ == '__main__':
     ## Visualize result ##
     ######################
 
-    N = 100
-
     def draw_fcn(param_dict, samples_dict):
         idx, param_dict['Vf_Ks'] = random.choice(list(enumerate(samples_dict['Vf_Ks'])))
         param_dict['R_AS'] = samples_dict['R_AS'][idx]
         param_dict['R_AW'] = samples_dict['R_AW'][idx]
         param_dict['R_Es'] = samples_dict['R_Es'][idx]
         param_dict['K_eq'] = samples_dict['K_eq'][idx]
-        param_dict['K_W'] = samples_dict['K_W'][idx]
-        param_dict['K_iEs'] = samples_dict['K_iEs'][idx]
         return param_dict
 
     # Loop over datasets
@@ -196,12 +170,14 @@ if __name__ == '__main__':
         model.initial_states.update(initial_concentrations[i])
         # Simulate model
         out = model.sim(3000, N=N, draw_fcn=draw_fcn, samples=samples_dict)
+        # Add 5% observational noise
+        out = add_relative_gaussian_noise(out, 0.05)
         # Visualize
         fig,ax=plt.subplots(figsize=(12,4))
-        ax.scatter(df.index, df.values, color='black', alpha=0.5, linestyle='None', facecolors='none', s=60, linewidth=2)
+        ax.scatter(df.index, df.values, color='black', alpha=0.8, linestyle='None', facecolors='none', s=60, linewidth=2)
         for i in range(N):
-            ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.10, linewidth=0.2)
-            ax.plot(out['time'], out['Es'].isel(draws=i), color='red', alpha=0.10, linewidth=0.2)
+            ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.03, linewidth=0.2)
+            ax.plot(out['time'], out['Es'].isel(draws=i), color='red', alpha=0.03, linewidth=0.2)
         #ax.errorbar(df.index, df.values, yerr=log_likelihood_fnc_args[i], fmt='x', color='black')
         ax.legend(['data', 'D-glucose', 'Glucose laurate'])
         ax.grid(False)
