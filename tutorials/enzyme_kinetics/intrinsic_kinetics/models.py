@@ -7,12 +7,12 @@ class PPBB_model(ODEModel):
     """
     
     state_names = ['S','A','Es','W']
-    parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq', 'K_W', 'K_iEs']
+    parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
 
     @staticmethod
-    def integrate(t, S, A, Es, W, c_enzyme, Vf_Ks, R_AS, R_AW, R_Es, K_eq, K_W, K_iEs):
+    def integrate(t, S, A, Es, W, c_enzyme, Vf_Ks, R_AS, R_AW, R_Es, K_eq):
 
         # Calculate rate
-        v = c_enzyme*(Vf_Ks*(S*A - (1/K_eq)*Es*W)/(A + R_AS*S + R_AW*W + R_AS*S*Es/K_iEs + R_Es*Es + R_Es*W*Es/K_W))
+        v = c_enzyme*(Vf_Ks*(S*A - (1/K_eq)*Es*W)/(A + R_AS*S + R_AW*W + R_Es*Es))
        
         return -v, -v, v, v

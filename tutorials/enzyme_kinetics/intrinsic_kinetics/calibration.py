@@ -79,7 +79,7 @@ from models import PPBB_model
 
 # Define model parameters
 params={'c_enzyme': 10, 'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, # Forward
-        'R_Es': 0.57, 'K_eq': 0.89, 'K_W': 1e6, 'K_iEs':1e6}            # Backward
+        'R_Es': 0.57, 'K_eq': 0.89}                                     # Backward
 # Define initial condition
 init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
 # Initialize model
@@ -100,9 +100,9 @@ if __name__ == '__main__':
     n_pso = 20
     multiplier_pso = 5
     # Calibated parameters and bounds
-    pars = ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq', 'K_W', 'K_iEs']
-    labels = ['$V_f/K_S$','$R_{AS}$','$R_{AW}$','$R_{Es}$', '$K_{eq}$', '$K_W$', '$K_{i,Es}$']
-    bounds = [(1e-5,1e-2), (1e-2,10), (1e-2,10), (1e-2,10), (1e-2,2), (1e1,1e6), (1e1,1e6)]
+    pars = ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
+    labels = ['$V_f/K_S$','$R_{AS}$','$R_{AW}$','$R_{Es}$', '$K_{eq}$']
+    bounds = [(1e-5,1e-2), (1e-2,10), (1e-2,10), (1e-2,10), (1e-2,2)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,initial_states=initial_concentrations,labels=labels)                               
     # PSO
@@ -150,7 +150,7 @@ if __name__ == '__main__':
     identifier = 'username'
     run_date = str(datetime.date.today())
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.50*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': 0, 'end_calibration': 3000,
               'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': labels}
