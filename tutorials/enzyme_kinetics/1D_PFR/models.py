@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 from pySODM.models.base import ODEModel
 
 class packed_PFR(ODEModel):
@@ -8,66 +9,41 @@ class packed_PFR(ODEModel):
     S + A <--> Es + W
     """
 
-    state_names = ['S', 'A', 'Es', 'W']
-    parameter_names = ['epsilon', 'kL_a', 'D_ax', 'delta_x', 'u', 'rho_B',
-                       'Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'K_iEs', 'R_Es', 'K_W']
-    stratification_names = ['phase', 'x']
+    state_names = ['C_F', 'C_S']
+    parameter_names = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
+    parameters_stratified_names = [['kL_a', 'D_ax'],]
+    stratification_names = ['species', 'x']
 
     @staticmethod
-    def integrate(t, S, A, Es, W, epsilon, kL_a, D_ax, delta_x, u, rho_B, Vf_Ks, R_AS, R_AW, K_eq, K_iEs, R_Es, K_W):
+    @njit
+    def integrate(t, C_F, C_S, delta_x, epsilon, u, rho_B, Vf_Ks, R_AS, R_AW, K_eq, R_Es, kL_a, D_ax):
 
         # Initialize derivatives
-        dS = np.zeros(S.shape, dtype=np.float64)
-        dA = np.zeros(A.shape, dtype=np.float64)
-        dEs = np.zeros(Es.shape, dtype=np.float64)
-        dW = np.zeros(W.shape, dtype=np.float64)
+        dC_F = np.zeros(C_F.shape, dtype=np.float64)
+        dC_S = np.zeros(C_S.shape, dtype=np.float64)
 
-        # Place them in a list to ease further handling
-        derivatives = [dS, dA, dEs, dW]
-        species = [S, A, Es, W]
-
-        # Define stochiometry
+        # Reaction stochiometry
         stochiometry = [-1, -1, 1, 1]
 
-        # Loop over species
-        for i in range(len(['S', 'A', 'Es', 'W'])):
-            # Loop over spatial axes
-            for j in range(1,S.shape[1]):
+        # Stratification lengths
+        N = C_F.shape[0]
+        X = C_F.shape[1]
+
+        for i in range(N):
+            for j in range(1,X):
                 # Evaluate the enzyme kinetic model
-                v = Vf_Ks*(S[1,j]*A[1,j] - (1/K_eq)*Es[1,j]*W[1,j])/(A[1,j] + R_AS*S[1,j] + R_AW*W[1,j] + R_AS*S[1,j]*Es[1,j]/K_iEs + R_Es*Es[1,j] + R_Es*W[1,j]*Es[1,j]/K_W)
-                # Liquid phase
-                C = species[i]
+                v = Vf_Ks*(C_S[0,j]*C_S[1,j] - (1/K_eq)*C_S[2,j]*C_S[3,j])/(C_S[1,j] + R_AS*C_S[0,j] + R_AW*C_S[3,j] + R_Es*C_S[2,j])
                 # Intermediate nodes
-                if j < S.shape[1]-1:
-                    derivatives[i][0,j] = (D_ax[i]/delta_x**2)*(C[0,j-1] - 2*C[0,j] + C[0,j+1]) - \
-                                          (u/delta_x)*(C[0,j] - C[0,j-1]) + \
-                                          (kL_a[i]/epsilon)*(C[1,j] - C[0,j])
+                if j < X-1:
+                    dC_F[i,j] = (D_ax[i]/delta_x**2)*(C_F[i,j-1] - 2*C_F[i,j] + C_F[i,j+1]) - \
+                                          (u/delta_x)*(C_F[i,j] - C_F[i,j-1]) + \
+                                          (kL_a[i]/epsilon)*(C_S[i,j] - C_F[i,j])
                 # Outlet boundary
-                elif j == S.shape[1]-1:
-                    derivatives[i][0,j] = (D_ax[i]/delta_x**2)*(C[0,j-1] - 2*C[0,j] + C[0,j-1]) - \
-                                          (u/delta_x)*(C[0,j] - C[0,j-1]) + \
-                                          (kL_a[i]/epsilon)*(C[1,j] - C[0,j])
+                elif j == X-1:
+                    dC_F[i,j] = (D_ax[i]/delta_x**2)*(C_F[i,j-1] - 2*C_F[i,j] + C_F[i,j-1]) - \
+                                          (u/delta_x)*(C_F[i,j] - C_F[i,j-1]) + \
+                                          (kL_a[i]/epsilon)*(C_S[i,j] - C_F[i,j])
                 # Solid phase
-                derivatives[i][1,j] = - (kL_a[i]/(1-epsilon))*(C[1,j] - C[0,j]) + rho_B*stochiometry[i]*v/10
+                dC_S[i,j] = - (kL_a[i]/(1-epsilon))*(C_S[i,j] - C_F[i,j]) + rho_B*stochiometry[i]*v/10
 
-        # Unpack derivatives
-        dS, dA, dEs, dW = derivatives
-
-        return dS, dA, dEs, dW
-
-class PPBB_model(ODEModel):
-    """
-    A model for the 
-    S + A <--> Es + W
-    """
-    
-    state_names = ['S','A','Es','W']
-    parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq', 'K_W', 'K_iEs']
-
-    @staticmethod
-    def integrate(t, S, A, Es, W, c_enzyme, Vf_Ks, R_AS, R_AW, R_Es, K_eq, K_W, K_iEs):
-
-        # Calculate rate
-        v = c_enzyme*(Vf_Ks*(S*A - (1/K_eq)*Es*W)/(A + R_AS*S + R_AW*W + R_AS*S*Es/K_iEs + R_Es*Es + R_Es*W*Es/K_W))
-       
-        return -v, -v, v, v
+        return dC_F, dC_S

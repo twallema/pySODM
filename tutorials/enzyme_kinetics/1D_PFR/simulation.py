@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 
 from models import packed_PFR
 
-
 # Design variables
 # ~~~~~~~~~~~~~~~~
 
@@ -36,7 +35,7 @@ dp = 0.0004755 # Catalyst particle diameter (m)
 mu = 3.35e-03 # Solvent dynamic viscosity (Pa.s)
 rho_B = 545 # Catalyst density (kg/m³)
 rho_F = 775 # Solvent density (kg/m³)
-D_AB = [3.47e-07, 2.33e-07, 1.95e-07, 1.39e-06] # Molecular diffusion coefficients in t-Butanol (m2/s)
+D_AB = np.array([3.47e-07, 2.33e-07, 1.95e-07, 1.39e-06]) # Molecular diffusion coefficients in t-Butanol (m2/s)
 
 # Derived variables
 # ~~~~~~~~~~~~~~~~~
@@ -56,18 +55,25 @@ D_ax = ((1.09/100)*(D_AB/dp)**(2/3)*(U)**(1/3)) # Axial dispersion coefficient (
 
 # Create a dictionary of parameters
 params={'epsilon': epsilon, 'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/N, 'u': u, 'rho_B': rho_B, # Reactor
-        'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, 'R_Es': 0.57, 'K_eq': 0.89, 'K_W': 1e6, 'K_iEs':1e6} # Enzyme kinetics
+        'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, 'R_Es': 0.57, 'K_eq': 0.89} # Enzyme kinetics
 
 # Define coordinates
-coordinates = {'phase': ['liquid','solid'], 'x': np.linspace(start=0, stop=l, num=N)}
+coordinates = {'species': ['S','A','Es','W'], 'x': np.linspace(start=0, stop=l, num=N)}
 
-# Define initial condition
-S = np.zeros([len(coordinates['phase']), len(coordinates['x'])])
-A = np.zeros([len(coordinates['phase']), len(coordinates['x'])])
-S[:,0] = 30
-A[:,0] = 60
-W = 18*np.ones([len(coordinates['phase']), len(coordinates['x'])])
-init_states = {'S': S, 'A': A, 'W': W}
+# Define initial concentrations
+initial_concentration = [30,60,0,18]
+
+# Build appropriate initial state
+C_F = np.zeros([len(coordinates['species']), len(coordinates['x'])])
+C_S = np.zeros([len(coordinates['species']), len(coordinates['x'])])
+
+C_F[:,0] = initial_concentration
+C_S[:,0] = initial_concentration
+
+C_F[3,:] = initial_concentration[3]
+C_S[3,:] = initial_concentration[3]
+
+init_states = {'C_F': C_F, 'C_S': C_S}
 
 # Initialize model
 model = packed_PFR(init_states, params, coordinates)
@@ -83,7 +89,23 @@ out = model.sim(2500)
 #######################
 
 fig,ax=plt.subplots()
-ax.plot(coordinates['x'], out['S'].sel(phase='liquid').isel(time=-1), color='black')
-ax.plot(coordinates['x'], out['Es'].sel(phase='liquid').isel(time=-1), color='black', linestyle='--')
+ax.plot(coordinates['x'], out['C_F'].sel(species='S').isel(time=-1), color='black')
+ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1), color='black', linestyle='--')
 plt.show()
 plt.close()
+
+#######################
+## Time a simulation ##
+#######################
+
+import time
+N = 50
+
+elapsed=[]
+for i in range(N):
+    start = time.time()
+    model.sim(2500)
+    end = time.time()
+    elapsed.append((end-start)* 10**3)
+
+print(f'time per simulation: {str(np.mean(elapsed))} pm {np.std(elapsed)} ms')
