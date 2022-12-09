@@ -14,16 +14,19 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-################
-## Load model ##
-################
+######################
+## Model parameters ##
+######################
 
-from models import packed_PFR
+# Simulation variables
+# ~~~~~~~~~~~~~~~~~~~~
+
+end_sim = 2000 # End of simulation (s)
+N = 50 # Number of spatial nodes
 
 # Design variables
 # ~~~~~~~~~~~~~~~~
 
-N = 50 # Number of spatial nodes
 l = 1 # Reactor length (m)
 Q = (0.200/60)*10**-6   # Flow rate (m³/s)
 dt = 0.0024 # Tube inner diameter (m)
@@ -49,6 +52,12 @@ a = 6*(1-epsilon)/dp # Catalyst surface area (m-1)
 kL = (0.7*D_AB + (dp*U)/(0.18+0.008*Re**0.59)) # Mass transfer coefficient through boundary layer (m/s)
 D_ax = ((1.09/100)*(D_AB/dp)**(2/3)*(U)**(1/3)) # Axial dispersion coefficient (m2/s)
 
+################
+## Load model ##
+################
+
+from models import packed_PFR
+
 #################
 ## Setup model ##
 #################
@@ -61,22 +70,22 @@ params={'epsilon': epsilon, 'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/N, 'u': u, 
 coordinates = {'species': ['S','A','Es','W'], 'x': np.linspace(start=0, stop=l, num=N)}
 
 # Define initial concentrations
-initial_concentration = [30,60,0,18]
+initial_concentrations = [30,60,0,18]
 
-# Build appropriate initial state
+# Initialise initial states
 C_F = np.zeros([len(coordinates['species']), len(coordinates['x'])])
 C_S = np.zeros([len(coordinates['species']), len(coordinates['x'])])
 
-C_F[:,0] = initial_concentration
-C_S[:,0] = initial_concentration
+# Initialize inlet concentrations
+C_F[:,0] = initial_concentrations
+C_S[:,0] = initial_concentrations
 
-C_F[3,:] = initial_concentration[3]
-C_S[3,:] = initial_concentration[3]
-
-init_states = {'C_F': C_F, 'C_S': C_S}
+# t-Butanol with water has already equilibrated inside the reactor
+C_F[3,:] = initial_concentrations[3]
+C_S[3,:] = initial_concentrations[3]
 
 # Initialize model
-model = packed_PFR(init_states, params, coordinates)
+model = packed_PFR({'C_F': C_F, 'C_S': C_S}, params, coordinates)
 
 ####################
 ## Simulate model ##
@@ -84,9 +93,9 @@ model = packed_PFR(init_states, params, coordinates)
 
 out = model.sim(2500)
 
-#######################
-## Visualize results ##
-#######################
+#####################################
+## Visualize concentration profile ##
+#####################################
 
 fig,ax=plt.subplots()
 ax.plot(coordinates['x'], out['C_F'].sel(species='S').isel(time=-1), color='black')

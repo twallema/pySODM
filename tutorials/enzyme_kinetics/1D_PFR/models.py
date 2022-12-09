@@ -32,7 +32,7 @@ class packed_PFR(ODEModel):
         for i in range(N):
             for j in range(1,X):
                 # Evaluate the enzyme kinetic model
-                v = Vf_Ks*(C_S[0,j]*C_S[1,j] - (1/K_eq)*C_S[2,j]*C_S[3,j])/(C_S[1,j] + R_AS*C_S[0,j] + R_AW*C_S[3,j] + R_Es*C_S[2,j])
+                v = (Vf_Ks*(C_S[0,j]*C_S[1,j] - (1/K_eq)*C_S[2,j]*C_S[3,j])/(C_S[1,j] + R_AS*C_S[0,j] + R_AW*C_S[3,j] + R_Es*C_S[2,j]))/60 # mmol/(s.g_catalyst)
                 # Intermediate nodes
                 if j < X-1:
                     dC_F[i,j] = (D_ax[i]/delta_x**2)*(C_F[i,j-1] - 2*C_F[i,j] + C_F[i,j+1]) - \
@@ -44,6 +44,6 @@ class packed_PFR(ODEModel):
                                           (u/delta_x)*(C_F[i,j] - C_F[i,j-1]) + \
                                           (kL_a[i]/epsilon)*(C_S[i,j] - C_F[i,j])
                 # Solid phase
-                dC_S[i,j] = - (kL_a[i]/(1-epsilon))*(C_S[i,j] - C_F[i,j]) + rho_B*stochiometry[i]*v/10
+                dC_S[i,j] = - (kL_a[i]/(1-epsilon))*(C_S[i,j] - C_F[i,j]) + rho_B*stochiometry[i]*v
 
         return dC_F, dC_S
