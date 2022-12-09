@@ -61,20 +61,24 @@ VB = 0.32*3*(3-1)+3*27.38+18.01
 D = (1e-4*(8.52*10**-8*T)/(nB*VB**(1/3))*(1.40*(VB/VA)**(1/3)+VB/VA))       
 # Compute axial dispersion and kL*a
 a = 6*(1-epsilon)/dp # Catalyst surface area (m-1)
-kL = np.mean((0.7*D + (dp*U)/(0.18+0.008*Re**0.59)))
-D_ax = np.mean(((1.09/100)*(D/dp)**(2/3)*(U)**(1/3)))
+kL = (0.7*D + (dp*U)/(0.18+0.008*Re**0.59))
+D_ax = ((1.09/100)*(D/dp)**(2/3)*(U)**(1/3))
 
 # Simulation parameters
-N = 100 # spatial nodes
+N = 50 # spatial nodes
 
-# Define model parameters
-params={'epsilon': epsilon, 'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/N, 'u': u, 'rho_B': rho_B, 'inlet': [30, 60, 18, 0]}
+# Define reactor parameters
+params={'epsilon': epsilon, 'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/N, 'u': u, 'rho_B': rho_B}
+# Append intrinsic enzyme kinetics
+params.update({'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, 
+               'R_Es': 0.57, 'K_eq': 0.89, 'K_W': 1e6, 'K_iEs':1e6})
 
 # Define coordinates
 coordinates = {'phase': ['liquid','solid'], 'x': np.linspace(start=0, stop=l, num=N)}
 
 # Define initial condition
-S = A = np.zeros([len(coordinates['phase']), len(coordinates['x'])])
+S = np.zeros([len(coordinates['phase']), len(coordinates['x'])])
+A = np.zeros([len(coordinates['phase']), len(coordinates['x'])])
 S[:,0] = 30
 A[:,0] = 60
 W = 18*np.ones([len(coordinates['phase']), len(coordinates['x'])])
@@ -87,11 +91,23 @@ model = packed_PFR(init_states, params, coordinates)
 ## Simulate model ##
 ####################
 
-out = model.sim(2000)
+out = model.sim(2500)
 
 fig,ax=plt.subplots()
-for t in [0, 100, 500, 1000, 2000]:
-    ax.plot(coordinates['x'], out['S'].sel(phase='liquid').isel(time=t), color='black')
-    ax.plot(coordinates['x'], out['S'].sel(phase='solid').isel(time=t), color='black', linestyle='--')
+ax.plot(coordinates['x'], out['S'].sel(phase='liquid').isel(time=-1), color='black')
+ax.plot(coordinates['x'], out['Es'].sel(phase='liquid').isel(time=-1), color='black', linestyle='--')
+plt.show()
+plt.close()
+
+fig,ax=plt.subplots(nrows=4,ncols=1)
+for t in [0, 2000]:
+    ax[0].plot(coordinates['x'], out['S'].sel(phase='liquid').isel(time=t), color='black')
+    ax[0].plot(coordinates['x'], out['S'].sel(phase='solid').isel(time=t), color='black', linestyle='--')
+    ax[1].plot(coordinates['x'], out['A'].sel(phase='liquid').isel(time=t), color='black')
+    ax[1].plot(coordinates['x'], out['A'].sel(phase='solid').isel(time=t), color='black', linestyle='--')
+    ax[2].plot(coordinates['x'], out['Es'].sel(phase='liquid').isel(time=t), color='black')
+    ax[2].plot(coordinates['x'], out['Es'].sel(phase='solid').isel(time=t), color='black', linestyle='--')
+    ax[3].plot(coordinates['x'], out['W'].sel(phase='liquid').isel(time=t), color='black')
+    ax[3].plot(coordinates['x'], out['W'].sel(phase='solid').isel(time=t), color='black', linestyle='--')
 plt.show()
 plt.close()
