@@ -84,6 +84,81 @@ def validate_time_dependent_parameters(parameter_names, parameters_stratified_na
 
     return extra_params
 
+def validate_initial_states(values, name, object_name, stratification_size, coordinates, state_2d):
+
+    # If the model doesn't have stratifications, initial states can be defined as: np.array([int/float]), [int/float], int or float
+    # However these still need to converted to a np.array
+    if stratification_size == [1]:
+        if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64,np.ndarray)):
+            raise TypeError(
+                f"{object_name} {name} must be of type int, float, or list. found {type(values)}"
+            )
+        else:
+            if isinstance(values,(int,float)):
+                values = np.asarray([values,])
+        values = np.asarray(values)
+
+        if state_2d:
+            if name in state_2d:
+                if list(values.shape) != [stratification_size[0],stratification_size[0]]:
+                    raise ValueError(
+                        "{obj} {name} was defined as a two-dimensional state "
+                        "but has size {size}, instead of {desired_size}"
+                        .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
+                        )
+        else:
+            if list(values.shape) != stratification_size:
+                raise ValueError(
+                    "The abscence of model coordinates indicate a desired "
+                    "model states size of {strat_size}, but {obj} '{name}' "
+                    "has length {val}".format(
+                        strat_size=stratification_size,
+                        obj=object_name, name=name, val=list(values.shape)
+                    )
+                )
+
+    else:
+        values = np.asarray(values)
+        if state_2d:
+            if name in state_2d:
+                if list(values.shape) != [stratification_size[0],stratification_size[0]]:
+                    raise ValueError(
+                        "{obj} {name} was defined as a two-dimensional state "
+                        "but has size {size}, instead of {desired_size}"
+                        .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
+                        )
+        else:
+            if list(values.shape) != stratification_size:
+                raise ValueError(
+                    "The coordinates provided for the stratifications '{strat}' indicate a "
+                    "model states size of {strat_size}, but {obj} '{name}' "
+                    "has length {val}".format(
+                        strat=list(coordinates.keys()), strat_size=stratification_size,
+                        obj=object_name, name=name, val=list(values.shape)
+                    )
+                )
+
+    return values
+
+def validate_stratified_parameters(values, name, object_name,i,stratification_size,coordinates):
+    values = np.asarray(values)
+    if values.ndim != 1:
+        raise ValueError(
+            "A {obj} value should be a 1D array, but {obj} '{name}' is"
+            "{val}-dimensional".format(
+                obj=object_name, name=name, val=values.ndim
+            )
+        )
+    if len(values) != stratification_size[i]:
+        raise ValueError(
+            "The coordinates provided for stratification '{strat}' indicates a "
+            "stratification size of {strat_size}, but {obj} '{name}' "
+            "has length {val}".format(
+                strat=list(coordinates.keys())[i], strat_size=stratification_size[i],
+                obj=object_name, name=name, val=len(values)
+            )
+        )
+
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameters_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
     """
@@ -172,53 +247,11 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
 
     parameters = {param: parameters[param] for param in specified_params}
 
-    # After building the list of all model parameters, verify no parameters 'l' or 't' were used
+    # After building the list of all model parameters, verify no parameters 't' were used
     if 't' in parameters:
         raise ValueError(
         "Parameter name 't' is reserved for the timestep of scipy.solve_ivp.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
             )
-
-    # Validate the initial_states / stratified params having the correct length
-
-    def validate_stratified_parameters(values, name, object_name,i):
-        values = np.asarray(values)
-        if values.ndim != 1:
-            raise ValueError(
-                "A {obj} value should be a 1D array, but {obj} '{name}' is"
-                "{val}-dimensional".format(
-                    obj=object_name, name=name, val=values.ndim
-                )
-            )
-        if len(values) != stratification_size[i]:
-            raise ValueError(
-                "The coordinates provided for stratification '{strat}' indicates a "
-                "stratification size of {strat_size}, but {obj} '{name}' "
-                "has length {val}".format(
-                    strat=list(coordinates.keys())[i], strat_size=stratification_size[i],
-                    obj=object_name, name=name, val=len(values)
-                )
-            )
-
-    def validate_initial_states(values, name, object_name):
-        values = np.asarray(values)
-        if state_2d:
-            if name in state_2d:
-                if list(values.shape) != [stratification_size[0],stratification_size[0]]:
-                    raise ValueError(
-                        "{obj} {name} was defined as a two-dimensional state "
-                        "but has size {size}, instead of {desired_size}"
-                        .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
-                        )
-        else:
-            if list(values.shape) != stratification_size:
-                raise ValueError(
-                    "The coordinates provided for the stratifications '{strat}' indicate a "
-                    "model states size of {strat_size}, but {obj} '{name}' "
-                    "has length {val}".format(
-                        strat=list(coordinates.keys()), strat_size=stratification_size,
-                        obj=object_name, name=name, val=list(values.shape)
-                    )
-                )
 
     # the size of the stratified parameters
     if parameters_stratified_names:
@@ -227,20 +260,20 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             if len(parameters_stratified_names) == 1:
                 for param in parameters_stratified_names:
                     validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i
+                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
             else:
                 for param in parameters_stratified_names:
                     validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i
+                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
         else:
             for stratified_names in parameters_stratified_names:
                 for param in stratified_names:
                     validate_stratified_parameters(
-                        parameters[param], param, "stratified parameter",i
+                        parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                     )
                 i = i + 1
 
@@ -248,10 +281,9 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     for state in state_names:
         if state in initial_states:
             # if present, check that the length is correct
-            validate_initial_states(
-                initial_states[state], state, "initial state"
-            )
-
+            initial_states[state] = validate_initial_states(
+                                        initial_states[state], state, "initial state", stratification_size, coordinates, state_2d
+                                        )
         else:
             # otherwise add default of 0
             initial_states[state] = np.zeros(stratification_size)
@@ -284,8 +316,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             )
     
     return initial_states, parameters, _n_function_params
-
-
 
 def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameters_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):
@@ -479,37 +509,6 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     ## Validate the initial_states / stratified params having the correct length ##
     ###############################################################################
 
-    def validate_stratified_parameters(values, name, object_name,i):
-        values = np.asarray(values)
-        if values.ndim != 1:
-            raise ValueError(
-                "A {obj} value should be a 1D array, but {obj} '{name}' is"
-                "{val}-dimensional".format(
-                    obj=object_name, name=name, val=values.ndim
-                )
-            )
-        if len(values) != stratification_size[i]:
-            raise ValueError(
-                "The coordinates provided for stratification '{strat}' indicates a "
-                "stratification size of {strat_size}, but {obj} '{name}' "
-                "has length {val}".format(
-                    strat=list(coordinates.keys())[i], strat_size=stratification_size[i],
-                    obj=object_name, name=name, val=len(values)
-                )
-            )
-
-    def validate_initial_states(values, name, object_name):
-        values = np.asarray(values)
-        if list(values.shape) != stratification_size:
-            raise ValueError(
-                "The coordinates provided for the stratifications '{strat}' indicate a "
-                "model states size of {strat_size}, but {obj} '{name}' "
-                "has length {val}".format(
-                    strat=list(coordinates.keys()), strat_size=stratification_size,
-                    obj=object_name, name=name, val=list(values.shape)
-                )
-            )
-
     # the size of the stratified parameters
     if parameters_stratified_names:
         i = 0
@@ -517,20 +516,20 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
             if len(parameters_stratified_names) == 1:
                 for param in parameters_stratified_names:
                     validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i
+                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
             else:
                 for param in parameters_stratified_names:
                     validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i
+                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
         else:
             for stratified_names in parameters_stratified_names:
                 for param in stratified_names:
                     validate_stratified_parameters(
-                        parameters[param], param, "stratified parameter",i
+                        parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                     )
                 i = i + 1
 
@@ -538,9 +537,9 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     for state in state_names:
         if state in initial_states:
             # if present, check that the length is correct
-            validate_initial_states(
-                initial_states[state], state, "initial state"
-            )
+            initial_states[state] = validate_initial_states(
+                                        initial_states[state], state, "initial state", stratification_size, coordinates, None
+                                    )
         else:
             # otherwise add default of 0
             initial_states[state] = np.zeros(stratification_size)

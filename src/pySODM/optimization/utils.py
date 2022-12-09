@@ -51,8 +51,34 @@ def add_negative_binomial_noise(output, alpha):
         output[varname].values = values
     return output
 
-def add_gaussian_noise(output, sigma):
-    """A function to add gaussian noise to a simulation result
+def add_absolute_gaussian_noise(output, sigma):
+    """A function to add absolute gaussian noise to a simulation result
+    
+    Parameters
+    ----------
+
+    output: xarray
+        Simulation output
+
+    sigma: float
+        Standard deviation. Must be larger than or equal to 0. Equal for all datapoints.
+
+    Returns
+    -------
+
+    output: xarray
+        Simulation output, but every value was replaced with a gaussian estimate.
+    """        
+
+    # Loop over variables in xarray
+    for varname, da in output.data_vars.items():
+        # Replace very value with a normal draw
+        values = np.random.normal(da.values, sigma)
+        output[varname].values = values
+    return output
+
+def add_relative_gaussian_noise(output, sigma):
+    """A function to add (relative) gaussian noise to a simulation result
     
     Parameters
     ----------
@@ -73,7 +99,7 @@ def add_gaussian_noise(output, sigma):
     # Loop over variables in xarray
     for varname, da in output.data_vars.items():
         # Replace very value with a normal draw
-        values = np.random.normal(da.values, sigma)
+        values = np.random.normal(da.values, sigma*da.values)
         output[varname].values = values
     return output
 

@@ -184,6 +184,45 @@ def break_stuff_wo_stratification():
     with pytest.raises(Exception, match="Your model has no stratifications."):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+    
+    # Wrong type of dataset
+    # ~~~~~~~~~~~~~~~~~~~~~
+
+    # Define dataset
+    data=[np.array([0,1,2,3,4,5]),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_poisson,]
+    log_likelihood_fnc_args = [[],]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    with pytest.raises(Exception, match="expected pd.Series or pd.DataFrame"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+
+    # pd.DataFrame with more than one column
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    # Add extra column to dataset
+    d = df.groupby(by=['time']).sum()
+    d['bluh'] = df.groupby(by=['time']).sum().values
+    # Define dataset
+    data=[d,]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_poisson,]
+    log_likelihood_fnc_args = [[],]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    with pytest.raises(Exception, match="expected one column."):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
 # For some weird ass reason this doesn't run if I don't call it..
 break_stuff_wo_stratification()
@@ -249,7 +288,7 @@ def break_log_likelihood_functions_wo_stratification():
     # wrong type: list
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [[alpha,]]
-    with pytest.raises(ValueError, match="The provided arguments of the log likelihood function"):
+    with pytest.raises(ValueError, match="accepted types are int, float, np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
@@ -384,7 +423,7 @@ def break_log_likelihood_functions_with_one_stratification():
     # wrong type: list of incorrect length
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [[alpha,]]
-    with pytest.raises(ValueError, match="Length of list/1D np.array containing arguments of the log likelihood"):
+    with pytest.raises(ValueError, match="length of list/1D np.array containing arguments of the log likelihood"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
@@ -514,7 +553,7 @@ def break_log_likelihood_functions_with_two_stratifications():
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [1,]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(TypeError, match="Expected a np.ndarray containing arguments of the log likelihood function"):
+    with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
 
@@ -524,7 +563,7 @@ def break_log_likelihood_functions_with_two_stratifications():
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [[1,],]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(TypeError, match="Expected a np.ndarray containing arguments of the log likelihood function"):
+    with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
 
@@ -534,7 +573,7 @@ def break_log_likelihood_functions_with_two_stratifications():
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [[0,1,2],]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(TypeError, match="Expected a np.ndarray containing arguments of the log likelihood function"):
+    with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
 
@@ -544,7 +583,7 @@ def break_log_likelihood_functions_with_two_stratifications():
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [[alpha*np.ones([1,3,1])],]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(TypeError, match="Expected a np.ndarray containing arguments of the log likelihood function"):
+    with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
