@@ -169,7 +169,7 @@ if __name__ == '__main__':
         param_dict['beta'] = np.random.choice(np.array(samples_dict['beta']))
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=30, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date+pd.Timedelta(days=28)], N=30, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, dispersion)
     # Visualize result
