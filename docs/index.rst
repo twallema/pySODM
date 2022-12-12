@@ -17,7 +17,7 @@ Welcome to pySODM's documentation
    :caption: User guide
    :maxdepth: 1
 
-   Setting up dynamic models <setting_up_models.md>
+   Building a dynamic model <setting_up_models.md>
    Simulating a dynamic model <simulating_model.md>
    Calibrating a dynamic model <calibrating_model.md>
    Advanced use <advanced_examples.md>
