@@ -10,6 +10,7 @@ Welcome to pySODM's documentation
    :caption: Getting started
    :maxdepth: 1
 
+   Introduction <introduction.md>
    Installation <installation.md>
    Quickstart <quickstart.md>
    
