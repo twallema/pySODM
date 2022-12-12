@@ -34,7 +34,8 @@ warnings.filterwarnings("ignore")
 dates = pd.date_range('2022-12-01','2023-01-21')
 x = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
 alpha = 0.03
-y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(x*np.log(2)/10) + (1/alpha)))
+td = 10
+y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(x*np.log(2)/td) + (1/alpha)))
 d = pd.Series(index=dates, data=y, name='CASES')
 # Index name must be data for calibration to work
 d.index.name = 'date'
@@ -70,7 +71,7 @@ class ODE_SIR(ODEModel):
         return dS, dI, dR
 
 # Define parameters and initial condition
-params={'beta':0.5, 'gamma':5}
+params={'beta':0.35, 'gamma':5}
 init_states = {'S': 1000, 'I': 1}
 
 # Initialize model
@@ -101,16 +102,16 @@ if __name__ == '__main__':
     states = ["I",]
     weights = np.array([1,])
     log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [dispersion,]
-    # Extract start- and enddate
-    start_date = d.index.min()
-    end_date = d.index.max()
+    log_likelihood_fnc_args = [alpha,]
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    # Extract start- and enddate
+    start_date = d.index.min()
+    end_date = d.index.max()
     # Initial guess
     theta = np.array([0.50,])
     # Run Nelder-Mead optimisation
