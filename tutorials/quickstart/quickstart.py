@@ -88,7 +88,7 @@ if __name__ == '__main__':
     #######################
 
     results, ax = variance_analysis(d, resample_frequency='W')
-    dispersion = results.loc['negative binomial', 'theta']
+    alpha = results.loc['negative binomial', 'theta']
     print(results)
     plt.show()
     plt.close()
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     ###########################
 
     # Variables
-    n_mcmc = 200
+    n_mcmc = 400
     multiplier_mcmc = 9
     processes = 9
     print_n = 50
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     # Generate a sample dictionary and save it as .json for long-term storage
     samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
     # Visualize the distribution of the basic reproduction number
-    fig,ax=plt.subplots()
+    fig,ax=plt.subplots(figsize=(12,4))
     ax.hist(np.array(samples_dict['beta'])*model.parameters['gamma'], density=True, color='black', alpha=0.6)
     ax.set_xlabel('$R_0$')
     plt.show()
@@ -159,19 +159,20 @@ if __name__ == '__main__':
 
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
-        param_dict['beta'] = np.random.choice(np.array(samples_dict['beta']))
+        param_dict['beta'] = np.random.choice(samples_dict['beta'])
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date+pd.Timedelta(days=28)], N=30, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
     # Add negative binomial observation noise
-    out = add_negative_binomial_noise(out, dispersion)
+    out = add_negative_binomial_noise(out, alpha)
     # Visualize result
-    fig,ax=plt.subplots(figsize=(12,3))
-    for i in range(30):
+    fig,ax=plt.subplots(figsize=(12,4))
+    for i in range(50):
         ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
     ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
     ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
     ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+    ax.set_ylabel('Number of infected')
     plt.show()
     plt.close()
 

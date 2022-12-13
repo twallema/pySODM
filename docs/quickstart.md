@@ -1,6 +1,6 @@
 ## Quickstart
 
-In this quickstart tutorial, we'll set up a simple (ODE) SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered. We'll use a simple model but cover the most important concepts and features of `pySODM`, you'll learn about building more complex models in other tutorials (REF). This quickstart tutorial serves as a template for a typical workflow:
+In this quickstart tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered. By using a simple model, we can focus on the most important workflows and features of `pySODM`, which are similar throughout all the other examples on this documentation website. You'll learn about building more complex models in other tutorials (REF). This quickstart tutorial serves as a template for a typical workflow:
 1. Import dependencies
 2. Load the dataset
 3. Load/Define a model
@@ -68,7 +68,7 @@ N &=& S + I + R, \\
 ```
 or schematically,
 
-<img src="./_static/figs/quickstart_flowchart_SIR.png" width="400" />
+<img src="./_static/figs/quickstart_flowchart_SIR.png" width="500" />
 
 The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. 
 
@@ -296,7 +296,9 @@ if __name__ == '__main__':
 
 #### Bayesian optimization
 
-We can now use the obtained guess for `beta` as the starting point for a Markov-Chain Monte-Carlo algorithm. In this way, we can infer information regarding the distribution of `beta`.
+In the code below, we use our obtained guess for `beta` as the starting point for a Markov-Chain Monte-Carlo algorithm. In the code below, to obtain starting points for each Markov Chain, our estimate for `beta` is perturbated randomly by 10%. Next, the initial positions `pos` are passed on to the function `run_EnsembleSampler`, which acts as a wrapper for the `EnsembleSampler` of `emcee`. As a pySODM user, it is good to be aware that `run_ensembleSampler` is just a wrapper around `emcee` and I highly recommend reading the [emcee documentation](https://emcee.readthedocs.io/en/stable/tutorials/line/).
+
+As the `emcee.EnsembleSampler` is sampling, `run_EnsembleSampler` is responsible for the generation of diagnostic figures on the Markov Chains, which are printed every `print_n` iterations. The traceplots are automatically saved in `fig_path/traceplots` and the autocorrelation plots are automatically saved in `fig_path/autocorrelation`. Finally, after running `n_mcmc` iterations of the Markov Chain, the generated chains and the entries provided in `settings` are formatted into a dictionary `samples_dict`. This dictionary is automatically saved in `samples_path` and in a `json` format for long-term storage.
 
 ```
 if __name__ == '__main__':
@@ -312,24 +314,35 @@ if __name__ == '__main__':
     samples_path = 'sampler_output/'
     fig_path = 'sampler_output/'
     identifier = 'username'
-    run_date = str(datetime.date.today())
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
     # Usefull settings to retain in the samples dictionary (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'starting_estimate': list(theta)}
     # Run the sampler
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {},
-                                  fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                  settings_dict=settings)
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
+                                  fig_path=fig_path, samples_path=samples_path, print_n=print_n,
+                                  processes=processes, progress=True, settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+
+    print(samples_dict)
 ```
 
-#### Visualizing the result
+The resulting dictionary of samples contains the samples of `beta`, as well as the variables defined in the `settings` dictionary.
+```bash
+{'beta': [0.2758539499364022, ...,  0.27321610939267427, 0.27459471960360476], 'start_calibration': '2022-12-01', 'end_calibration': '2023-01-20', 'n_chains': 9, 'starting_estimate': [0.2745855197310446]}
+```
 
-The basic reproduction number.
+### Results
 
+#### Basic reproduction number
+
+For our simple SIR model, the basic reproduction number is defined as,
+```{math}
+R_0 = \frac{\beta}{(1/\gamma)}
+```
+and is equal to {math}`R_0 = 1.37 \pm 0.01`.
 ```
 # Visualize the distribution of the basic reproduction number
 fig,ax=plt.subplots()
@@ -339,19 +352,35 @@ plt.show()
 plt.close()
 ```
 
-Talk about draw functions
+![R0](/_static/figs/quickstart_reproduction_number.png)
 
+#### Goodness-of-fit: draw functions
+
+Next, let's visualize how well our simple SIR model fits the data. To this end, we'll simulate the model a number of times, and at each time we'll update the value of `beta` with a sample drawn by the MCMC. Then, assuming our model is an adequate representation of the modeled proces, we'll add observational noise to each model trajectory by using `add_negative_binomial`. Finally, we'll visualize the individual model trajectories and the data to asses the goodness-of-fit.
+
+To accomplish this, we'll use what is called a *draw function*. This function always takes two input arguments, the model parameters dictionary `param_dict` and a dictionary containing samples `samples_dict`, and must always return the model parameters dictionary. The draw function defines how the samples dictionary can be used to update the model parameters dictionary. In our case, we'll use `np.random.choice` to sample a random value of `beta` from the dictionary of samples and assign it to the model parameteres dictionary, as follows,
 ```
 # Define draw function
 def draw_fcn(param_dict, samples_dict):
     param_dict['beta'] = np.random.choice(np.array(samples_dict['beta']))
     return param_dict
+```
+
+Then, we'll provide four additional arguments to the `sim` function:
+1. `N`: the number of repeated simulations
+2. `samples`: the dictionary containing the samples of `beta` generated with the MCMC
+3. `draw_fcn`: our draw function
+4. `processes`: the number of cores to divide the `N` simulations over
+
+The `xarray` containing the model output will now contain an additional dimension to accomadate the repeated simulations: `draws`. The concept of draw functions can be used to perform sensitivity analyses on model parameters, by sampling them from known distributions.
+
+```
 # Simulate model
-out = model.sim([start_date, end_date+pd.Timedelta(days=28)], N=30, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+out = model.sim([start_date, end_date+pd.Timedelta(days=28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
 # Add negative binomial observation noise
 out = add_negative_binomial_noise(out, dispersion)
 # Visualize result
-fig,ax=plt.subplots(figsize=(12,3))
+fig,ax=plt.subplots(figsize=(12,4))
 for i in range(30):
     ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
 ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
@@ -361,4 +390,7 @@ plt.show()
 plt.close()
 ```
 
-### Simulating scenarios
+Our simple SIR model seems to fit the data very well. From the projection we can deduce that the peak number of infectees will fall around February 7th, 2023 and there will be between 30-50 infectees.
+![MCMC](/_static/figs/quickstart_MCMC_fit.png)
+
+#### Scenarios: time-dependent model parameters
