@@ -247,8 +247,20 @@ class log_posterior_probability():
     A generic implementation to compute the log posterior probability of a model given some data, computed as the sum of the log prior probabilities and the log likelihoods.
     # TODO: fully document docstring
     """
-    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights,
-                    log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
+                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+
+        #######################
+        ## Construct weights ##
+        #######################
+
+        if not weights:
+            if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):
+                raise ValueError(
+                    "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), and the extra arguments of the log likelihood function ({3}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args))
+                    )
+            else:
+                weights = len(data)*[1,]
 
         ##################################
         ## Construct initial conditions ##
