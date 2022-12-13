@@ -49,6 +49,14 @@ __Remember:__ Anyone should be able to reproduce the final products with the cod
 
 Always keep in mind additional dependencies lower `pySODM`'s life expectancy. Consider all alternatives before adding a dependency to `pySODM`! When adding a new dependency to `pySODM`'s base code (lives inside `~/src/`) be sure to add the dependency to the setup file [setup.py](https://github.com/twallema/pySODM/blob/master/setup.py). Need a dependency for a tutorial only (not needed in `~/src/`)? Add it to the [evironment file](https://github.com/twallema/pySODM/blob/master/environment.yml) only.
 
+### Tests
+
+Three test scripts are defined in `~/src/tests/`: 1) `test_ODEModel.py` to test the initializiation and simulation of ODE models, 2) `test_SDEModel.py`, similar but for SDE models and 3) `test_calibration.py`, to test the common calibration workflow. Testing these routines is usefull to verify that modifications made to the `pySODM` code do not break code. Or alternatively, if the code does break, to see where it breaks. The test routines must pass when performing a PR to Github. To run a test locally,
+```
+conda activate pySODM
+pytest test_calibration.py
+```
+
 ### Documentation
 
 #### Website
