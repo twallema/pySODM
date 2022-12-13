@@ -100,7 +100,6 @@ if __name__ == '__main__':
     # Define dataset
     data=[d, ]
     states = ["I",]
-    weights = np.array([1,])
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [alpha,]
     # Calibated parameters and bounds
@@ -108,19 +107,19 @@ if __name__ == '__main__':
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
     # Extract start- and enddate
     start_date = d.index.min()
     end_date = d.index.max()
     # Initial guess
-    theta = np.array([0.50,])
+    theta = [0.50,]
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=10)[0]
+    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=30)[0]
     # Simulate the model
     model.parameters.update({'beta': theta[0]})
     out = model.sim([start_date, end_date])
     # Visualize result
-    fig,ax=plt.subplots()
+    fig,ax=plt.subplots(figsize=(12,4))
     ax.plot(out['date'], out['I'], color='red', label='Infectious')
     ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2, label='data')
     ax.legend()
@@ -132,11 +131,11 @@ if __name__ == '__main__':
     ###########################
 
     # Variables
-    n_mcmc = 100
+    n_mcmc = 200
     multiplier_mcmc = 9
     processes = 9
-    print_n = 10
-    discard = 20
+    print_n = 50
+    discard = 50
     samples_path = 'sampler_output/'
     fig_path = 'sampler_output/'
     identifier = 'username'
@@ -150,13 +149,7 @@ if __name__ == '__main__':
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)
-    # Sample some more
-    backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.hdf5'))
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (),{},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
-                                    settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
-    # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
     samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
     # Visualize the distribution of the basic reproduction number
     fig,ax=plt.subplots()
