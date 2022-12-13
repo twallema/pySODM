@@ -139,16 +139,15 @@ if __name__ == '__main__':
     samples_path = 'sampler_output/'
     fig_path = 'sampler_output/'
     identifier = 'username'
-    run_date = str(datetime.date.today())
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'starting_estimate': list(theta)}
     # Sample
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                    settings_dict=settings)
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, 
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n,
+                                    processes=processes, progress=True,settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
     # Visualize the distribution of the basic reproduction number
