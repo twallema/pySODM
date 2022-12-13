@@ -34,4 +34,3 @@ The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den B
 | Calibrating a dynamic model  | Toolbox to set up log likelihood functions: correct alignment of data and model prediction, calibration of vector parameters, analysis of mean-variance realtionship, etc.    |
 |                              | Nelder-Mead Optimization and Particle Swarm Optimization with multiprocessing support                                           |
 |                              | Pipeline to `emcee` for Bayesian Inference of model parameters                                                                  |
-
