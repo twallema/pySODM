@@ -150,6 +150,11 @@ if __name__ == '__main__':
                                     processes=processes, progress=True,settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    
+    ########################################
+    ## Results: Basic reproduction number ##
+    ########################################
+    
     # Visualize the distribution of the basic reproduction number
     fig,ax=plt.subplots(figsize=(12,4))
     ax.hist(np.array(samples_dict['beta'])*model.parameters['gamma'], density=True, color='black', alpha=0.6)
@@ -157,17 +162,21 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 
+    ##############################
+    ## Results: Goodness-of-fit ##
+    ##############################
+
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
         param_dict['beta'] = np.random.choice(samples_dict['beta'])
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize result
     fig,ax=plt.subplots(figsize=(12,4))
-    for i in range(50):
+    for i in range(100):
         ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
     ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
     ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
@@ -175,4 +184,47 @@ if __name__ == '__main__':
     ax.set_ylabel('Number of infected')
     plt.show()
     plt.close()
+
+    ########################
+    ## Results: scenarios ##
+    ########################
+
+    # Define a time-dependent parameter function
+    def lower_infectivity(t, states, param, start_measures):
+        if t < start_measures:
+            return param
+        else:
+            return param/2
+
+    # Define draw function
+    def draw_fcn(param_dict, samples_dict):
+        param_dict['beta'] = np.random.choice(samples_dict['beta'])
+        param_dict['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
+        return param_dict
+
+    # Attach its arguments to the parameter dictionary
+    params.update({'start_measures': end_date})
+
+    # Initialize the model with the time dependent parameter funtion
+    model_with = ODE_SIR(states=init_states, parameters=params, time_dependent_parameters={'beta': lower_infectivity})
+
+    # Simulate the model
+    out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+
+    # Add negative binomial observation noise
+    out_with = add_negative_binomial_noise(out_with, alpha)
+
+    # Visualize result
+    fig,ax=plt.subplots(figsize=(12,4))
+    for i in range(100):
+        ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
+        ax.plot(out_with['date'], out_with['I'].isel(draws=i), color='blue', alpha=0.05)
+    ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
+    ax.plot(out_with['date'], out_with['I'].mean(dim='draws'), color='blue', alpha=0.6)
+    ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+    ax.set_ylabel('Number of infected')
+    plt.show()
+    plt.close()
+
 

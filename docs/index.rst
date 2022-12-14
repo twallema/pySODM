@@ -12,18 +12,25 @@ Welcome to pySODM's documentation
 
    Introduction <introduction.md>
    Installation <installation.md>
-   Quickstart <quickstart.md>
-   
+
+.. toctree::
+   :caption: Tutorials
+   :maxdepth: 1
+
+   Modeling & simulation workflow <workflow.md>
+   Enzyme kinetics <enzyme_kinetics.md>
+   Influenza 2017-2018 <influenza_1718.md>
+   Additional references <references.md>
+
 .. toctree::
    :caption: User guide
    :maxdepth: 1
 
-   Building a dynamic model <setting_up_models.md>
-   Simulating a dynamic model <simulating_model.md>
-   Calibrating a dynamic model <calibrating_model.md>
-   Advanced use <advanced_examples.md>
-   References <references.md>
-
+   ODEModel <ODEModel.md>
+   SDEModel <SDEModel.md>
+   Optimization <optimization.md>
+   Speeding up models <speedup.md>
+   
 .. toctree::
    :caption: Developer guide
    :maxdepth: 1

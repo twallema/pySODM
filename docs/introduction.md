@@ -34,3 +34,11 @@ The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den B
 | Calibrating a dynamic model  | Toolbox to set up log likelihood functions: correct alignment of data and model prediction, calibration of vector parameters, analysis of mean-variance realtionship, etc.    |
 |                              | Nelder-Mead Optimization and Particle Swarm Optimization with multiprocessing support                                           |
 |                              | Pipeline to `emcee` for Bayesian Inference of model parameters                                                                  |
+
+### Roadmap
+
+The following features will be implemented in future versions of pySODM,
+
+- Coupling of ODE Models with different stratifications. The user will be able to define a model, consisting of two submodels with states of different sizes. These two models will share one `integrate` function to make coupling of the differentials possible. Output will be returned in seperate `xarray` Datasets. High priority.
+
+- Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.

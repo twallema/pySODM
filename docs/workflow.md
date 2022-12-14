@@ -1,6 +1,6 @@
-## Quickstart
+## Modeling and Simulation Workflow
 
-In this quickstart tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered. By using a simple model, we can focus on the most important workflows and features of `pySODM`, which are similar throughout all the other examples on this documentation website. You'll learn about building more complex models in other tutorials (REF). This quickstart tutorial serves as a template for a typical workflow:
+In this tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered. By using a simple model, we can focus on the general workflow and on the features of `pySODM`, which will be very similar throughout the other tutorials on this documentation website. This tutorial introduces the user to a typical workflow:
 1. Import dependencies
 2. Load the dataset
 3. Load/Define a model
@@ -9,7 +9,7 @@ In this quickstart tutorial, we'll set up a simple SIR disease model and calibra
 6. Perform a bayesian optimization
 7. Visualize the result
 
-The quickstart example can be reproduced using `~/tutorials/quickstart/quickstart.py`
+This tutorial example can be reproduced using `~/tutorials/workflow/workflow.py`
 
 ### Import dependencies
 
@@ -23,13 +23,13 @@ from matplotlib.pyplot import plt
 
 ### Generating synthetic data
 
-First, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Mathematically,
+For the purpose of this tutorial, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Mathematically,
 
 ```{math}
 n_{cases} = e^{t * \frac{log(2)}{t_d}}
 ```
 
-We'll assume the first case was detected on December 1st, 2022 and data was collected on every weekday until December 21st, 2022. Then, we'll add observational noise to the synthetic data. For count based data, observational noise is typically the result of a poisson or negative binomial proces, depending on the occurence of overdispersion. For a poisson proces, the variance is equal to the mean: {math}`\sigma^2 = \mu`, while for a negative binomial proces the mean-variance relationship is quadratic: {math}`\sigma^2 = \mu + \alpha \mu^2`. For this example we'll assume the data are overdispersed so we'll resample the data using the negative binomial distribution. A dispersion factor `alpha=0.03` is used, which was representative for data collection during the COVID-19 pandemic in Belgium.
+We'll assume the first case was detected on December 1st, 2022 and data was collected on every weekday until December 21st, 2022. Then, we'll add observational noise to the synthetic data. For count based data, observational noise is typically the result of a poisson or negative binomial proces, depending on the occurence of overdispersion. For a poisson proces, the variance is equal to the mean: {math}`\sigma^2 = \mu`, while for a negative binomial proces the mean-variance relationship is quadratic: {math}`\sigma^2 = \mu + \alpha \mu^2`. For this example we'll assume the data are overdispersed so we'll resample the data using the negative binomial distribution. A dispersion factor `alpha=0.03` is used, which was representative for the data used during the COVID-19 pandemic in Belgium.
 
 ```
 # Parameters
@@ -45,14 +45,26 @@ d = pd.Series(index=dates, data=y, name='CASES')
 d = d[d.index.dayofweek < 5]
 ```
 
-Datasets used in an optimization must always be pandas Series or DataFrames. In the dataset, an index level named `time` (if the time axis consists of int/float) or `date` (if the time axis consists of dates) must always be present. In this tutorial, we'll use dates and thus name the index of our dataset `date`.  
+Datasets used in an optimization must always be `pd.Series` or `pd.DataFrame`. In the dataset, an index level named `time` (if the time axis consists of int/float) or `date` (if the time axis consists of dates) must always be present. In this tutorial, we'll use dates and thus name the index of our dataset `date`.  
 
 ```
 # Index name must be data for calibration to work
 d.index.name = 'date'
+
+print(d)
 ```
 
-![synethetic_dataset](/_static/figs/quickstart_synthetic_dataset.png)
+```bash
+date
+2022-12-01     1
+2022-12-02     1
+...
+2023-01-19    34
+2023-01-20    24
+Name: CASES, dtype: int64
+```
+
+![synethetic_dataset](/_static/figs/workflow/synthetic_dataset.png)
 
 ### Defining and initializing the model
 
@@ -68,7 +80,7 @@ N &=& S + I + R, \\
 ```
 or schematically,
 
-<img src="./_static/figs/quickstart_flowchart_SIR.png" width="500" />
+<img src="./_static/figs/workflow/flowchart_SIR.png" width="500" />
 
 The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. 
 
@@ -134,7 +146,7 @@ plt.show()
 plt.close()
 ```
 
-![SIR_date](/_static/figs/quickstart_SIR_date.png)
+![SIR_date](/_static/figs/workflow/SIR_date.png)
 
 The `sim()` method can also be run with timesteps as coordinates of the time axis (int/float). By convention, the name of the time axis in the `xarray` output is equal to `date` when using dates and `time` when using timesteps.
 ```
@@ -155,7 +167,7 @@ plt.show()
 plt.close()
 ```
 
-![SIR_time](/_static/figs/quickstart_SIR_time.png)
+![SIR_time](/_static/figs/workflow/SIR_time.png)
 
 The user can acces the integration methods and relative tolerance of `scipy.solve_ivp()` by supplying the `method` and `rtol` arguments to the `sim()` function. The user can determine the output timestep frequency by changing the optional `output_timestep` argument. For more info, check out the docstring of the `sim()` function.
 
@@ -212,7 +224,7 @@ plt.show()
 plt.close()
 ```
 
-![variance_analysis](/_static/figs/quickstart_variance_analysis.png)
+![variance_analysis](/_static/figs/workflow/variance_analysis.png)
 
 ```bash
                        theta        AIC
@@ -292,7 +304,7 @@ if __name__ == '__main__':
     plt.close()
 ```
 
-![nelder_mead](/_static/figs/quickstart_nelder_mead_fit.png)
+![nelder_mead](/_static/figs/workflow/nelder_mead_fit.png)
 
 #### Bayesian optimization
 
@@ -352,7 +364,7 @@ plt.show()
 plt.close()
 ```
 
-![R0](/_static/figs/quickstart_reproduction_number.png)
+![R0](/_static/figs/workflow/reproduction_number.png)
 
 #### Goodness-of-fit: draw functions
 
@@ -391,6 +403,81 @@ plt.close()
 ```
 
 Our simple SIR model seems to fit the data very well. From the projection we can deduce that the peak number of infectees will fall around February 7th, 2023 and there will be between 30-50 infectees.
-![MCMC](/_static/figs/quickstart_MCMC_fit.png)
+![MCMC](/_static/figs/workflow/MCMC_fit.png)
 
 #### Scenarios: time-dependent model parameters
+
+Finally, let us introduce the concept of varying model parameters over the course of the simulation. We would like to model what would happen if we could somehow reduce the infectivity of the disease by 50% starting January 21st. In the real world this could be accomplished by raising awareness to the disease and applying preventive measures.
+
+We'll first need to implement a function to let our model know how a given parameter should vary over time, a *time-dependent model parameter function*. Then, we'll need to re-initialize our model and tell it what model should be varied in accordance to our function. For our problem, a time-dependent model parameter functions would have the following syntax:
+
+```
+# Define a time-dependent parameter function
+def lower_infectivity(t, states, param, start_measures):
+    if t < start_measures:
+        return param
+    else:
+        return param/2
+```
+
+This simple function reduces the parameter `param` with a factor two if the simulation date is larger than `start_measures`. We will apply this function to the infectivity parameter `beta`. A time-dependent model parameter function must always have the arguments `t` (simulation timestep), `states` (dictionary of model states) and `param` (value of the parameter the function is applied to) as inputs. In addition, the user can supply additional arguments to the function, which need to be added to the dictionary of model parameters. We instruct pySODM to apply our function `lower_infectivity` to the model parameter `beta` by supplying the argument `time_dependent_parameters={'beta': lower_infectivity}` when initializing the model.
+
+```
+# Attach the additional arguments of the time-depenent function to the parameter dictionary
+params.update({'start_measures': end_date})
+
+# Initialize the model with the time dependent parameter funtion
+model_with = ODE_SIR(states=init_states, parameters=params,
+                     time_dependent_parameters={'beta': lower_infectivity})
+```
+
+Next, we compare the simulations with and without the use of our time-dependent model parameter function.
+
+```
+# Simulate the model
+out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+
+# Add negative binomial observation noise
+out_with = add_negative_binomial_noise(out_with, alpha)
+
+# Visualize result
+fig,ax=plt.subplots(figsize=(12,4))
+for i in range(50):
+    ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
+    ax.plot(out_with['date'], out_with['I'].isel(draws=i), color='blue', alpha=0.05)
+ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
+ax.plot(out_with['date'], out_with['I'].mean(dim='draws'), color='blue', alpha=0.6)
+ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
+ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+ax.set_ylabel('Number of infected')
+plt.show()
+plt.close()
+```
+
+As we could reasonably expect, if we could implement some form of preventive measures on January 21st that slashes the infectivity in half, cases quite abruptly start declining and thus less people contrapt the disease.
+
+![scenario](/_static/figs/workflow/scenario.png)
+
+However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem by implementing a ramp function in our time-dependent model parameter function but I'll demonstrate how pySODM's *draw functions* can be put to good use to make this simulation more realistic. We could, instead of having `start_measures` fixed at January 21st, vary `start_measures` stochastically in every run of our simulation. To simulate ramp-like adoptation of measures, we can add the number of additional days it takes to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. Instead of only using our MCMC samples for `beta`, we'll thus add one extra line to the draw function,
+
+```
+# Define draw function
+def draw_fcn(param_dict, samples_dict):
+    param_dict['beta'] = np.random.choice(samples_dict['beta'])
+    param_dict['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
+    return param_dict
+```
+
+Gradually adopting the preventive measures results in a more realistic simulation,
+
+![scenario_gradual](/_static/figs/workflow/scenario_gradual.png)
+
+### Conclusion
+
+I hope this tutorial has demonstrated the workflow pySODM can speedup. However, we've only used the most rudimentary model, calibration and time-dependent parameter function. pySODM allows to tackle more convoluted problems across different fields. However, the basic syntax of our workflow remains practically unchanged. I illustrate this with the following tutorials,
+
+| Tutorial                                      | Features                                                                                          |
+|-----------------------------------------------|---------------------------------------------------------------------------------------------------|
+| Enzyme kinetics: intrinsic kinetics           | Unstratified ODE model. Calibration to multiple datasets with changing initial conditions.        |
+| Enzyme kinetics: 1D Plug-Flow Reactor         | Using the method of lines to implement a one-dimensional PDE.                                     |
+| Influenza 2017-2018                           | Stratified SDE model. Calibration of one-dimensional model parameters on stratified datasets.     |
