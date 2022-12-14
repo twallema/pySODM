@@ -353,11 +353,11 @@ class SDEModel:
         self.parameters.update(drawn_parameters)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_fcn`
+        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
 
         Parameters
@@ -374,12 +374,12 @@ class SDEModel:
         N : int
             Number of repeated simulations (useful for stochastic models). One by default.
 
-        draw_fcn : function
+        draw_function : function
             A function which takes as its input the dictionary of model parameters and a samples dictionary
             and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
 
         samples : dictionary
-            Sample dictionary used by draw_fcn. Does not need to be supplied if samples_dict is not used in draw_fcn.
+            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
 
         method: str
             Stochastic simulation method. Either 'Stochastic Simulation Algorithm' (SSA), or its tau-leaping approximation (tau_leap).
@@ -433,8 +433,8 @@ class SDEModel:
                 )
 
         # Input check on draw function
-        if draw_fcn:
-            sig = inspect.signature(draw_fcn)
+        if draw_function:
+            sig = inspect.signature(draw_function)
             keywords = list(sig.parameters.keys())
             # Verify that names of draw function are param_dict, samples_dict
             if keywords[0] != "param_dict":
@@ -451,7 +451,7 @@ class SDEModel:
                 )
             # Call draw function
             cp_draws=copy.deepcopy(self.parameters)
-            d = draw_fcn(self.parameters, samples)
+            d = draw_function(self.parameters, samples)
             self.parameters = cp_draws
             if not isinstance(d, dict):
                 raise TypeError(
@@ -470,9 +470,9 @@ class SDEModel:
         drawn_dictionaries=[]
         for n in range(N):
             cp_draws=copy.deepcopy(self.parameters)        
-            if draw_fcn:
+            if draw_function:
                 out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_fcn(self.parameters,samples))
+                out.update(draw_function(self.parameters,samples))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
@@ -690,10 +690,10 @@ class ODEModel:
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, processes=None):
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_fcn`
+        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
 
         Parameters
@@ -710,12 +710,12 @@ class ODEModel:
         N : int
             Number of repeated simulations (useful for stochastic models). One by default.
 
-        draw_fcn : function
+        draw_function : function
             A function which takes as its input the dictionary of model parameters and a samples dictionary
             and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
 
         samples : dictionary
-            Sample dictionary used by draw_fcn. Does not need to be supplied if samples_dict is not used in draw_fcn.
+            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
 
         processes: int
             Number of cores to distribute the N draws over.
@@ -778,8 +778,8 @@ class ODEModel:
                     "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
                 )
         # Input check on draw function
-        if draw_fcn:
-            sig = inspect.signature(draw_fcn)
+        if draw_function:
+            sig = inspect.signature(draw_function)
             keywords = list(sig.parameters.keys())
             # Verify that names of draw function are param_dict, samples_dict
             if keywords[0] != "param_dict":
@@ -796,7 +796,7 @@ class ODEModel:
                 )
             # Call draw function
             cp_draws=copy.deepcopy(self.parameters)
-            d = draw_fcn(self.parameters, samples)
+            d = draw_function(self.parameters, samples)
             self.parameters = cp_draws
             if not isinstance(d, dict):
                 raise TypeError(
@@ -819,9 +819,9 @@ class ODEModel:
         drawn_dictionaries=[]
         for n in range(N):
             cp_draws=copy.deepcopy(self.parameters)
-            if draw_fcn:
+            if draw_function:
                 out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_fcn(self.parameters,samples))
+                out.update(draw_function(self.parameters,samples))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})

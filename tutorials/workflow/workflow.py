@@ -208,7 +208,7 @@ if __name__ == '__main__':
     model_with = ODE_SIR(states=init_states, parameters=params, time_dependent_parameters={'beta': lower_infectivity})
 
     # Simulate the model
-    out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
 
     # Add negative binomial observation noise
     out_with = add_negative_binomial_noise(out_with, alpha)
