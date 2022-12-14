@@ -44,7 +44,7 @@ class SDEModel:
 
     state_names = None
     parameter_names = None
-    parameters_stratified_names = None
+    parameter_stratified_names = None
     stratification_names = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
@@ -58,13 +58,13 @@ class SDEModel:
 
         # Validate the time-dependent parameter functions
         if time_dependent_parameters:
-            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameters_stratified_names, self.time_dependent_parameters)
+            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
         
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                            self.parameter_names, self.parameters_stratified_names, self._function_parameters,
+                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
                                                                                             self.compute_rates, self.apply_transitionings)
 
     # Overwrite integrate class
@@ -566,7 +566,7 @@ class ODEModel:
 
     state_names = None
     parameter_names = None
-    parameters_stratified_names = None
+    parameter_stratified_names = None
     stratification_names = None
     state_2d = None
 
@@ -581,13 +581,13 @@ class ODEModel:
 
         # Validate the time-dependent parameter functions
         if time_dependent_parameters:
-            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameters_stratified_names, self.time_dependent_parameters)
+            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
 
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                            self.parameter_names, self.parameters_stratified_names, self._function_parameters,
+                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
                                                                                             self._create_fun, self.integrate, self.state_2d)
 
         # Experimental: added to use 2D states for the Economic IO model
