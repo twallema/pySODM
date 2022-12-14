@@ -692,7 +692,7 @@ class ODEModel:
 
     def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, processes=None):
         """
-        Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
+        Run a model simulation for the given time period. Can optionally perform `N` repeated simulations of time days.
         Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
 
