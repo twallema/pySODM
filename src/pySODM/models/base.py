@@ -449,6 +449,19 @@ class SDEModel:
                 raise ValueError(
                     f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
                 )
+            # Call draw function
+            cp_draws=copy.deepcopy(self.parameters)
+            d = draw_fcn(self.parameters, samples)
+            self.parameters = cp_draws
+            if not isinstance(d, dict):
+                raise TypeError(
+                    f"A draw function must return a dictionary. Found type {type(d)}"
+                )
+            if set(d.keys()) != set(self.parameters.keys()):
+                raise ValueError(
+                    "Keys of model parameters dictionary returned by draw function do not match with the original dictionary.\n"
+                    "Missing keys: {0}. Redundant keys: {1}".format(set(self.parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(self.parameters.keys())))
+                )
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
@@ -780,6 +793,19 @@ class ODEModel:
             elif len(keywords) > 2:
                 raise ValueError(
                     f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
+                )
+            # Call draw function
+            cp_draws=copy.deepcopy(self.parameters)
+            d = draw_fcn(self.parameters, samples)
+            self.parameters = cp_draws
+            if not isinstance(d, dict):
+                raise TypeError(
+                    f"A draw function must return a dictionary. Found type {type(d)}"
+                )
+            if set(d.keys()) != set(self.parameters.keys()):
+                raise ValueError(
+                    "Keys of model parameters dictionary returned by draw function do not match with the original dictionary.\n"
+                    "Missing keys: {0}. Redundant keys: {1}".format(set(self.parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(self.parameters.keys())))
                 )
 
         # Copy parameter dictionary --> dict is global
