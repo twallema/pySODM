@@ -199,7 +199,6 @@ if __name__ == '__main__':
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
         param_dict['beta'] = np.random.choice(samples_dict['beta'])
-        param_dict['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
         return param_dict
 
     # Attach its arguments to the parameter dictionary
