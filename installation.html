@@ -20,8 +20,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Start to collaborate" href="collaborate.html" />
-    <link rel="prev" title="Welcome to pySODM’s documentation" href="index.html" /> 
+    <link rel="next" title="Modeling and Simulation Workflow" href="workflow.html" />
+    <link rel="prev" title="pySODM: Simulating and Optimising Dynamical Models in Python 3" href="introduction.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,26 +41,32 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#get-the-code">Get the code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dry-don-t-repeat-yourself">DRY: Don’t Repeat Yourself</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#install-python-conda-and-packages">Install Python (conda) and packages</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="collaborate.html">Start to collaborate</a></li>
-<li class="toctree-l1"><a class="reference internal" href="git_workflow.html">Git workflow</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling &amp; simulation workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="enzyme_kinetics.html">Enzyme kinetics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="influenza_1718.html">Influenza 2017-2018</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="setting_up_models.html">Setting up dynamic models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulating_model.html">Simulating a dynamic model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="calibrating_model.html">Calibrating a dynamic model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Future work</a></li>
-<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ODEModel.html">ODEModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SDEModel.html">SDEModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speedup.html">Speeding up models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="start_to_collaborate.html">Start to collaborate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guidelines.html">Contribution guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="git_workflow.html">Git workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
@@ -99,11 +105,6 @@
 </ul>
 <p>When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>.</p>
 </section>
-<section id="dry-don-t-repeat-yourself">
-<h2>DRY: Don’t Repeat Yourself<a class="headerlink" href="#dry-don-t-repeat-yourself" title="Permalink to this heading">¶</a></h2>
-<p>The goal of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> is to simplify the time it takes to build a dynamic model (using ODEs or SDEs) and calibrate it to data. <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> is the DRY distillate of multiple years of collaboration on a compartmental COVID-19 model for Belgium. It does not aim to provide users new to modeling with a high-level interface for ODEs or SDEs (there’s valid alternatives such as …). Rather, it aims at modelers which can exploit DRY building blocks to build complex models. An example would be a compartmental epidemiological model where the number of contacts at each timestep t is computed using a neural network.</p>
-<p>In a typical modeling &amp; simulation project, some parts of the code will be generic and DRY while others will be ad-hoc (think datasets and their conversions, notebooks for exploration). Under ‘normal’ conditions of use, no modifications to the contents of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> should be made. We thus recommend users to make a dedicated repository for their modeling project with a conda environment for their dependencies.</p>
-</section>
 <section id="install-python-conda-and-packages">
 <h2>Install Python (conda) and packages<a class="headerlink" href="#install-python-conda-and-packages" title="Permalink to this heading">¶</a></h2>
 <p>To use the code, make sure you have Python (conda) and the required dependency packages installed. We recommend using <code class="docutils literal notranslate"><span class="pre">Anaconda</span></code> to manage your Python packages. See the <a class="reference external" href="https://docs.anaconda.com/anaconda/install/">conda installation instructions</a> and make sure you have conda up and running. Next:</p>
@@ -135,7 +136,7 @@
 <span class="n">conda</span> <span class="n">env</span> <span class="n">update</span> <span class="o">-</span><span class="n">f</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span> <span class="o">--</span><span class="n">prune</span>
 </pre></div>
 </div>
-<p>Mind that the step “solving the environment” can take very long if you have a lot of dependencies.</p>
+<p>When creating or upating an environment, <em>solving the environment</em> can take very long if you have a lot of dependencies, so be wary of adding unnecessary dependencies.</p>
 </li>
 <li><p>Install the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> code inside the environment of your own project (in <code class="docutils literal notranslate"><span class="pre">-e</span></code> edit mode):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">MY_ENVIRONMENT</span>
@@ -145,7 +146,7 @@
 <p><strong>Note:</strong> This step needs to be done in a terminal or command prompt. Use your favorite terminal or use the <a class="reference external" href="https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt">Anaconda Prompt</a>. Navigate with the <code class="docutils literal notranslate"><span class="pre">cd</span></code> command to the directory where you copied the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> repository.</p>
 </li>
 </ul>
-<p><em>Optional</em>: To use the code, the general installation instruction outlined above suffice. When you’re planning to work on the documentation or the code of the model implementations itself, make sure to also install the development requirements:</p>
+<p><em>Optional</em>: To use the code, the general installation instruction outlined above suffice. When you’re planning to work on the documentation or <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> source code itself, make sure to also install the development requirements:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">MY_ENVIRONMENT</span>
 <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="s2">&quot;.[develop]&quot;</span>
 </pre></div>
@@ -157,8 +158,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to pySODM’s documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="collaborate.html" class="btn btn-neutral float-right" title="Start to collaborate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="introduction.html" class="btn btn-neutral float-left" title="pySODM: Simulating and Optimising Dynamical Models in Python 3" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="workflow.html" class="btn btn-neutral float-right" title="Modeling and Simulation Workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -8,12 +8,6 @@
 
 When all went fine, you should have the code on your computer in a directory called `pySODM`.
 
-### DRY: Don't Repeat Yourself
-
-The goal of `pySODM` is to simplify the time it takes to build a dynamic model (using ODEs or SDEs) and calibrate it to data. `pySODM` is the DRY distillate of multiple years of collaboration on a compartmental COVID-19 model for Belgium. It does not aim to provide users new to modeling with a high-level interface for ODEs or SDEs (there's valid alternatives such as ...). Rather, it aims at modelers which can exploit DRY building blocks to build complex models. An example would be a compartmental epidemiological model where the number of contacts at each timestep t is computed using a neural network.
-
-In a typical modeling & simulation project, some parts of the code will be generic and DRY while others will be ad-hoc (think datasets and their conversions, notebooks for exploration). Under 'normal' conditions of use, no modifications to the contents of `pySODM` should be made. We thus recommend users to make a dedicated repository for their modeling project with a conda environment for their dependencies.
-
 ### Install Python (conda) and packages
 
 To use the code, make sure you have Python (conda) and the required dependency packages installed. We recommend using `Anaconda` to manage your Python packages. See the [conda installation instructions](https://docs.anaconda.com/anaconda/install/) and make sure you have conda up and running. Next:
@@ -48,7 +42,7 @@ To use the code, make sure you have Python (conda) and the required dependency p
      conda env update -f environment.yml --prune
      ```
      
-     Mind that the step "solving the environment" can take very long if you have a lot of dependencies.
+     When creating or upating an environment, *solving the environment* can take very long if you have a lot of dependencies, so be wary of adding unnecessary dependencies.
 
 - Install the `pySODM` code inside the environment of your own project (in `-e` edit mode):
 
@@ -60,7 +54,7 @@ To use the code, make sure you have Python (conda) and the required dependency p
      __Note:__ This step needs to be done in a terminal or command prompt. Use your favorite terminal or use the [Anaconda Prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt). Navigate with the `cd` command to the directory where you copied the `pySODM` repository.
 
 
-_Optional_: To use the code, the general installation instruction outlined above suffice. When you're planning to work on the documentation or the code of the model implementations itself, make sure to also install the development requirements:
+_Optional_: To use the code, the general installation instruction outlined above suffice. When you're planning to work on the documentation or `pySODM` source code itself, make sure to also install the development requirements:
 
 ```
 conda activate MY_ENVIRONMENT
