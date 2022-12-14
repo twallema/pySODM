@@ -456,12 +456,14 @@ class SDEModel:
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
+            cp_draws=copy.deepcopy(self.parameters)        
             if draw_fcn:
                 out={} # Need because of global dictionaries and voodoo magic
                 out.update(draw_fcn(self.parameters,samples))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
+            self.parameters=cp_draws    
 
         # Run simulations
         if processes: # Needed 
@@ -790,12 +792,14 @@ class ODEModel:
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
+            cp_draws=copy.deepcopy(self.parameters)
             if draw_fcn:
                 out={} # Need because of global dictionaries and voodoo magic
                 out.update(draw_fcn(self.parameters,samples))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
+            self.parameters=cp_draws
 
         # Run simulations
         if processes: # Needed 
