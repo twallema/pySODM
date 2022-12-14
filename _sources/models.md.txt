@@ -1,6 +1,6 @@
 # Models
 
-Standard usage of pySODM involves building an ODE or SDE model. For practical examples of initializing models, we refer to the tutorials in this documentation.
+Standard usage of pySODM involves building an ODE or SDE model. For practical examples of initializing models, we refer to the [tutorials](workflow.md).
 
 ##  *class* ODEModel
 
