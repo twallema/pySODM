@@ -1,4 +1,10 @@
-## pySODM: Simulating and Optimising Dynamical Models in Python 3
+## pySODM
+
+*Simulating and Optimising Dynamical Models in Python 3*
+
+### Documentation website
+
+https://twallema.github.io/pySODM/index.html
 
 ### Aim & Scope
 
