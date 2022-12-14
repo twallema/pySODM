@@ -26,8 +26,7 @@ Welcome to pySODM's documentation
    :caption: User guide
    :maxdepth: 1
 
-   ODEModel <ODEModel.md>
-   SDEModel <SDEModel.md>
+   Models <models.md>
    Optimization <optimization.md>
    Speeding up models <speedup.md>
    
