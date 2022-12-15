@@ -48,3 +48,5 @@ The following features will be implemented in future versions of pySODM,
 - Coupling of ODE Models with different stratifications. The user will be able to define a model, consisting of two submodels with states of different sizes. These two models will share one `integrate` function to make coupling of the differentials possible. Output will be returned in seperate `xarray` Datasets. High priority.
 
 - Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.
+
+- Send model output to a multiindex `pd.DataFrame` and give the user the choice between `xarray` or `pandas`. Will make the code more future-proof. Low priority.
