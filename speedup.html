@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Start to collaborate" href="start_to_collaborate.html" />
-    <link rel="prev" title="Optimizaton" href="optimization.html" /> 
+    <link rel="prev" title="Optimization" href="optimization.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -58,7 +58,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Speeding up models</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#quick-and-dirty-solver-accuracy">Quick-and-dirty: solver accuracy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#jit-compilation">JIT compilation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#avoiding-large-inputs-in-time-dependent-parameter-functions">Avoiding large inputs in time-dependent parameter functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#avoid-large-inputs-in-time-dependent-parameter-functions">Avoid large inputs in time-dependent parameter functions</a></li>
 </ul>
 </li>
 </ul>
@@ -105,8 +105,8 @@
 <p>Just-in-time compilation, available through <a class="reference external" href="https://numba.pydata.org/">numba</a> can be used to speed code up by means of precompilation. JIT compilation is typically applied to the <code class="docutils literal notranslate"><span class="pre">integrate</span></code> (<code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> for SDE models) or time-dependent parameter functions.</p>
 <p>The amount of achievable speedup is different for every model. Jit compiling the 1D PFR in the <a class="reference internal" href="enzyme_kinetics.html"><span class="doc std std-doc">enzyme kinetics</span></a> tutorial speeds up the code … fold, while jit compiling the simple <a class="reference internal" href="workflow.html"><span class="doc std std-doc">SIR tutorial</span></a> speeds up the code … fold.</p>
 </section>
-<section id="avoiding-large-inputs-in-time-dependent-parameter-functions">
-<h2>Avoiding large inputs in time-dependent parameter functions<a class="headerlink" href="#avoiding-large-inputs-in-time-dependent-parameter-functions" title="Permalink to this heading">¶</a></h2>
+<section id="avoid-large-inputs-in-time-dependent-parameter-functions">
+<h2>Avoid large inputs in time-dependent parameter functions<a class="headerlink" href="#avoid-large-inputs-in-time-dependent-parameter-functions" title="Permalink to this heading">¶</a></h2>
 <p>Using large inputs directly in a time-dependent parameter function will force pySODM to read that input at every timestep in the integration. As the integrator typically takes thousands of steps, the IO operations slow the code down drastically. It is thus recommended to avoid the following syntax:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">TDPF</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
@@ -141,7 +141,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="optimization.html" class="btn btn-neutral float-left" title="Optimizaton" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="optimization.html" class="btn btn-neutral float-left" title="Optimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="start_to_collaborate.html" class="btn btn-neutral float-right" title="Start to collaborate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

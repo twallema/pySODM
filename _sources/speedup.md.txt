@@ -10,7 +10,7 @@ Just-in-time compilation, available through [numba](https://numba.pydata.org/) c
 
 The amount of achievable speedup is different for every model. Jit compiling the 1D PFR in the [enzyme kinetics](enzyme_kinetics.md) tutorial speeds up the code ... fold, while jit compiling the simple [SIR tutorial](workflow.md) speeds up the code ... fold.
 
-### Avoiding large inputs in time-dependent parameter functions
+### Avoid large inputs in time-dependent parameter functions
 
 Using large inputs directly in a time-dependent parameter function will force pySODM to read that input at every timestep in the integration. As the integrator typically takes thousands of steps, the IO operations slow the code down drastically. It is thus recommended to avoid the following syntax:
 
