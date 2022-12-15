@@ -147,7 +147,7 @@ class SIRstratified(ODEModel):
     # state variables and parameters
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
-    parameters_stratified_names = ['beta']
+    parameter_stratified_names = ['beta']
     stratification_names = ['age_groups']
 
     @staticmethod
@@ -205,7 +205,7 @@ def test_model_stratified_init_validation():
     # assert model state/parameter names didn't change
     assert model.state_names == ['S', 'I', 'R']
     assert model.parameter_names == ['gamma']
-    #assert model.parameters_stratified_names == ['beta']
+    #assert model.parameter_stratified_names == ['beta']
 
     # forget coordinates
     with pytest.raises(ValueError, match="Stratification name provided in integrate"):
@@ -250,14 +250,14 @@ def test_model_stratified_init_validation():
         SIRstratified(initial_states, parameters, coordinates=coordinates)
 
     SIRstratified.parameter_names = ["gamma"]
-    SIRstratified.parameters_stratified_names = [["beta", "alpha"]]
+    SIRstratified.parameter_stratified_names = [["beta", "alpha"]]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
 
     # ensure to set back to correct ones
     SIRstratified.state_names = ["S", "I", "R"]
     SIRstratified.parameter_names = ["gamma"]
-    SIRstratified.parameters_stratified_names = [["beta"]]
+    SIRstratified.parameter_stratified_names = [["beta"]]
 
 def test_model_stratified_default_initial_state():
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
@@ -372,7 +372,7 @@ def test_draw_function():
     # simulate model
     time = [0, 10]
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-    output = model.sim(time, draw_fcn=draw_function, samples={}, N=5)
+    output = model.sim(time, draw_function=draw_function, samples={}, N=5)
 
     # assert dimension 'draws' is present in output
     assert 'draws' in list(output.dims.keys())
@@ -385,6 +385,6 @@ def test_draw_function():
     time = [0, 10]
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
     with pytest.raises(ValueError, match="The first parameter of a draw function should be"):
-        model.sim(time, draw_fcn=draw_function, samples={}, N=5)
+        model.sim(time, draw_function=draw_function, samples={}, N=5)
 
     

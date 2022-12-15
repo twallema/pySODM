@@ -3,7 +3,6 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Packages
 import random
-import inspect
 import itertools
 import xarray
 import copy
@@ -13,8 +12,8 @@ import numba as nb
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
-from pySODM.models.utils import date_to_diff, int_to_date
-from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
+from pySODM.models.utils import int_to_date
+from pySODM.models.validation import validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
 
 class SDEModel:
     """
@@ -79,7 +78,7 @@ class SDEModel:
         raise NotImplementedError
 
     @staticmethod
-    def SSA(states, rates):
+    def _SSA(states, rates):
         """
         Stochastic simulation algorithm by Gillespie
         Based on: https://lewiscoleblog.com/gillespie-algorithm
@@ -155,10 +154,10 @@ class SDEModel:
 
         return transitionings, tau
 
-    def tau_leap(self, states, rates, tau):
+    def _tau_leap(self, states, rates, tau):
         """
         Tau-leaping algorithm by Gillespie
-        Loops over the model states, extracts the values of the states and the rates, passes them to `draw_transitionings()`
+        Loops over the model states, extracts the values of the states and the rates, passes them to `_draw_transitionings()`
 
         Inputs
         ------
@@ -185,13 +184,13 @@ class SDEModel:
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
-            transitionings[k] = self.draw_transitionings(states[k], nb.typed.List(rate), tau)
+            transitionings[k] = self._draw_transitionings(states[k], nb.typed.List(rate), tau)
 
         return transitionings, tau
 
     @staticmethod
     @nb.jit(nopython=True)
-    def draw_transitionings(states, rates, tau):
+    def _draw_transitionings(states, rates, tau):
         """
         Draw the transitionings from a multinomial distribution
         The use of the multinomial distribution is necessary to avoid states with two transitionings from becoming negative
@@ -199,7 +198,7 @@ class SDEModel:
         Inputs
         ------
         states: np.ndarray
-            n-dimensional matrix representing a given model state (passed down from `tau_leap()`)
+            n-dimensional matrix representing a given model state (passed down from `_tau_leap()`)
 
         rates: list
             List containing the transitioning rates of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
@@ -291,9 +290,9 @@ class SDEModel:
                 # --------------
 
                 if method == 'SSA':
-                    transitionings, tau = self.SSA(states, rates)
+                    transitionings, tau = self._SSA(states, rates)
                 elif method == 'tau_leap':
-                    transitionings, tau = self.tau_leap(states, rates, tau_input)
+                    transitionings, tau = self._tau_leap(states, rates, tau_input)
                     
                 # -------------
                 # update states 
@@ -305,7 +304,7 @@ class SDEModel:
 
         return func
 
-    def solve_discrete(self, fun, t_eval, y, args):
+    def _solve_discrete(self, fun, t_eval, y, args):
         # Preparations
         y=np.asarray(y) # otherwise error in func : y.reshape does not work
         y=np.reshape(y,[y.size,1])
@@ -342,7 +341,7 @@ class SDEModel:
             y0 = list(itertools.chain(*y0))
 
         # Run the time loop
-        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), self.parameters)
+        output = self._solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), self.parameters)
 
         return self._output_to_xarray_dataset(output, actual_start_date)
 
@@ -401,71 +400,14 @@ class SDEModel:
         """
 
         # Input checks on supplied simulation time
-        actual_start_date=None
-        if isinstance(time, float):
-            time = [0-warmup, round(time)]
-        elif isinstance(time, int):
-            time = [0-warmup, time]
-        elif isinstance(time, list):
-            if not len(time) == 2:
-                raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
-            else:
-                # If they are all int or flat
-                if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
-                    time = [round(item) for item in time]
-                    time[0] -= warmup
-                # If they are all timestamps
-                elif all([isinstance(item, pd.Timestamp) for item in time]):
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                # If they are all strings
-                elif all([isinstance(item, str) for item in time]):
-                    time = [pd.Timestamp(item) for item in time]
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                else:
-                    raise TypeError(
-                        f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
-                        )
-        else:
-            raise TypeError(
-                    "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
-                )
+        time, actual_start_date = validate_simulation_time(time, warmup)
 
         # Input check on draw function
         if draw_function:
-            sig = inspect.signature(draw_function)
-            keywords = list(sig.parameters.keys())
-            # Verify that names of draw function are param_dict, samples_dict
-            if keywords[0] != "param_dict":
-                raise ValueError(
-                    f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
-                )
-            elif keywords[1] != "samples_dict":
-                raise ValueError(
-                    f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
-                )
-            elif len(keywords) > 2:
-                raise ValueError(
-                    f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
-                )
-            # Call draw function
-            cp_draws=copy.deepcopy(self.parameters)
-            d = draw_function(self.parameters, samples)
-            self.parameters = cp_draws
-            if not isinstance(d, dict):
-                raise TypeError(
-                    f"A draw function must return a dictionary. Found type {type(d)}"
-                )
-            if set(d.keys()) != set(self.parameters.keys()):
-                raise ValueError(
-                    "Keys of model parameters dictionary returned by draw function do not match with the original dictionary.\n"
-                    "Missing keys: {0}. Redundant keys: {1}".format(set(self.parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(self.parameters.keys())))
-                )
+            validate_draw_function(draw_function, self.parameters, samples)
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
-
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
@@ -747,74 +689,16 @@ class ODEModel:
             )
 
         # Input checks on supplied simulation time
-        actual_start_date=None
-        if isinstance(time, float):
-            time = [0-warmup, round(time)]
-        elif isinstance(time, int):
-            time = [0-warmup, time]
-        elif isinstance(time, list):
-            if not len(time) == 2:
-                raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
-            else:
-                # If they are all int or flat (or commonly occuring np.int64/np.float64)
-                if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
-                    time = [round(item) for item in time]
-                    time[0] -= warmup
-                # If they are all timestamps
-                elif all([isinstance(item, pd.Timestamp) for item in time]):
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                # If they are all strings
-                elif all([isinstance(item, str) for item in time]):
-                    time = [pd.Timestamp(item) for item in time]
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                else:
-                    raise TypeError(
-                        f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
-                        )
-        else:
-            raise TypeError(
-                    "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
-                )
+        time, actual_start_date = validate_simulation_time(time, warmup)
+
         # Input check on draw function
         if draw_function:
-            sig = inspect.signature(draw_function)
-            keywords = list(sig.parameters.keys())
-            # Verify that names of draw function are param_dict, samples_dict
-            if keywords[0] != "param_dict":
-                raise ValueError(
-                    f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
-                )
-            elif keywords[1] != "samples_dict":
-                raise ValueError(
-                    f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
-                )
-            elif len(keywords) > 2:
-                raise ValueError(
-                    f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
-                )
-            # Call draw function
-            cp_draws=copy.deepcopy(self.parameters)
-            d = draw_function(self.parameters, samples)
-            self.parameters = cp_draws
-            if not isinstance(d, dict):
-                raise TypeError(
-                    f"A draw function must return a dictionary. Found type {type(d)}"
-                )
-            if set(d.keys()) != set(self.parameters.keys()):
-                raise ValueError(
-                    "Keys of model parameters dictionary returned by draw function do not match with the original dictionary.\n"
-                    "Missing keys: {0}. Redundant keys: {1}".format(set(self.parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(self.parameters.keys())))
-                )
-
+            validate_draw_function(draw_function, self.parameters, samples)
+           
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
-
-        # Old linear case used _sim_single_ directly
         
         # Parallel case: https://www.delftstack.com/howto/python/python-pool-map-multiple-arguments/#parallel-function-execution-with-multiple-arguments-using-the-pool.starmap-method
-
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
