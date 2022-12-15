@@ -1,6 +1,8 @@
 ## Modeling and Simulation Workflow
 
-In this tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered. By using a simple model, we can focus on the general workflow and on the features of `pySODM`, which will be very similar throughout the other tutorials on this documentation website. This tutorial introduces the user to a typical workflow:
+In this tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered. By using a simple model, we can focus on the general workflow and on the features of `pySODM`, which will be very similar throughout the other tutorials on this documentation website.
+
+This tutorial introduces the user to a typical workflow:
 1. Import dependencies
 2. Load the dataset
 3. Load/Define a model
@@ -9,7 +11,7 @@ In this tutorial, we'll set up a simple SIR disease model and calibrate its basi
 6. Perform a bayesian optimization
 7. Visualize the result
 
-This tutorial example can be reproduced using `~/tutorials/workflow/workflow.py`
+This tutorial can be reproduced using `~/tutorials/workflow/workflow.py`
 
 ### Import dependencies
 
@@ -276,7 +278,7 @@ if __name__ == '__main__':
 
 #### Nelder-Mead optimization
 
-The following code snippet starts a Nelder-Mead optimization from the initial guess {math}`\beta = 0.35`, perturbated with a `step` of 10%. Running on `processes=1` core for `max_iter=10` iterations.
+The following code snippet starts a Nelder-Mead optimization from the initial guess {math}`\beta = 0.35`, perturbated with a `step` of 10%. Running on `processes=1` cores for `max_iter=10` iterations.
 
 ```
 if __name__ == '__main__':
@@ -458,7 +460,7 @@ As we could reasonably expect, if we could implement some form of preventive mea
 
 ![scenario](/_static/figs/workflow/scenario.png)
 
-However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem by implementing a ramp function in our time-dependent model parameter function but I'll demonstrate how pySODM's *draw functions* can be put to good use to make this simulation more realistic. We could, instead of having `start_measures` fixed at January 21st, vary `start_measures` stochastically in every run of our simulation. To simulate ramp-like adoptation of measures, we can add the number of additional days it takes to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. Instead of only using our MCMC samples for `beta`, we'll thus add one extra line to the draw function,
+However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem by implementing a ramp function in our time-dependent model parameter function but I'll demonstrate how pySODM's *draw functions* can be put to good use to make this transition smoother. We could, instead of having `start_measures` fixed at January 21st, vary `start_measures` stochastically in every run of our simulation by means of a *draw function*. To simulate ramp-like adoptation of measures, we can add the number of additional days it takes to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. All we have to do is add one line to the draw function,
 
 ```
 # Define draw function
