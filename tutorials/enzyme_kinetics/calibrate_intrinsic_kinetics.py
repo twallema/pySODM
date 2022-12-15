@@ -20,7 +20,7 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
-from pySODM.optimization.utils import add_relative_gaussian_noise, assign_theta
+from pySODM.optimization.utils import add_gaussian_noise, assign_theta
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_gaussian
 # pySODM dependecies
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         # Simulate model
         out = model.sim(3000, N=N, draw_fcn=draw_fcn, samples=samples_dict)
         # Add 5% observational noise
-        out = add_relative_gaussian_noise(out, 0.05)
+        out = add_gaussian_noise(out, 0.05, relative=True)
         # Visualize
         fig,ax=plt.subplots(figsize=(12,4))
         ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)

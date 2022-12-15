@@ -22,9 +22,9 @@ def optimize(func, x_start, step,
     ==========
     func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
         The objective function to be minimized
-    x_start: list or np.array
+    x_start: list or 1D np.ndarray
         Starting estimate for the search algorithm. Length must equal the number of provided bounds.
-     step: list or np.array
+     step: list or 1D np.ndarray
         Size of the initial search simplex       
     bounds: tuple array
         The bounds of the design variable(s). In form [(lower, upper), ..., (lower, upper)]

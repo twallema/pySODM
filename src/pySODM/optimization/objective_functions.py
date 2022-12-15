@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
-from pySODM.optimization.utils import thetas_to_thetas_dict
+from pySODM.optimization.utils import _thetas_to_thetas_dict
 from pySODM.models.validation import validate_initial_states
 
 ##############################
@@ -757,10 +757,10 @@ class log_posterior_probability():
         if self.warmup_position:
             simulation_kwargs.update({'warmup': thetas[self.warmup_position]})
             # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
+            thetas_dict, n = _thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
         else:
             # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
+            thetas_dict, n = _thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
 
         # Assign thetas for model parameters to the model object
         for param,value in thetas_dict.items():

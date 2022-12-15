@@ -12,8 +12,9 @@ from pySODM.optimization.visualization import traceplot, autocorrelation_plot
 abs_dir = os.path.dirname(__file__)
 
 def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None,
-                moves=[(emcee.moves.DEMove(), 0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.5)],
-                fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={}):
+                        moves=[(emcee.moves.DEMove(), 0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.5)],
+                        fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={}):
+    """In need of a docstring """
 
     # Set default fig_path/samples_path as same directory as calibration script
     if not fig_path:
@@ -194,7 +195,7 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
         sys.stdout.flush()
     return ndim, nwalkers, pos
 
-def emcee_sampler_to_dictionary(discard=0, thin=1, samples_path=None, identifier=None, run_date=str(datetime.date.today())):
+def emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run_date=str(datetime.date.today())):
     """
     A function to discard and thin the samples available in the sampler object and subsequently convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
     Append a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).

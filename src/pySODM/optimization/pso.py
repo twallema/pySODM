@@ -23,9 +23,8 @@ def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
 
 
 def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
-        swarmsize=100, omega=0.8, phip=0.8, phig=0.8, maxiter=100,
-        minstep=1e-12, minfunc=1e-12, debug=False, processes=1,
-        particle_output=False, transform_pars=None):
+        processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8, 
+        debug=False, particle_output=False, transform_pars=None):
     """
     Perform a particle swarm optimization (PSO)
 
@@ -54,7 +53,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     phig : scalar
         Scaling factor to search away from the swarm's best known position
         (Default: 0.5)
-    maxiter : int
+    max_iter : int
         The maximum number of iterations for the swarm to search (Default: 100)
     minstep : scalar
         The minimum stepsize of swarm's best position before the search
@@ -198,7 +197,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     # Iterate until termination criterion met ##################################
     it = 1
 
-    while it <= maxiter:
+    while it <= max_iter:
         rp = np.random.uniform(size=(S, D))
         rg = np.random.uniform(size=(S, D))
         # Update the particles velocities
@@ -215,7 +214,6 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
 
 
         # Update objectives and constraints
-
         if processes > 1:
             fx = np.array(mp_pool.map(obj, x))
             fs = np.array(mp_pool.map(is_feasible, x))
@@ -264,7 +262,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
             sys.stdout.flush()
         it += 1
 
-    print('Stopping search: maximum iterations reached --> {:}'.format(maxiter))
+    print('Stopping search: maximum iterations reached --> {:}'.format(max_iter))
     sys.stdout.flush()
     
     if processes > 1:
