@@ -56,7 +56,7 @@
 <li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Speeding up models</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#quick-and-dirty">Quick-and-dirty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-and-dirty-solver-accuracy">Quick-and-dirty: solver accuracy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#jit-compilation">JIT compilation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#avoiding-large-inputs-in-time-dependent-parameter-functions">Avoiding large inputs in time-dependent parameter functions</a></li>
 </ul>
@@ -96,18 +96,18 @@
              
   <section id="speeding-up-models">
 <h1>Speeding up models<a class="headerlink" href="#speeding-up-models" title="Permalink to this heading">¶</a></h1>
-<section id="quick-and-dirty">
-<h2>Quick-and-dirty<a class="headerlink" href="#quick-and-dirty" title="Permalink to this heading">¶</a></h2>
-<p>When using ODE models, playing around with the solution methods and relative tolerance of the solver is the easiest way to achieve speedups. Be aware, the default setting of <code class="docutils literal notranslate"><span class="pre">RK23</span></code> with a tolerance of <code class="docutils literal notranslate"><span class="pre">5e-03</span></code> is already quite “quick-and-dirty”. When using SDE models with the tau-leaping method, try increasing the tau-leap size to speed up your models.</p>
+<section id="quick-and-dirty-solver-accuracy">
+<h2>Quick-and-dirty: solver accuracy<a class="headerlink" href="#quick-and-dirty-solver-accuracy" title="Permalink to this heading">¶</a></h2>
+<p>When using ODE models, using a lower grade algorithm (RK23 &lt; RK45 &lt; DOP853) and/or a lower relative tolerance of the solver is the easiest way to achieve speedups. Be aware, the default setting of <code class="docutils literal notranslate"><span class="pre">RK23</span></code> with a tolerance of <code class="docutils literal notranslate"><span class="pre">5e-03</span></code> is already quite “quick-and-dirty”. When using SDE models with the tau-leaping method, try increasing the tau-leap size to speed up your models.</p>
 </section>
 <section id="jit-compilation">
 <h2>JIT compilation<a class="headerlink" href="#jit-compilation" title="Permalink to this heading">¶</a></h2>
-<p>Just-in-time compilation, available through <a class="reference external" href="https://numba.pydata.org/">numba</a> can be used to speed code up by means of precompilation. JIT compilation is typically applied to the <code class="docutils literal notranslate"><span class="pre">integrate</span></code> (<code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> for SDE models) or time-dependent parameter functions. The amount of achievable speedup is different for every model. For our COVID-19 models, we</p>
-<p>Jit compiling the 1D PFR in the <a class="reference internal" href="enzyme_kinetics.html"><span class="doc std std-doc">enzyme kinetics</span></a> tutorial speeds up the code … fold, while jit compiling the simple <a class="reference internal" href="workflow.html"><span class="doc std std-doc">SIR tutorial</span></a> speeds up the code … fold.</p>
+<p>Just-in-time compilation, available through <a class="reference external" href="https://numba.pydata.org/">numba</a> can be used to speed code up by means of precompilation. JIT compilation is typically applied to the <code class="docutils literal notranslate"><span class="pre">integrate</span></code> (<code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> for SDE models) or time-dependent parameter functions.</p>
+<p>The amount of achievable speedup is different for every model. Jit compiling the 1D PFR in the <a class="reference internal" href="enzyme_kinetics.html"><span class="doc std std-doc">enzyme kinetics</span></a> tutorial speeds up the code … fold, while jit compiling the simple <a class="reference internal" href="workflow.html"><span class="doc std std-doc">SIR tutorial</span></a> speeds up the code … fold.</p>
 </section>
 <section id="avoiding-large-inputs-in-time-dependent-parameter-functions">
 <h2>Avoiding large inputs in time-dependent parameter functions<a class="headerlink" href="#avoiding-large-inputs-in-time-dependent-parameter-functions" title="Permalink to this heading">¶</a></h2>
-<p>Using large inputs directly in a time-dependent parameter function will force pySODM to read that input at every timestep in the integration. As the integrator typically takes thousands of steps, this slows the code down drastically. It is thus recommended to avoid the following syntax:</p>
+<p>Using large inputs directly in a time-dependent parameter function will force pySODM to read that input at every timestep in the integration. As the integrator typically takes thousands of steps, the IO operations slow the code down drastically. It is thus recommended to avoid the following syntax:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">TDPF</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">a_large_dataset</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
@@ -116,14 +116,17 @@
 <p>Instead, we recommend wrapping the TDPF in a class and using the <code class="docutils literal notranslate"><span class="pre">&#64;lru_cache()</span></code> decorator to place the function where the large dataset is evaluated in working memory.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">make_TDPF</span><span class="p">():</span>
 
+    <span class="c1"># Assign large dataset to class</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">a_large_dataset</span>
 
+    <span class="c1"># Place function where large dataset is used in memory</span>
     <span class="nd">@lru_cache</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
         <span class="n">t</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
     
+    <span class="c1"># Write a pySODM compatible wrapper </span>
     <span class="k">def</span> <span class="nf">wrapper_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 

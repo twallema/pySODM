@@ -113,7 +113,8 @@
              
   <section id="modeling-and-simulation-workflow">
 <h1>Modeling and Simulation Workflow<a class="headerlink" href="#modeling-and-simulation-workflow" title="Permalink to this heading">¶</a></h1>
-<p>In this tutorial, we’ll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We’ll then asses what happens if the pathogen’s infectivity is lowered. By using a simple model, we can focus on the general workflow and on the features of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>, which will be very similar throughout the other tutorials on this documentation website. This tutorial introduces the user to a typical workflow:</p>
+<p>In this tutorial, we’ll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We’ll then asses what happens if the pathogen’s infectivity is lowered. By using a simple model, we can focus on the general workflow and on the features of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>, which will be very similar throughout the other tutorials on this documentation website.</p>
+<p>This tutorial introduces the user to a typical workflow:</p>
 <ol class="arabic simple">
 <li><p>Import dependencies</p></li>
 <li><p>Load the dataset</p></li>
@@ -123,7 +124,7 @@
 <li><p>Perform a bayesian optimization</p></li>
 <li><p>Visualize the result</p></li>
 </ol>
-<p>This tutorial example can be reproduced using <code class="docutils literal notranslate"><span class="pre">~/tutorials/workflow/workflow.py</span></code></p>
+<p>This tutorial can be reproduced using <code class="docutils literal notranslate"><span class="pre">~/tutorials/workflow/workflow.py</span></code></p>
 <section id="import-dependencies">
 <h2>Import dependencies<a class="headerlink" href="#import-dependencies" title="Permalink to this heading">¶</a></h2>
 <p>I typically place all my dependencies together at the top of my script. However, for this demo, we’ll import some common dependencies here and then import the pySODM code on the go. That way, the imports of the necessary pySODM code are located where they are required which is more illustrative than including them all here.</p>
@@ -369,7 +370,7 @@ negative binomial   <span class="m">0</span>.042804  <span class="m">32</span>.0
 </section>
 <section id="nelder-mead-optimization">
 <h3>Nelder-Mead optimization<a class="headerlink" href="#nelder-mead-optimization" title="Permalink to this heading">¶</a></h3>
-<p>The following code snippet starts a Nelder-Mead optimization from the initial guess <span class="math notranslate nohighlight">\(\beta = 0.35\)</span>, perturbated with a <code class="docutils literal notranslate"><span class="pre">step</span></code> of 10%. Running on <code class="docutils literal notranslate"><span class="pre">processes=1</span></code> core for <code class="docutils literal notranslate"><span class="pre">max_iter=10</span></code> iterations.</p>
+<p>The following code snippet starts a Nelder-Mead optimization from the initial guess <span class="math notranslate nohighlight">\(\beta = 0.35\)</span>, perturbated with a <code class="docutils literal notranslate"><span class="pre">step</span></code> of 10%. Running on <code class="docutils literal notranslate"><span class="pre">processes=1</span></code> cores for <code class="docutils literal notranslate"><span class="pre">max_iter=10</span></code> iterations.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="c1"># Import the Nelder-Mead algorithm</span>
     <span class="kn">from</span> <span class="nn">pySODM.optimization</span> <span class="kn">import</span> <span class="n">nelder_mead</span>
@@ -532,7 +533,7 @@ negative binomial   <span class="m">0</span>.042804  <span class="m">32</span>.0
 </div>
 <p>As we could reasonably expect, if we could implement some form of preventive measures on January 21st that slashes the infectivity in half, cases quite abruptly start declining and thus less people contrapt the disease.</p>
 <p><img alt="scenario" src="_images/scenario.png" /></p>
-<p>However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem by implementing a ramp function in our time-dependent model parameter function but I’ll demonstrate how pySODM’s <em>draw functions</em> can be put to good use to make this simulation more realistic. We could, instead of having <code class="docutils literal notranslate"><span class="pre">start_measures</span></code> fixed at January 21st, vary <code class="docutils literal notranslate"><span class="pre">start_measures</span></code> stochastically in every run of our simulation. To simulate ramp-like adoptation of measures, we can add the number of additional days it takes to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. Instead of only using our MCMC samples for <code class="docutils literal notranslate"><span class="pre">beta</span></code>, we’ll thus add one extra line to the draw function,</p>
+<p>However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem by implementing a ramp function in our time-dependent model parameter function but I’ll demonstrate how pySODM’s <em>draw functions</em> can be put to good use to make this transition smoother. We could, instead of having <code class="docutils literal notranslate"><span class="pre">start_measures</span></code> fixed at January 21st, vary <code class="docutils literal notranslate"><span class="pre">start_measures</span></code> stochastically in every run of our simulation by means of a <em>draw function</em>. To simulate ramp-like adoptation of measures, we can add the number of additional days it takes to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. All we have to do is add one line to the draw function,</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define draw function</span>
 <span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span> <span class="n">samples_dict</span><span class="p">):</span>
     <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">])</span>
