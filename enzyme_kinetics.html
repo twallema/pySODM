@@ -17,6 +17,7 @@
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -47,7 +48,12 @@
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling &amp; simulation workflow</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Enzyme kinetics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Enzyme kinetics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calibration-of-intrinsic-kinetics-ode-model">Calibration of Intrinsic kinetics (ODE model)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simulating-a-packed-bed-reactor-pde-model">Simulating a Packed-bed reactor (PDE model)</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="influenza_1718.html">Influenza 2017-2018</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
 </ul>
@@ -91,6 +97,258 @@
              
   <section id="a-model-for-the-enzymatic-esterification-of-d-glucose-and-lauric-acid">
 <h1>A model for the enzymatic esterification of D-glucose and Lauric acid<a class="headerlink" href="#a-model-for-the-enzymatic-esterification-of-d-glucose-and-lauric-acid" title="Permalink to this heading">¶</a></h1>
+<p>This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (unpublished master’s thesis). Ghent University, Ghent, BE.</p>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h2>
+<p>Sugar fatty acid esters (SFAEs) are nonionic surfactants which play an important role in the food, detergent, agricultural, cosmetic and pharmaceutical industry. Because of several inherent merits and green character, the development of an enzymatic process is preferred over traditional chemical synthesis. The combination of high conversion rates per volume unit, ease of scale-up by numbering-up and inherent stability of lipases motivate the choice to synthesise SFAEs in continuous flow reactors packed with immobilised lipase. As a model reaction, the esterification of D-glucose and Lauric acid, performed in t-Butanol at 50 degrees Celcius and yielding Glucose Laurate Ester and water as products, is used.</p>
+<p><img alt="reaction" src="_images/reaction.png" /></p>
+<p>The goal of this tutorial is to demonstrate how pySODM can be used to build a virtual prototype of a continuous flow reactor reactor packed with enzyme beads. First, an enzyme kinetic model is calibrated to time course data obtained in batch experiments. The calibrated kinetics can then be used to make predictions on how the yields in our continuous-flow reactor vary when the flow rate is varied. Further, we can asses what happens to the reaction yields if we set up a two-stage reactor where water is removed between the stages. I will attempt to provide a brief introduction to each of the models used in this tutorial. However, I shall cut several corners for the sake of shortening this demo (my master’s thesis is over 60 pages long).</p>
+<p>In this tutorial pySODM is used to:</p>
+<ol class="arabic simple">
+<li><p>Build an ODE model to describe the reaction course in a batch experiment.</p></li>
+<li><p>Calibrate the ODE model to timecourse data from eight experiments. Each experiment has a different intial condition, which must be provided to the log posterior probability function.</p></li>
+<li><p>Demonstrate how a 1D packed-bed reactor (PDE) can be implemented in pySODM by using the method-of-lines.</p></li>
+<li><p>Propagate the posterior distributions of the kinetic parameters through the packed-bed reactor model and asses what happens if we change the flow rate or remove water.</p></li>
+</ol>
+</section>
+<section id="calibration-of-intrinsic-kinetics-ode-model">
+<h2>Calibration of Intrinsic kinetics (ODE model)<a class="headerlink" href="#calibration-of-intrinsic-kinetics-ode-model" title="Permalink to this heading">¶</a></h2>
+<p>Multiple batch experiments were performed. For each experiment a supersaturated solution of D-glucose and Lauric acid in t-Butanol had to be prepared. First, as much water as possible had to be removed from the t-Butanol by means of molecular sieves. Then, because of its low solubility in t-Butanol, a supersaturated solution of D-glucose had to be prepared by reflux boiling overnight. Next, the Lauric acid was added and the mixture was transferred to a 50 mL flask suspended in an oil bath kept at 50 degrees Celcius. To start the reaction, 10 g/L of beads containing the enzyme were added to the mixture. The mixture was stirred with a magnetic stirrer throughout the reaction to avoid mass transfer limitations during the reaction course. Samples were withdrawn at regular intervals and analyzed for Glucose Laurate Ester using an HPLC-MS.</p>
+<p>The experiments performed could be subdivided into two types:</p>
+<ol class="arabic simple">
+<li><p>Initial rate experiments: The reaction course is only followed during the first minutes when very little product are formed.</p></li>
+<li><p>Full time-course experiments. In this experiment, samples are withdrawn every few hours until the reaction mixture equillibrates.</p></li>
+</ol>
+<p>Typically, the parameters of the <em>forward</em> reaction are first calibrated to the initial rate experiment data. During my master’s thesis, model selection was performed as well using the initial rate experiment data. The parameters of the <em>backward</em> reaction were then calibrated to the full time-course experiments. For the sake of brevity, I shall glance over this two-step calibration and model selection. We will simply calibrate the following model,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{eqnarray}
+\frac{dS}{dt} &amp;=&amp; - v, \\
+\frac{dA}{dt} &amp;=&amp; - v, \\
+\frac{dEs}{dt} &amp;=&amp; + v, \\
+\frac{dW}{dt} &amp;=&amp; + v, \\
+\end{eqnarray}\end{split}\]</div>
+<p>where,</p>
+<div class="math notranslate nohighlight">
+\[\frac{v}{[E]_t} = \frac{{V_f}/{K_S} ([S] [A] - \frac{1}{K_{eq}} [Es][W])}{[A] + R_{AS} [S] + R_{AW} [W] + R_{Es} [Es]}, \Bigg[\frac{mmol}{min . \text{g catalyst}} \Bigg],\]</div>
+<p>to data from three initial rate experiments, and five full time-course experiments. In the equation, <span class="math notranslate nohighlight">\([S]\)</span> denotes the concentration of D-glucose, <span class="math notranslate nohighlight">\([A]\)</span> denotes the concentration of Lauric Acid, <span class="math notranslate nohighlight">\([Es]\)</span> denotes the concentration of Glucose Laurate Ester, and <span class="math notranslate nohighlight">\([W]\)</span> denotes the concentration of water, all in millimolar (mM). The parameters <span class="math notranslate nohighlight">\(R_{AS}\)</span>, <span class="math notranslate nohighlight">\(R_{AW}\)</span> and <span class="math notranslate nohighlight">\(R_{Es}\)</span> can be interpreted as inhibitory constants due to their appearance in the denominator of the rate equation. <span class="math notranslate nohighlight">\(V_f/K_S\)</span> is typically treated as one parameter and has an impact on the initial reaction rate. <span class="math notranslate nohighlight">\(K_{eq}\)</span> is the equillibrium coefficient, which determines if the reaction favor the reactants or the products.</p>
+<p>We’ll start by making a file <code class="docutils literal notranslate"><span class="pre">models.py</span></code> in our working directory, where we’ll group our models for this tutorial. Coding up the equations above is very similar to the <a class="reference internal" href="workflow.html"><span class="doc std std-doc">simple SIR model</span></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODEModel</span>
+
+<span class="k">class</span> <span class="nc">PPBB_model</span><span class="p">(</span><span class="n">ODEModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A model for the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water</span>
+<span class="sd">    S + A &lt;--&gt; Es + W</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;A&#39;</span><span class="p">,</span><span class="s1">&#39;Es&#39;</span><span class="p">,</span><span class="s1">&#39;W&#39;</span><span class="p">]</span>
+    <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;c_enzyme&#39;</span><span class="p">,</span> <span class="s1">&#39;Vf_Ks&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">,</span> <span class="s1">&#39;R_Es&#39;</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">Es</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">c_enzyme</span><span class="p">,</span> <span class="n">Vf_Ks</span><span class="p">,</span> <span class="n">R_AS</span><span class="p">,</span> <span class="n">R_AW</span><span class="p">,</span> <span class="n">R_Es</span><span class="p">,</span> <span class="n">K_eq</span><span class="p">):</span>
+
+        <span class="c1"># Calculate rate</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">c_enzyme</span><span class="o">*</span><span class="p">(</span><span class="n">Vf_Ks</span><span class="o">*</span><span class="p">(</span><span class="n">S</span><span class="o">*</span><span class="n">A</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">K_eq</span><span class="p">)</span><span class="o">*</span><span class="n">Es</span><span class="o">*</span><span class="n">W</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">R_AS</span><span class="o">*</span><span class="n">S</span> <span class="o">+</span> <span class="n">R_AW</span><span class="o">*</span><span class="n">W</span> <span class="o">+</span> <span class="n">R_Es</span><span class="o">*</span><span class="n">Es</span><span class="p">))</span>
+       
+        <span class="k">return</span> <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span>
+</pre></div>
+</div>
+<p>We’ll then procede by making a file <code class="docutils literal notranslate"><span class="pre">calibrate_intrinsic_kinetics.py</span></code> in the working directory, where we’ll load and initialize this model as follows,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the model from models.py</span>
+<span class="kn">from</span> <span class="nn">models</span> <span class="kn">import</span> <span class="n">PPBB_model</span>
+
+<span class="c1"># Define model parameters</span>
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;c_enzyme&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;Vf_Ks&#39;</span><span class="p">:</span> <span class="mf">1.03</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">:</span> <span class="mf">1.90</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">:</span> <span class="mf">2.58</span><span class="p">,</span> <span class="c1"># Forward</span>
+        <span class="s1">&#39;R_Es&#39;</span><span class="p">:</span> <span class="mf">0.57</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">:</span> <span class="mf">0.89</span><span class="p">}</span>                                     <span class="c1"># Backward</span>
+
+<span class="c1"># Define initial condition</span>
+<span class="n">init_states</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">46</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="mi">61</span><span class="p">,</span> <span class="s1">&#39;W&#39;</span><span class="p">:</span> <span class="mi">37</span><span class="p">,</span> <span class="s1">&#39;Es&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+<span class="c1"># Initialize model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">PPBB_model</span><span class="p">(</span><span class="n">init_states</span><span class="p">,</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The next step is loading the experimental data from the <code class="docutils literal notranslate"><span class="pre">~/tutorials/enzyme_kinetics/data</span></code> folder and setting up our log posterior probability function for optimization. The data have the following structure,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/exp_1.csv&#39;</span><span class="p">),</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>          S      A      W     Es  sigma
+<span class="nb">time</span>                                   
+<span class="m">0</span>     <span class="m">45</span>.96  <span class="m">60</span>.99  <span class="m">36</span>.92   <span class="m">0</span>.00   <span class="m">0</span>.46
+<span class="m">20</span>      NaN    NaN    NaN   <span class="m">1</span>.99   <span class="m">0</span>.44
+<span class="m">40</span>      NaN    NaN    NaN   <span class="m">6</span>.10   <span class="m">0</span>.40
+<span class="m">60</span>      NaN    NaN    NaN   <span class="m">7</span>.59   <span class="m">0</span>.38
+<span class="m">90</span>      NaN    NaN    NaN  <span class="m">10</span>.68   <span class="m">0</span>.35
+<span class="m">120</span>     NaN    NaN    NaN  <span class="m">14</span>.22   <span class="m">0</span>.32
+<span class="m">180</span>     NaN    NaN    NaN  <span class="m">17</span>.56   <span class="m">0</span>.28
+<span class="m">240</span>     NaN    NaN    NaN  <span class="m">17</span>.67   <span class="m">0</span>.28
+<span class="m">360</span>     NaN    NaN    NaN  <span class="m">19</span>.51   <span class="m">0</span>.26
+<span class="m">1440</span>    NaN    NaN    NaN  <span class="m">21</span>.02   <span class="m">0</span>.25
+</pre></div>
+</div>
+<p>We’ll load the datasets using a <code class="docutils literal notranslate"><span class="pre">for</span></code> statement and immediately extract three <a class="reference internal" href="optimization.html"><span class="doc std std-doc">inputs to our log posterior probability function</span></a>: 1) The Glucose Laurate Ester data in <code class="docutils literal notranslate"><span class="pre">data</span></code>, 2) the measurement error as the arguments of our log likelihood function <code class="docutils literal notranslate"><span class="pre">log_likelihood_fnc_args</span></code> and 3) the initial concentrations used in the experiment in <code class="docutils literal notranslate"><span class="pre">initial_states</span></code>. We will also construct the list of model states to match our datasets to (<code class="docutils literal notranslate"><span class="pre">states</span></code>) and we’ll use a Gaussian log likelihood function for every dataset because we have a measurement error for every datapoint. There is thus no need to analyze the mean-variance ratio as we did in the <a class="reference internal" href="workflow.html"><span class="doc std std-doc">simple SIR tutorial</span></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">ll_gaussian</span>
+
+<span class="c1"># Extract and sort the names</span>
+<span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/&#39;</span><span class="p">))</span>
+<span class="n">names</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+<span class="c1"># Load data</span>
+<span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">log_likelihood_fnc_args</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">initial_concentrations</span><span class="o">=</span><span class="p">[]</span>
+<span class="n">states</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">log_likelihood_fnc</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/&#39;</span><span class="o">+</span><span class="n">name</span><span class="p">),</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">])</span>
+    <span class="n">log_likelihood_fnc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ll_gaussian</span><span class="p">)</span>
+    <span class="n">log_likelihood_fnc_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">])</span>
+    <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Es&#39;</span><span class="p">)</span>
+    <span class="n">initial_concentrations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;S&#39;</span><span class="p">],</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="s1">&#39;Es&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Es&#39;</span><span class="p">],</span> <span class="s1">&#39;W&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;W&#39;</span><span class="p">]}</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>All we need to to still is define a list containing the five model parameters we’d like to calibrate: <span class="math notranslate nohighlight">\(V_f/K_S\)</span>, <span class="math notranslate nohighlight">\(R_{AS}\)</span>, <span class="math notranslate nohighlight">\(R_{AW}\)</span>,<span class="math notranslate nohighlight">\(R_{Es}\)</span>, <span class="math notranslate nohighlight">\(K_{eq}\)</span>, and a list containing an upper and lower bound for every model parameter. We’ll use the optional argument <code class="docutils literal notranslate"><span class="pre">labels</span></code> so our MCMC diagnostic figures can use fancy <span class="math notranslate nohighlight">\(\LaTeX\)</span> labels. Note how we didn’t define <code class="docutils literal notranslate"><span class="pre">weights</span></code> to our dataset, so all datasets are weighted equally. We also didn’t define prior probability functions for our parameters, this means pySODM will automatically use uniform priors using the provided bounds. For a detailed description of the <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code> function, visit the <a class="reference internal" href="optimization.html"><span class="doc std std-doc">Optimization</span></a> section in the User Guide.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">log_posterior_probability</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Calibated parameters and bounds</span>
+    <span class="n">pars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">,</span> <span class="s1">&#39;R_Es&#39;</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$V_f/K_S$&#39;</span><span class="p">,</span><span class="s1">&#39;$R_</span><span class="si">{AS}</span><span class="s1">$&#39;</span><span class="p">,</span><span class="s1">&#39;$R_</span><span class="si">{AW}</span><span class="s1">$&#39;</span><span class="p">,</span><span class="s1">&#39;$R_</span><span class="si">{Es}</span><span class="s1">$&#39;</span><span class="p">,</span> <span class="s1">&#39;$K_</span><span class="si">{eq}</span><span class="s1">$&#39;</span><span class="p">]</span>
+    <span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1e-5</span><span class="p">,</span><span class="mf">1e-2</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mi">2</span><span class="p">)]</span>
+    
+    <span class="c1"># Setup objective function (no priors --&gt; uniform priors based on bounds)</span>
+    <span class="n">objective_function</span> <span class="o">=</span> <span class="n">log_posterior_probability</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">log_likelihood_fnc</span><span class="p">,</span> <span class="n">log_likelihood_fnc_args</span><span class="p">,</span>  <span class="n">initial_states</span><span class="o">=</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>            
+</pre></div>
+</div>
+<p>Now, it is possible to find the set of parameters that maximizes the posterior probability. Given how we don’t have a good initial guess as the values of our parameters, we’ll use a Particle Swarm Optimization (PSO) to scan the parameter space for a global minimum. We’ll run the PSO for 30 iterations, then, we’ll switch to a local Nelder-Mead minimization to refine the estimate further.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization</span> <span class="kn">import</span> <span class="n">pso</span><span class="p">,</span> <span class="n">nelder_mead</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Settings</span>
+    <span class="n">processes</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">n_pso</span> <span class="o">=</span> <span class="mi">30</span>
+    <span class="n">multiplier_pso</span> <span class="o">=</span> <span class="mi">10</span>   
+
+    <span class="c1"># PSO</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">pso</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">swarmsize</span><span class="o">=</span><span class="n">multiplier_pso</span><span class="o">*</span><span class="n">processes</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">n_pso</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>    
+
+    <span class="c1"># Nelder-mead</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="mf">0.05</span><span class="p">,]</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">nelder_mead</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">n_pso</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>We find the following estimates for our parameters:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">theta</span> <span class="o">=</span> <span class="o">[</span><span class="m">6</span>.46e-04, <span class="m">1</span>.75e-02, <span class="m">1</span>.81e+00, <span class="m">2</span>.27e-01, <span class="m">1</span>.09e+00<span class="o">]</span>
+</pre></div>
+</div>
+<p>Next, we’ll use this estimate to initiate our Markov-Chain Monte-Carlo sampler. If anything is unclear in what follows, I highly recommend going through the documentation of <code class="docutils literal notranslate"><span class="pre">perturbate_theta</span></code>, <code class="docutils literal notranslate"><span class="pre">run_EnsembleSampler</span></code> and <code class="docutils literal notranslate"><span class="pre">emcee_sampler_to_dictionary</span></code> available in the <a class="reference internal" href="optimization.html"><span class="doc std std-doc">User Guide</span></a>. We’ll initiate <code class="docutils literal notranslate"><span class="pre">multiplier_mcmc</span></code> chains per calibrated parameter, so 25 chains in total. To do so, we’ll first use <code class="docutils literal notranslate"><span class="pre">perturbate_theta</span></code> to generate a np.ndarray <code class="docutils literal notranslate"><span class="pre">pos</span></code> of shape <code class="docutils literal notranslate"><span class="pre">(5,</span> <span class="pre">25)</span></code>, which we’ll then pass on to <code class="docutils literal notranslate"><span class="pre">run_EnsembleSampler</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">perturbate_theta</span>
+
+    <span class="c1"># MCMC settings</span>
+    <span class="n">multiplier_mcmc</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="c1"># Perturbate previously obtained estimate</span>
+    <span class="n">ndim</span><span class="p">,</span> <span class="n">nwalkers</span><span class="p">,</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">perturbate_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">pert</span><span class="o">=</span><span class="mf">0.10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)),</span> <span class="n">multiplier</span><span class="o">=</span><span class="n">multiplier_mcmc</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, we’ll setup and run the sampler until the chains converge. We’ll run the sampler for <code class="docutils literal notranslate"><span class="pre">n_mcmc=500</span></code> iterations and print the diagnostic autocorrelation and trace plots every <code class="docutils literal notranslate"><span class="pre">print_n=20</span></code> iterations in a folder called <code class="docutils literal notranslate"><span class="pre">sampler_output/</span></code>. For convenience, we’ll save the samples there as well. As an identifier for our “experiment”, we’ll use <code class="docutils literal notranslate"><span class="pre">'username'</span></code>. While the sampler is running, have a look in the <code class="docutils literal notranslate"><span class="pre">sampler_output/</span></code> folder, which should look as follows,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">run_EnsembleSampler</span>
+
+    <span class="c1"># Additional settings</span>
+    <span class="n">n_mcmc</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="n">print_n</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">samples_path</span><span class="o">=</span><span class="s1">&#39;sampler_output/&#39;</span>
+    <span class="n">fig_path</span><span class="o">=</span><span class="s1">&#39;sampler_output/&#39;</span>
+    <span class="n">identifier</span> <span class="o">=</span> <span class="s1">&#39;username&#39;</span>
+
+    <span class="c1"># Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)</span>
+    <span class="n">settings</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;start_calibration&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;end_calibration&#39;</span><span class="p">:</span> <span class="mi">3000</span><span class="p">,</span>
+              <span class="s1">&#39;n_chains&#39;</span><span class="p">:</span> <span class="n">nwalkers</span><span class="p">,</span> <span class="s1">&#39;starting_estimate&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span>
+
+    <span class="c1"># Sample n_mcmc iterations</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">run_EnsembleSampler</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">n_mcmc</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">objective_function</span><span class="p">,</span>
+                                    <span class="n">fig_path</span><span class="o">=</span><span class="n">fig_path</span><span class="p">,</span> <span class="n">samples_path</span><span class="o">=</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">print_n</span><span class="o">=</span><span class="n">print_n</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                    <span class="n">settings_dict</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── sampler_output 
+|   |── username_BACKEND_2022-12-16.hdf5
+│   ├── autocorrelation
+│       └── username_AUTOCORR_2022-12-16.pdf
+│   └── traceplots
+│       └── username_TRACE_2022-12-16.pdf
+</pre></div>
+</div>
+<p>The output of the above procedure yields an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> object containing our 100 iterations for 25 chains. We can extract the chains quite easily as follows: <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler.get_chain()</span></code> (see the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/sampler/">emcee documentation</a>). However, we’re interested in building a dictionary of samples because this interfaces nicely to pySODM’s draw functions. To that end, we can use the builtin method <code class="docutils literal notranslate"><span class="pre">emcee_sampler_to_dictionary</span></code>. We’ll then use <code class="docutils literal notranslate"><span class="pre">corner</span></code> to visualize the distributions of the five calibrated parameters.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">import</span> <span class="nn">corner</span>
+    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">emcee_sampler_to_dictionary</span>
+
+    <span class="c1"># Generate a sample dictionary and save it as .json for long-term storage</span>
+    <span class="n">samples_dict</span> <span class="o">=</span> <span class="n">emcee_sampler_to_dictionary</span><span class="p">(</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">discard</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+    <span class="c1"># Look at the resulting distributions in a cornerplot</span>
+    <span class="n">CORNER_KWARGS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">smooth</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span><span class="n">title_fmt</span><span class="o">=</span><span class="s2">&quot;.2E&quot;</span><span class="p">)</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">corner</span><span class="o">.</span><span class="n">corner</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">discard</span><span class="o">=</span><span class="n">discard</span><span class="p">,</span> <span class="n">thin</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="o">**</span><span class="n">CORNER_KWARGS</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span><span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">get_axes</span><span class="p">()):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>On the cornerplot we can see that the values of <span class="math notranslate nohighlight">\(R_{AS}\)</span> are quite small, meaning we can likely drop <span class="math notranslate nohighlight">\(R_{AS}\)</span> from the model without taking a big hit in terms of goodness-of-fit. <span class="math notranslate nohighlight">\(R_{AW}\)</span> and <span class="math notranslate nohighlight">\(V_f / K_S\)</span> correlate quite strongly.</p>
+<p><img alt="corner" src="_images/corner.png" /></p>
+<p>Finally, we can use the <em>draw functions</em> to propagate the parameter samples in our model and asses the goodness-of-fit (see the <a class="reference internal" href="workflow.html"><span class="doc std std-doc">simple SIR tutorial</span></a>). Simulating a model is performed using the <code class="docutils literal notranslate"><span class="pre">sim</span></code> function (see the <a class="reference internal" href="workflow.html"><span class="doc std std-doc">simple SIR tutorial</span></a> and the <a class="reference internal" href="models.html"><span class="doc std std-doc">documentation</span></a>). All that is left after simulating the model is to add the observational noise to the model predictions. I’ve computed the relative magnitude of the error on the datapoints and these are roughly equal to 5%. Given how we’ve used a Gaussian log likelihood, we’ll use <code class="docutils literal notranslate"><span class="pre">add_gaussian_noise</span></code> to add 5% (relative) noise.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span> <span class="n">samples_dict</span><span class="p">):</span>
+        <span class="c1"># Always draw correlated samples at the SAME INDEX! </span>
+        <span class="n">idx</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">])))</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_AS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_AS&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_AW&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_AW&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_Es&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_Es&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;K_eq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;K_eq&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">param_dict</span>
+
+    <span class="c1"># Loop over datasets</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="c1"># Update initial condition</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">initial_states</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="c1"># Simulate model</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_fcn</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples_dict</span><span class="p">)</span>
+        <span class="c1"># Add 5% observational noise</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">add_gaussian_noise</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">relative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Visualize</span>
+        <span class="n">fig</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draws</span><span class="o">=</span><span class="n">i</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draws</span><span class="o">=</span><span class="n">i</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+        <span class="c1">#ax.errorbar(df.index, df.values, yerr=log_likelihood_fnc_args[i], fmt=&#39;x&#39;, color=&#39;black&#39;)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;D-glucose&#39;</span><span class="p">,</span> <span class="s1">&#39;Glucose laurate&#39;</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;species concentration (mM)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time (min)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 38 mM D-glucose, 464 mM Lauric acid and 24 mM water present in the medium. After 16 hours, the reaction has equillibrated and <span class="math notranslate nohighlight">\(34 \pm 2\ mM\)</span> (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of <span class="math notranslate nohighlight">\(89\% \pm 5\%\ mM\)</span> (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields.</p>
+<p><img alt="fit_3" src="_images/fit_3.png" /></p>
+</section>
+<section id="simulating-a-packed-bed-reactor-pde-model">
+<h2>Simulating a Packed-bed reactor (PDE model)<a class="headerlink" href="#simulating-a-packed-bed-reactor-pde-model" title="Permalink to this heading">¶</a></h2>
+</section>
 </section>
 
 
