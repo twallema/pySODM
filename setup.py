@@ -4,7 +4,7 @@ setup(
     name='pySODM',
     packages=find_packages("src", exclude=["*.tests"]),
     package_dir={'': 'src'},
-    version='0.0',
+    version='0.1',
     description='Simulating and Optimising Dynamical Models',
     author='Tijs Alleman, KERMIT, Ghent University',
     license='MIT',
@@ -16,8 +16,6 @@ setup(
         'matplotlib',
         'xarray',
         'emcee',
-        'tqdm',
-        'corner',
         'h5py'
     ],
     extras_require={
