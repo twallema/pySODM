@@ -33,41 +33,24 @@ N = 50
 ## Load data ##
 ###############
 
-experiments=[]
-log_likelihood_fnc_args = []
+# Extract and sort the names
 names = os.listdir(os.path.join(os.path.dirname(__file__),'data/'))
 names.sort()
+
+# Load data
+data = []
+states = []
+log_likelihood_fnc = []
+log_likelihood_fnc_args = []
+initial_states=[]
 for name in names:
     df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/'+name), index_col=0)
-    experiments.append(df)
+    data.append(df['Es'])
+    log_likelihood_fnc.append(ll_gaussian)
     log_likelihood_fnc_args.append(df['sigma'])
-
-# Log likelihood function
-log_likelihood_fnc = len(log_likelihood_fnc_args)*[ll_gaussian,]
-
-# Datasets
-data = [
-    experiments[0]['S'],
-    experiments[1]['Es'],
-    experiments[2]['Es'],
-    experiments[3]['Es'],
-    experiments[4]['Es'],
-    experiments[5]['Es'],
-    experiments[6]['Es'],
-    experiments[7]['Es'],
-]
-
-# States to match
-states = ['S',] + 7*['Es',]
-
-# Equal weights
-weights = len(states)*[1,]
-
-# Initial concentrations: each dataset has a different initial condition
-initial_concentrations=[]
-for i in range(len(data)):
-    initial_concentrations.append(
-        {'S': [experiments[i].loc[0]['S'],], 'A': [experiments[i].loc[0]['A'],], 'Es': [experiments[i].loc[0]['Es'],], 'W': [experiments[i].loc[0]['W'],]},
+    states.append('Es')
+    initial_states.append(
+        {'S': df.loc[0]['S'], 'A': df.loc[0]['A'], 'Es': df.loc[0]['Es'], 'W': df.loc[0]['W']}
     )
 
 ################
