@@ -109,7 +109,7 @@ if __name__ == '__main__':
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,initial_states=initial_concentrations,labels=labels)                               
     # PSO
-    theta = pso.optimize(objective_function, swarmsize=multiplier_pso*processes, maxiter=n_pso, processes=processes, debug=True)[0]    
+    theta = pso.optimize(objective_function, swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]    
     # Nelder-mead
     step = len(theta)*[0.05,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
@@ -143,7 +143,7 @@ if __name__ == '__main__':
                                     settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
-    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
     fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=labels, **CORNER_KWARGS)
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         # Update initial condition
         model.initial_states.update(initial_concentrations[i])
         # Simulate model
-        out = model.sim(3000, N=N, draw_fcn=draw_fcn, samples=samples_dict)
+        out = model.sim(3000, N=N, draw_function=draw_fcn, samples=samples_dict)
         # Add 5% observational noise
         out = add_gaussian_noise(out, 0.05, relative=True)
         # Visualize

@@ -180,7 +180,7 @@ if __name__ == '__main__':
                                     settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
-    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
     fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=expanded_labels, **CORNER_KWARGS)
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         param_dict['f_a'] = np.array([slice[idx] for slice in samples_dict['f_a']])
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add poisson observation noise
     out = add_poisson_noise(out)
     # Visualize

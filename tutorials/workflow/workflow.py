@@ -149,7 +149,7 @@ if __name__ == '__main__':
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n,
                                     processes=processes, progress=True,settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
-    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
     
     ########################################
     ## Results: Basic reproduction number ##
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         param_dict['beta'] = np.random.choice(samples_dict['beta'])
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize result

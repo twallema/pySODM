@@ -340,7 +340,7 @@ if __name__ == '__main__':
                                   fig_path=fig_path, samples_path=samples_path, print_n=print_n,
                                   processes=processes, progress=True, settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
-    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
     print(samples_dict)
 ```

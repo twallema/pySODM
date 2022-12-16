@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pySODM.models.base import ODEModel
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
-from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_poisson, ll_negative_binomial
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_poisson, ll_negative_binomial
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 
 # Only tested for ODEModel but the model output is identical so this shouldn't matter
@@ -88,7 +88,7 @@ def test_correct_approach_wo_stratification():
 
     # PSO
     theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
-                        swarmsize=10, maxiter=10, processes=1, debug=True)[0]
+                        swarmsize=10, max_iter=10, processes=1, debug=True)[0]
     # Nelder-Mead
     theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], 
                         kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=1, max_iter=10)[0]
@@ -110,7 +110,6 @@ def test_correct_approach_wo_stratification():
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
-    run_date = str(datetime.date.today())
     # initialize objective function
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Perturbate previously obtained estimate
@@ -123,7 +122,7 @@ def test_correct_approach_wo_stratification():
                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True,
                                    settings_dict=settings)
     #Generate samples dict
-    samples_dict = emcee_sampler_to_dictionary(discard=discard, samples_path=samples_path, identifier=identifier)
+    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
     #Visualize result
     if plot:
@@ -303,7 +302,7 @@ class SIRstratified(ODEModel):
     # state variables and parameters
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
-    parameters_stratified_names = ['beta']
+    parameter_stratified_names = ['beta']
     stratification_names = ['age_groups']
 
     @staticmethod
@@ -344,7 +343,7 @@ def test_correct_approach_with_one_stratification_0():
 
     # PSO
     theta = pso.optimize(objective_function,
-                        swarmsize=10, maxiter=20, processes=1, debug=True)[0]
+                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
     # Nelder-Mead
     theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
                         processes=1, max_iter=20)[0]
@@ -451,7 +450,7 @@ class SIRdoublestratified(ODEModel):
     # state variables and parameters
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
-    parameters_stratified_names = [['beta'],[]]
+    parameter_stratified_names = [['beta'],[]]
     stratification_names = ['age_groups', 'spatial_units']
 
     @staticmethod
@@ -491,7 +490,7 @@ def test_correct_approach_with_two_stratifications():
     bounds = objective_function.expanded_bounds
     # PSO
     theta = pso.optimize(objective_function,
-                        swarmsize=10, maxiter=30, processes=1, debug=True)[0]
+                        swarmsize=10, max_iter=30, processes=1, debug=True)[0]
     # Nelder-Mead
     theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
                         processes=1, max_iter=30)[0]
