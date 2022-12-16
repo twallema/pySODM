@@ -8,7 +8,7 @@ class ODE_influenza_model(ODEModel):
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma', 'Nc']
-    parameters_stratified_names = ['f_a']
+    parameter_stratified_names = ['f_a']
     stratification_names = ['age_group']
 
     @staticmethod
@@ -34,7 +34,7 @@ class SDE_influenza_model(SDEModel):
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma','Nc']
-    parameters_stratified_names = ['f_a']
+    parameter_stratified_names = ['f_a']
     stratification_names = ['age_group']
 
     @staticmethod
