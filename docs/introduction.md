@@ -2,10 +2,6 @@
 
 *Simulating and Optimising Dynamical Models in Python 3*
 
-### Documentation website
-
-https://twallema.github.io/pySODM/index.html
-
 ### Aim & Scope
 
 Over the past four years I've been engaged in several academic modeling & simulation projects in the fields of chemical engineering and epidemiology. I've found these projects typically constitute the following steps:
@@ -50,3 +46,9 @@ The following features will be implemented in future versions of pySODM,
 - Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.
 
 - Send model output to a multiindex `pd.DataFrame` and give the user the choice between `xarray` or `pandas`. Will make the code more future-proof. Low priority.
+
+### Versions
+
+- version 0.1 (2022-12-xx) 
+
+- version 0.0 (2022-11-14)

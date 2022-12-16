@@ -308,7 +308,9 @@ if __name__ == '__main__':
 
 ![nelder_mead](/_static/figs/workflow/nelder_mead_fit.png)
 
-#### Bayesian optimization
+#### Bayesian inference
+
+This approach moves us away from the idea of accepting a single best fit to the data, and instead identifies all regions of the parameter space that are in agreement with the observations.In the language of Bayesian inference, what we seek is called the posterior distribution of the parameters: a probability distribution on the parameter space that assigns higher probability to areas that are in better agreement with the observations. Here, we demonstrate that a Bayesian approach provides accurate estimates of model parameters and their uncertainty.
 
 In the code below, we use our obtained guess for `beta` as the starting point for a Markov-Chain Monte-Carlo algorithm. In the code below, to obtain starting points for each Markov Chain, our estimate for `beta` is perturbated randomly by 10%. Next, the initial positions `pos` are passed on to the function `run_EnsembleSampler`, which acts as a wrapper for the `EnsembleSampler` of `emcee`. As a pySODM user, it is good to be aware that `run_ensembleSampler` is just a wrapper around `emcee` and I highly recommend reading the [emcee documentation](https://emcee.readthedocs.io/en/stable/tutorials/line/).
 

@@ -151,8 +151,7 @@ def _thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
                     'Calibration parameters must be either of type int, float, list (containing int/float) or 1D np.array')
     return dict, total_n_values
 
-
-def variance_analysis(series, resample_frequency):
+def variance_analysis(data, resample_frequency):
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
         ================================================================================================
 
@@ -189,26 +188,26 @@ def variance_analysis(series, resample_frequency):
     #################
 
     # Input checks
-    if 'date' not in series.index.names:
+    if 'date' not in data.index.names:
         raise ValueError(
             "Indexname 'date' not found. Make sure the time dimension index is named 'date'. Current index dimensions: {0}".format(
-                series.index.names)
+                data.index.names)
         )
-    if len(series.index.names) > 2:
+    if len(data.index.names) > 2:
         raise ValueError(
             "The maximum number of index dimensions is two and must always include a time dimension named 'date'. Valid options are thus: 'date', or ['date', 'something else']. Current index dimensions: {0}".format(
-                series.index.names)
+                data.index.names)
         )
     # Relevant parameters
-    if len(series.index.names) == 1:
+    if len(data.index.names) == 1:
         secundary_index = False
         secundary_index_name = None
         secundary_index_values = None
     else:
         secundary_index = True
-        secundary_index_name = series.index.names[series.index.names != 'date']
-        secundary_index_values = series.index.get_level_values(
-            series.index.names[series.index.names != 'date'])
+        secundary_index_name = data.index.names[data.index.names != 'date']
+        secundary_index_values = data.index.get_level_values(
+            data.index.names[data.index.names != 'date'])
 
     ###########################################
     ## Define variance models and properties ##
@@ -235,17 +234,17 @@ def variance_analysis(series, resample_frequency):
 
     # needed to generate data to calibrate our variance model to
     if not secundary_index:
-        rolling_mean = series.ewm(span=7, adjust=False).mean()
-        mu_data = (series.groupby(
+        rolling_mean = data.ewm(span=7, adjust=False).mean()
+        mu_data = (data.groupby(
             [pd.Grouper(freq=resample_frequency, level='date')]).mean())
-        var_data = (((series-rolling_mean) **
+        var_data = (((data-rolling_mean) **
                     2).groupby([pd.Grouper(freq=resample_frequency, level='date')]).mean())
     else:
-        rolling_mean = series.groupby(level=secundary_index_name, group_keys=False).apply(
+        rolling_mean = data.groupby(level=secundary_index_name, group_keys=False).apply(
             lambda x: x.ewm(span=7, adjust=False).mean())
-        mu_data = (series.groupby([pd.Grouper(
+        mu_data = (data.groupby([pd.Grouper(
             freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
-        var_data = (((series-rolling_mean)**2).groupby([pd.Grouper(
+        var_data = (((data-rolling_mean)**2).groupby([pd.Grouper(
             freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
 
     # Protect calibration against nan values
@@ -262,7 +261,7 @@ def variance_analysis(series, resample_frequency):
         results = pd.DataFrame(index=model_names, columns=[
                                'theta', 'AIC'], dtype=np.float64)
     else:
-        iterables = [series.index.get_level_values(
+        iterables = [data.index.get_level_values(
             secundary_index_name).unique(), model_names]
         index = pd.MultiIndex.from_product(
             iterables, names=[secundary_index_name, 'model'])
