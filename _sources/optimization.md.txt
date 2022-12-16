@@ -154,17 +154,17 @@
 >    * **step** (list or 1D np.ndarray) - (Relative) size of the initial search simplex. 
 >    * **bounds** (list) - optional - The bounds of the design variable(s). In form `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. If class `log_posterior_probability` is used as `func`, it already contains bounds. If bounds are provided these will overwrite the bounds available in the 'log_posterior_probability' object.
 >    * **args** (tuple) - optional - Additional arguments passed to objective function.
->    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function. Example use. The class `log_posterior_probability` is used as `func`, and an `ODEModel` instance is used. To compute our log posterior probability with the 'RK45' method, we must change the `method` argument of the `sim` function. To this end, use `kwargs={'simulation_kwargs':{'method': 'RK45'}}`.
+>    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function. Example use: To compute our log posterior probability (class `log_posterior_probability`) with the 'RK45' method, we must change the `method` argument of the `sim` function, which is called in `log_posterior_probability`. To achieve this, we can supply the keyworded argument `simulation_kwargs` of `log_posterior_probability`, which passes its arguments on to the `sim` function. To this end, use `kwargs={'simulation_kwargs':{'method': 'RK45'}}`.
 >    * **processes** (int) - optional - Number of cores to use.
 
 >   **Hyperparameters:**
 >    * **no_improve_thr** (float) - optional - Threshold relative iteration-to-iteration objective function value change to label the iteration as having no improvement.
 >    * **no_improv_break** (int) - optional - Break after `no_improv_break` iterations without improvement.
 >    * **max_iter** (int) - optional - Maximum number of iterations.
->    * **alpha** (float) - optional - Reflection coefficients
->    * **gamma** (float) - optional - Expansion coefficients
->    * **rho** (float) - optional - Contraction coefficients
->    * **sigma** (float) - optional - Shrink coefficients
+>    * **alpha** (float) - optional - Reflection coefficient
+>    * **gamma** (float) - optional - Expansion coefficient
+>    * **rho** (float) - optional - Contraction coefficient
+>    * **sigma** (float) - optional - Shrink coefficient
 
 >    **Returns:**
 >    * **theta** (list) - Position 0: Estimated parameters. Position 1: corresponding score of `func`.
@@ -181,7 +181,7 @@
 >    * **ieqcons** (list) - A list of functions of length n such that ```ieqcons[j](x,*args) >= 0.0``` in a successfully optimized problem
 >    * **f_ieqcons** (function) - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored
 >    * **args** (tuple) - optional - Additional arguments passed to objective function.
->    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function. Example use. The class `log_posterior_probability` is used as `func`, and an `ODEModel` instance is used. To compute our log posterior probability with the 'RK45' method, we must change the `method` argument of the `sim` function. To this end, use `kwargs={'simulation_kwargs':{'method': 'RK45'}}`.
+>    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function. Example use: To compute our log posterior probability (class `log_posterior_probability`) with the 'RK45' method, we must change the `method` argument of the `sim` function, which is called in `log_posterior_probability`. To achieve this, we can supply the keyworded argument `simulation_kwargs` of `log_posterior_probability`, which passes its arguments on to the `sim` function. To this end, use `kwargs={'simulation_kwargs':{'method': 'RK45'}}`.
 >    * **processes** (int) - optional - Number of cores to use.
 
 >   **Hyperparameters:**
@@ -206,26 +206,25 @@
 > Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
 
 >    **Parameters:**
->    * **pos**
->    * **max_n**
->    * **identifier**
->    * **objective_function**
->    * **objective_function_args**
->    * **objective_function_kwargs**
->    * **fig_path**
->    * **samples_path**
->    * **print_n**
->    * **processes**
->    * **settings_dict**
+>    * **pos** (np.ndarray) - Starting position of the Markov Chains. We recommend using `perturbate_theta()`.
+>    * **max_n** (int) - Maximum number of iterations.
+>    * **identifier** (str) - Identifier of the expirement.
+>    * **objective_function** (callable function) - Objective function. Recommended `log_posterior_probability`.
+>    * **objective_function_args** (tuple) - optional - Arguments of the objective function. If using `log_posterior_probability` as objective function, use default `None`.
+>    * **objective_function_kwargs** (dict) - optional - Keyworded arguments of the objective function. If using `log_posterior_probability` as objective function, use default `None`.
+>    * **fig_path** (str) - optional - Location where the diagnostic figures (autocorrelation and trace plot) are saved.
+>    * **samples_path** (str) - optional - Location where the `.hdf5` backend and settings `.json` should be saved.
+>    * **print_n** (int) - optional - Print autocorrelation and trace plots every `print_n` iterations.
+>    * **processes** (int) - optional - Number of cores to use.
+>    * **settings_dict** (dict) - optional - Dictionary containing calibration settings or other usefull settings for long-term storage. Saved in `.json` format. Appended to the samples dictionary generated by `emcee_sampler_to_dictionary()`. 
 
 >    **Hyperparameters:**
->    * **moves**
->    * **backend**
->    * **progress**
-
+>    * **moves** (list) - optional - Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
+>    * **backend** (`emcee.backends.HDFBackend`) - optional - Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
+>    * **progress** (bool) - optional - Enables the progress bar.
 
 >    **Returns:**
->    * **sampler** (`emcee.EnsembleSampler`) - Emcee sampler object ([see](https://emcee.readthedocs.io/en/stable/user/sampler/))
+>    * **sampler** (`emcee.EnsembleSampler`) - Emcee sampler object ([see](https://emcee.readthedocs.io/en/stable/user/sampler/)). To extract a dictionary of samples + settings, use `emcee_sampler_to_dictionary`.
 
 ***function* perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None)**
 
@@ -245,7 +244,7 @@
 
 ***function* emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run_date=str(datetime.date.today()))**
 
-> A function to discard and thin the samples available in the `emcee` sampler object and subsequently convert them to a dictionary of format: `{parameter_name: [sample_0, ..., sample_n]}`. Appends the dictionary of settings. Saves the resulting dictionary in a .json format.
+> A function to discard and thin the samples available in the `emcee` sampler object and subsequently convert them to a dictionary of format: `{parameter_name: [sample_0, ..., sample_n]}`. Appends the dictionary of settings. Automatically saves the resulting dictionary in a .json format.
 
 >    **Parameters:**
 >    * **samples_path** (str) - Path to the .hdf5 `emcee` backend.
@@ -306,3 +305,17 @@ Samples path, identifier and run_date are combined to find the right .hdf5 `emce
 >    **Returns:**
 >    * **warmup** (float) - Offset between simulation start and start of data collection. Because 'warmup' does not reside in the model parameters dictionary, this argument is only returned if 'warmup' is in the parameter name list 'pars'
 >    * **param_dict** (dict) - Model parameters dictionary with values of parameters `parameter_names` set to the values listed in `thetas`
+
+***function* variance_analysis(data, resample_frequency)**
+
+>    A function to analyze the relationship between the variance and the mean in a timeseries of data, usefull when no measure of error is available.
+
+>    The timeseries is binned into sets of length `resample_frequency`. The mean and variance of the datapoints within each bin are estimated. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: Gaussian ({math}`\sigma^2 = c`), Poisson ({math}`\sigma^2 = \mu`), Quasi-poisson ({math}`\sigma^2 = \alpha \mu`), Negative Binomial ({math}`\sigma^2 = \mu + \alpha \mu^2`)
+
+>    **Parameters:**
+>    * **data** (pd.Series or pd.DataFrame) - Timeseries of data to be analyzed. The series must have a pd.Timestamp index labeled 'date' for the time dimension. Additionally, this function supports the addition of one more dimension (f.i. space) using a pd.Multiindex.
+>    * **resample_frequency** (str) - The resample frequency determines the number of days in each bin. We recommend varying this parameter before drawing conclusions. Valid options are: 'W': weekly, '2W': biweekly, 'M': monthly, etc. [Consult the pandas docs](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+
+>    **Returns:**
+>    * **result** (pd.Dataframe) - Contains the estimated parameter(s) and the Akaike Information Criterion (AIC) of the fitted statistical model. If two index levels are present (thus 'date' and 'other index level'), the result pd.Dataframe contains the result stratified per 'other index level'.
+>    * **ax** (matplotlib.pyplot axis object) - Contains a plot of the estimated mean versus variance, togheter with the fitted statistical models. The best-fitting model is highlighted.
