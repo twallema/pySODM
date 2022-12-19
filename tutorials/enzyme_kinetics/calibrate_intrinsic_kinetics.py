@@ -84,33 +84,33 @@ if __name__ == '__main__':
     # Calibated parameters and bounds
     pars = ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
     labels = ['$V_f/K_S$','$R_{AS}$','$R_{AW}$','$R_{Es}$', '$K_{eq}$']
-    bounds = [(1e-5,1e-2), (1e-2,1000), (1e-2,1000), (1e-2,1000), (1e-2,2)]
+    bounds = [(1e-5,1e-2), (1e-2,10e4), (1e-2,10e4), (1e-2,10e4), (1e-2,2)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,initial_states=initial_states,labels=labels)                               
-    # Settings
+    # Compute the number of cores and divide by two
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 50
-    multiplier_pso = 20
     # PSO
-    theta = pso.optimize(objective_function, swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]    
+    #theta = pso.optimize(objective_function, swarmsize=100, max_iter=5, processes=processes, debug=True)[0]    
     # Nelder-mead
-    step = len(theta)*[0.05,]
-    theta = nelder_mead.optimize(objective_function, theta, step, processes=processes, max_iter=n_pso)[0]
+    #step = len(theta)*[0.05,]
+    #theta = nelder_mead.optimize(objective_function, theta, step, processes=processes, max_iter=5)[0]
+
+    theta = [1.28496613e-03, 4.86244561e+00, 1.02974213e+00, 2.59778484e+01, 1.91634056e+00]
 
     ##########
     ## MCMC ##
     ##########
 
     # Variables
-    n_mcmc = 200
-    print_n = 50
+    n_mcmc = 100
+    print_n = 100
     discard = 100
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
     run_date = str(datetime.date.today())
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10, 0.10, 0.10, 0.10, 0.10], multiplier=5, bounds=bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.01, 0.010, 0.010, 0.010, 0.010], multiplier=5, bounds=bounds)
     # Write some usefull settings to a .json
     settings={'start_calibration': 0, 'end_calibration': 3000,
               'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': labels}
@@ -155,13 +155,14 @@ if __name__ == '__main__':
         out = add_gaussian_noise(out, 0.05, relative=True)
         # Visualize
         fig,ax=plt.subplots(figsize=(12,4))
-        ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
+        #ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
+        ax.errorbar(df.index, df, yerr=np.squeeze(log_likelihood_fnc_args[i]), capsize=5,color='black', linestyle='', marker='^')
         for i in range(N):
-            ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.03, linewidth=0.2)
-            ax.plot(out['time'], out['Es'].isel(draws=i), color='red', alpha=0.03, linewidth=0.2)
-        ax.legend(['data', 'D-glucose', 'Glucose laurate'])
+            #ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.03, linewidth=0.2)
+            ax.plot(out['time'], out['Es'].isel(draws=i), color='black', alpha=0.05, linewidth=0.2)
+        #ax.legend(['data', 'D-glucose', 'Glucose laurate'])
         ax.grid(False)
-        ax.set_ylabel('species concentration (mM)')
+        ax.set_ylabel('Glucose Laurate (mM)')
         ax.set_xlabel('time (min)')
         plt.tight_layout()
         plt.show()

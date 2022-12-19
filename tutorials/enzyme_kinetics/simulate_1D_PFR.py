@@ -50,9 +50,9 @@ vary_flowrate = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data/1D_PFR
 # Simulation variables
 # ~~~~~~~~~~~~~~~~~~~~
 
-N = 5 # Number of repeated simulations
+N = 30 # Number of repeated simulations
 end_sim = 8000 # End of simulation (s)
-nx = 30 # Number of spatial nodes
+nx = 50 # Number of spatial nodes
 
 # Design variables
 # ~~~~~~~~~~~~~~~~
@@ -132,7 +132,7 @@ ax.errorbar(reactor_cutting.index, reactor_cutting['mean'], yerr=y_error, capsiz
 for i in range(N):
     ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).isel(draws=i), alpha=0.10, color='black')
 ax.set_xlabel('Reactor length (m)')
-ax.set_xlabel('Ester concentration (mM')
+ax.set_ylabel('Ester concentration (mM)')
 
 plt.show()
 plt.close()
@@ -160,7 +160,7 @@ l = 0.6 # m
 
 # Loop over flowrates
 out=[]
-Q = np.linspace(start=0.05, stop=0.6, num=5)/60*10**-6  # Flow rate (m³/s)
+Q = np.linspace(start=0.05, stop=0.6, num=30)/60*10**-6  # Flow rate (m³/s)
 for q in Q:
     print(f'Computing flowrate: {q} m3/s')
     # Update derived variables
@@ -195,8 +195,8 @@ ax.errorbar(vary_flowrate.index, vary_flowrate['mean'], yerr=y_error, capsize=5,
 ax.plot(Q*60*10**6, mean_outlet, color='black', linestyle='--')
 ax.fill_between(Q*60*10**6, lower_outlet, upper_outlet, color='black', alpha=0.10)
 # Decorations
-ax.set_xlabel('Flow rate (m3/s)')
+ax.set_xlabel('Flow rate (mL/min)')
 ax.set_ylabel('Outlet ester concentration (mM)')
-ax.set_ylim([-0.5,15])
+ax.set_ylim([-0.5,20])
 plt.show()
 plt.close()
