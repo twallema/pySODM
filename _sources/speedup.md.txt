@@ -6,9 +6,7 @@ When using ODE models, using a lower grade algorithm (RK23 < RK45 < DOP853) and/
 
 ### JIT compilation
 
-Just-in-time compilation, available through [numba](https://numba.pydata.org/) can be used to speed code up by means of precompilation. JIT compilation is typically applied to the `integrate` (`compute_rates` for SDE models) or time-dependent parameter functions. 
-
-The amount of achievable speedup is different for every model. Jit compiling the 1D PFR in the [enzyme kinetics](enzyme_kinetics.md) tutorial speeds up the code ... fold, while jit compiling the simple [SIR tutorial](workflow.md) speeds up the code ... fold.
+Just-in-time compilation, made possible by [numba](https://numba.pydata.org/), can be used to speed up code. It is best applied to the `integrate()` (`compute_rates()` for SDE models) or time-dependent parameter functions. The amount of achievable speedup is different for every model. Generally speaking, models with for-loops in them, or models with large matrix computations will speed up quite nicely. Jit compiling the 1D PFR in the [enzyme kinetics](enzyme_kinetics.md) tutorial results in a 16-fold speedup, while jit compiling the PPBB enzyme kinetic model only speeds up the code by 6%.
 
 ### Avoid large inputs in time-dependent parameter functions
 
