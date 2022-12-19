@@ -10,9 +10,38 @@ __copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University
 ## Load required packages ##
 ############################
 
+import os
+import json
 import math
+import random
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from pySODM.optimization.utils import add_gaussian_noise
+
+######################
+## Load the samples ##
+######################
+
+# Load samples
+f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2022-12-19.json'))
+samples_dict = json.load(f)
+
+# Define draw function
+def draw_fcn(param_dict, samples_dict):
+    idx, param_dict['Vf_Ks'] = random.choice(list(enumerate(samples_dict['Vf_Ks'])))
+    param_dict['R_AS'] = samples_dict['R_AS'][idx]
+    param_dict['R_AW'] = samples_dict['R_AW'][idx]
+    param_dict['R_Es'] = samples_dict['R_Es'][idx]
+    param_dict['K_eq'] = samples_dict['K_eq'][idx]
+    return param_dict
+
+###################
+## Load the data ##
+###################
+
+reactor_cutting = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data/1D_PFR/reactor_cutting.csv'), index_col=0)
+vary_flowrate = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data/1D_PFR/vary_flowrate.csv'), index_col=0)
 
 ######################
 ## Model parameters ##
@@ -21,14 +50,15 @@ import matplotlib.pyplot as plt
 # Simulation variables
 # ~~~~~~~~~~~~~~~~~~~~
 
-end_sim = 2000 # End of simulation (s)
-N = 50 # Number of spatial nodes
+N = 5 # Number of repeated simulations
+end_sim = 8000 # End of simulation (s)
+nx = 30 # Number of spatial nodes
 
 # Design variables
 # ~~~~~~~~~~~~~~~~
 
 l = 1 # Reactor length (m)
-Q = (0.200/60)*10**-6   # Flow rate (m³/s)
+Q = (0.20/60)*10**-6   # Flow rate (m³/s)
 dt = 0.0024 # Tube inner diameter (m)
 
 # Material properties
@@ -63,23 +93,21 @@ from models import packed_PFR
 #################
 
 # Create a dictionary of parameters
-params={'epsilon': epsilon, 'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/N, 'u': u, 'rho_B': rho_B, # Reactor
-        'Vf_Ks': 1.03/1000, 'R_AS': 1.90, 'R_AW': 2.58, 'R_Es': 0.57, 'K_eq': 0.89} # Enzyme kinetics
+params={'epsilon': epsilon, 'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/nx, 'u': u, 'rho_B': rho_B, # Reactor
+        'Vf_Ks': 7.88e-04, 'R_AS': 0.055, 'R_AW': 2.64, 'R_Es': 0.079, 'K_eq': 0.418} # Enzyme kinetics
 
 # Define coordinates
-coordinates = {'species': ['S','A','Es','W'], 'x': np.linspace(start=0, stop=l, num=N)}
+coordinates = {'species': ['S','A','Es','W'], 'x': np.linspace(start=0, stop=l, num=nx)}
 
 # Define initial concentrations
-initial_concentrations = [30,60,0,18]
+initial_concentrations = [30,60,0,28]
 
 # Initialise initial states
 C_F = np.zeros([len(coordinates['species']), len(coordinates['x'])])
 C_S = np.zeros([len(coordinates['species']), len(coordinates['x'])])
-
 # Initialize inlet concentrations
 C_F[:,0] = initial_concentrations
 C_S[:,0] = initial_concentrations
-
 # t-Butanol with water has already equilibrated inside the reactor
 C_F[3,:] = initial_concentrations[3]
 C_S[3,:] = initial_concentrations[3]
@@ -87,34 +115,88 @@ C_S[3,:] = initial_concentrations[3]
 # Initialize model
 model = packed_PFR({'C_F': C_F, 'C_S': C_S}, params, coordinates)
 
-####################
-## Simulate model ##
-####################
+###########################
+## Concentration profile ##
+###########################
 
-out = model.sim(2500)
-
-#####################################
-## Visualize concentration profile ##
-#####################################
-
+out = model.sim(end_sim, N=N, draw_function=draw_fcn, samples=samples_dict)
+# Add 5% observational noise
+out = add_gaussian_noise(out, 0.05, relative=True)
+# Visualize 
 fig,ax=plt.subplots()
-ax.plot(coordinates['x'], out['C_F'].sel(species='S').isel(time=-1), color='black')
-ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1), color='black', linestyle='--')
+# Data
+y_error = [reactor_cutting['mean'] - reactor_cutting['lower'], reactor_cutting['upper'] - reactor_cutting['mean']]
+ax.errorbar(reactor_cutting.index, reactor_cutting['mean'], yerr=y_error, capsize=5,
+            color='black', linestyle='', marker='^')
+# Model prediction
+for i in range(N):
+    ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).isel(draws=i), alpha=0.10, color='black')
+ax.set_xlabel('Reactor length (m)')
+ax.set_xlabel('Ester concentration (mM')
+
 plt.show()
 plt.close()
 
 #######################
-## Time a simulation ##
+## Vary the flowrate ##
 #######################
 
-import time
-N = 50
+# Different initial condition
 
-elapsed=[]
-for i in range(N):
-    start = time.time()
-    model.sim(2500)
-    end = time.time()
-    elapsed.append((end-start)* 10**3)
+# Define initial concentrations
+initial_concentrations = [30,60,0,18]
+# Initialise initial states
+C_F = np.zeros([len(coordinates['species']), len(coordinates['x'])])
+C_S = np.zeros([len(coordinates['species']), len(coordinates['x'])])
+# Initialize inlet concentrations
+C_F[:,0] = initial_concentrations
+C_S[:,0] = initial_concentrations
+# t-Butanol with water has already equilibrated inside the reactor
+C_F[3,:] = initial_concentrations[3]
+C_S[3,:] = initial_concentrations[3]
 
-print(f'time per simulation: {str(np.mean(elapsed))} pm {np.std(elapsed)} ms')
+# Different length
+l = 0.6 # m
+
+# Loop over flowrates
+out=[]
+Q = np.linspace(start=0.05, stop=0.6, num=5)/60*10**-6  # Flow rate (m³/s)
+for q in Q:
+    print(f'Computing flowrate: {q} m3/s')
+    # Update derived variables
+    U = q/A
+    u = U/epsilon # Fluid velocity (m/s)
+    Re = dp*U*rho_F/mu    # Reynolds number (-)
+    a = 6*(1-epsilon)/dp # Catalyst surface area (m-1)
+    kL = (0.7*D_AB + (dp*U)/(0.18+0.008*Re**0.59)) # Mass transfer coefficient through boundary layer (m/s)
+    D_ax = ((1.09/100)*(D_AB/dp)**(2/3)*(U)**(1/3)) # Axial dispersion coefficient (m2/s)
+    # Update model parameters
+    model.parameters.update({'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/nx, 'u': u}) 
+    # Simulate
+    out_tmp = model.sim(end_sim, N=N, draw_function=draw_fcn, samples=samples_dict)
+    # Add 5% observational noise and store
+    out.append(add_gaussian_noise(out_tmp, 0.05, relative=True))
+
+# Compute outlet concentrations
+mean_outlet=[]
+lower_outlet=[]
+upper_outlet=[]
+for output in out:
+    mean_outlet.append(float(output['C_F'].sel(species='Es').isel(time=-1).isel(x=-1).mean(dim='draws').values))
+    lower_outlet.append(float(output['C_F'].sel(species='Es').isel(time=-1).isel(x=-1).quantile(dim='draws', q=0.025).values))
+    upper_outlet.append(float(output['C_F'].sel(species='Es').isel(time=-1).isel(x=-1).quantile(dim='draws', q=0.975).values))
+
+# Visualize results
+fig,ax=plt.subplots()
+# Data
+y_error = [vary_flowrate['mean'] - vary_flowrate['lower'], vary_flowrate['upper'] - vary_flowrate['mean']]
+ax.errorbar(vary_flowrate.index, vary_flowrate['mean'], yerr=y_error, capsize=5,color='black', linestyle='', marker='^')
+# Model prediction: outlet concentration
+ax.plot(Q*60*10**6, mean_outlet, color='black', linestyle='--')
+ax.fill_between(Q*60*10**6, lower_outlet, upper_outlet, color='black', alpha=0.10)
+# Decorations
+ax.set_xlabel('Flow rate (m3/s)')
+ax.set_ylabel('Outlet ester concentration (mM)')
+ax.set_ylim([-0.5,15])
+plt.show()
+plt.close()

@@ -34,7 +34,7 @@ N = 50
 ###############
 
 # Extract and sort the names
-names = os.listdir(os.path.join(os.path.dirname(__file__),'data/'))
+names = os.listdir(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'))
 names.sort()
 
 # Load data
@@ -44,7 +44,7 @@ log_likelihood_fnc = []
 log_likelihood_fnc_args = []
 initial_states=[]
 for name in names:
-    df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/'+name), index_col=0)
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'+name), index_col=0)
     data.append(df['Es'])
     log_likelihood_fnc.append(ll_gaussian)
     log_likelihood_fnc_args.append(df['sigma'])
@@ -96,32 +96,13 @@ if __name__ == '__main__':
     # Nelder-mead
     step = len(theta)*[0.05,]
     theta = nelder_mead.optimize(objective_function, theta, step, processes=processes, max_iter=n_pso)[0]
-    # Loop over datasets
-    for i,df in enumerate(data):
-        model.parameters.update({'Vf_Ks': theta[0], 'R_AS': theta[1], 'R_AW': theta[2], 'R_Es': theta[3], 'K_eq': theta[4]})
-        # Update initial condition
-        model.initial_states.update(initial_states[i])
-        # Simulate model
-        out = model.sim(3000)
-        # Visualize
-        fig,ax=plt.subplots(figsize=(12,4))
-        ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
-        ax.plot(out['time'], out['S'], color='black')
-        ax.plot(out['time'], out['Es'], color='red')
-        ax.legend(['data', 'D-glucose', 'Glucose laurate'])
-        ax.grid(False)
-        ax.set_ylabel('species concentration (mM)')
-        ax.set_xlabel('time (min)')
-        plt.tight_layout()
-        plt.show()
-        plt.close()
 
     ##########
     ## MCMC ##
     ##########
 
     # Variables
-    n_mcmc = 500
+    n_mcmc = 200
     print_n = 50
     discard = 100
     samples_path='sampler_output/'
