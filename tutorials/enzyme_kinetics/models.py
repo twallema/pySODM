@@ -60,6 +60,7 @@ class PPBB_model(ODEModel):
     parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
 
     @staticmethod
+    @njit
     def integrate(t, S, A, Es, W, c_enzyme, Vf_Ks, R_AS, R_AW, R_Es, K_eq):
 
         # Calculate rate

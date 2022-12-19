@@ -8,23 +8,23 @@ Sugar fatty acid esters (SFAEs) are nonionic surfactants which play an important
 
 ![reaction](/_static/figs/enzyme_kinetics/reaction.png)
 
-The goal of this tutorial is to demonstrate how pySODM can be used to build a virtual prototype of a continuous flow reactor reactor packed with enzyme beads. First, an enzyme kinetic model is calibrated to time course data obtained in batch experiments. The calibrated kinetics can then be used to make predictions on how the yields in our continuous-flow reactor vary when the flow rate is varied. Further, we can asses what happens to the reaction yields if we set up a two-stage reactor where water is removed between the stages. I will attempt to provide a brief introduction to each of the models used in this tutorial. However, I shall cut several corners for the sake of shortening this demo (my master's thesis is over 60 pages long).
+The goal of this tutorial is to demonstrate how pySODM can be used to build a virtual prototype of a continuous flow reactor reactor packed with enzyme beads. First, an enzyme kinetic model is calibrated to time course data obtained in batch experiments. The calibrated kinetics can then be used to make predictions on how the yields in our continuous-flow reactor vary with the flow rate. Further, we can asses what happens to the reaction yields if we set up a two-stage reactor where water is removed between the stages. I will attempt to provide a brief introduction to each of the models used in this tutorial. However, I shall cut several corners for the sake of shortening this demo (my master's thesis is over 60 pages long).
 
 In this tutorial pySODM is used to:
 1. Build an ODE model to describe the reaction course in a batch experiment.
-2. Calibrate the ODE model to timecourse data from eight experiments. Each experiment has a different intial condition, which must be provided to the log posterior probability function.
-3. Demonstrate how a 1D packed-bed reactor (PDE) can be implemented in pySODM by using the method-of-lines.
+2. Calibrate the ODE model to timecourse data from eight experiments, performed with different initial concentrations of D-Glucose, Lauric acid and water. Each experiment thus has a different intial condition, which must be provided to the log posterior probability function.
+3. Demonstrate how a 1D packed-bed reactor (PDE system) can be implemented in pySODM by using the method-of-lines.
 4. Propagate the posterior distributions of the kinetic parameters through the packed-bed reactor model and asses what happens if we change the flow rate or remove water.
 
 ## Calibration of Intrinsic kinetics (ODE model)
 
-Multiple batch experiments were performed. For each experiment a supersaturated solution of D-glucose and Lauric acid in t-Butanol had to be prepared. First, as much water as possible had to be removed from the t-Butanol by means of molecular sieves. Then, because of its low solubility in t-Butanol, a supersaturated solution of D-glucose had to be prepared by reflux boiling overnight. Next, the Lauric acid was added and the mixture was transferred to a 50 mL flask suspended in an oil bath kept at 50 degrees Celcius. To start the reaction, 10 g/L of beads containing the enzyme were added to the mixture. The mixture was stirred with a magnetic stirrer throughout the reaction to avoid mass transfer limitations during the reaction course. Samples were withdrawn at regular intervals and analyzed for Glucose Laurate Ester using an HPLC-MS.
+Multiple batch experiments were performed. For each experiment a supersaturated solution of D-glucose and Lauric acid in t-Butanol had to be prepared. First, as much water as possible had to be removed from the t-Butanol by means of 0.3 nm molecular sieves. Then, because of its low solubility in t-Butanol, a supersaturated solution of D-glucose was prepared by reflux boiling overnight. The maximum attainable concentration of D-Glucose in t-Butanol at 50 Degrees Celcius is between 40 mM and 45 mM. Next, Lauric acid was added and the mixture was transferred to a 50 mL flask suspended in an oil bath kept at 50 degrees Celcius. To start the reaction, 10 g/L of beads containing the enzyme were added to the mixture. The mixture was stirred with a magnetic stirrer throughout the reaction to avoid mass transfer limitations during the reaction course. Samples were withdrawn at regular intervals and analyzed for Glucose Laurate Ester using an HPLC-MS.
 
 The experiments performed could be subdivided into two types:
 1. Initial rate experiments: The reaction course is only followed during the first minutes when very little product are formed. 
 2. Full time-course experiments. In this experiment, samples are withdrawn every few hours until the reaction mixture equillibrates.
 
-Typically, the parameters of the *forward* reaction are first calibrated to the initial rate experiment data. During my master's thesis, model selection was performed as well using the initial rate experiment data. The parameters of the *backward* reaction were then calibrated to the full time-course experiments. For the sake of brevity, I shall glance over this two-step calibration and model selection. We will simply calibrate the following model,
+Typically, the parameters of the *forward* reaction are first calibrated to the initial rate experiment data. During my master's thesis, model selection was performed as well using the initial rate experiment data. The parameters of the *backward* reaction were then calibrated to the full time-course experiments. For the sake of brevity, I shall glance over this two-step calibration and model selection. We will simply calibrate the following (simplified) ping-pong bi-bi kinetic model,
 ```{math}
 \begin{eqnarray}
 \frac{dS}{dt} &=& - v, \\
@@ -38,7 +38,7 @@ where,
 ```{math}
 \frac{v}{[E]_t} = \frac{{V_f}/{K_S} ([S] [A] - \frac{1}{K_{eq}} [Es][W])}{[A] + R_{AS} [S] + R_{AW} [W] + R_{Es} [Es]}, \Bigg[\frac{mmol}{min . \text{g catalyst}} \Bigg],
 ```
-to data from three initial rate experiments, and five full time-course experiments. In the equation, {math}`[S]` denotes the concentration of D-glucose, {math}`[A]` denotes the concentration of Lauric Acid, {math}`[Es]` denotes the concentration of Glucose Laurate Ester, and {math}`[W]` denotes the concentration of water, all in millimolar (mM). The parameters {math}`R_{AS}`, {math}`R_{AW}` and {math}`R_{Es}` can be interpreted as inhibitory constants due to their appearance in the denominator of the rate equation. {math}`V_f/K_S` is typically treated as one parameter and has an impact on the initial reaction rate. {math}`K_{eq}` is the equillibrium coefficient, which determines if the reaction favor the reactants or the products. 
+to data from three initial rate experiments, and five full time-course experiments. In the equation, {math}`[S]` denotes the concentration of D-glucose, {math}`[A]` denotes the concentration of Lauric Acid, {math}`[Es]` denotes the concentration of Glucose Laurate Ester, and {math}`[W]` denotes the concentration of water, all in millimolar (mM). The parameters {math}`R_{AS}`, {math}`R_{AW}` and {math}`R_{Es}` can be interpreted as inhibitory constants due to their appearance in the denominator of the rate equation. {math}`V_f/K_S` is typically treated as one parameter and has an impact on the initial reaction rate. {math}`K_{eq}` is the equillibrium coefficient, which determines if the reaction favor the reactants or the products.
 
 We'll start by making a file `models.py` in our working directory, where we'll group our models for this tutorial. Coding up the equations above is very similar to the [simple SIR model](workflow.md).
 
@@ -80,7 +80,7 @@ init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
 model = PPBB_model(init_states,params)
 ```
 
-The next step is loading the experimental data from the `~/tutorials/enzyme_kinetics/data` folder and setting up our log posterior probability function for optimization. The data have the following structure,
+The next step is loading the experimental data from the `~/tutorials/enzyme_kinetics/data` folder and setting up our log posterior probability function for optimization. There are eight files, each containing data from one experiment. The data have the following structure,
 
 ```python
 df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/exp_1.csv'), index_col=0)
@@ -102,7 +102,9 @@ time
 1440    NaN    NaN    NaN  21.02   0.25
 ```
 
-We'll load the datasets using a `for` statement and immediately extract three [inputs to our log posterior probability function](optimization.md): 1) The Glucose Laurate Ester data in `data`, 2) the measurement error as the arguments of our log likelihood function `log_likelihood_fnc_args` and 3) the initial concentrations used in the experiment in `initial_states`. We will also construct the list of model states to match our datasets to (`states`) and we'll use a Gaussian log likelihood function for every dataset because we have a measurement error for every datapoint. There is thus no need to analyze the mean-variance ratio as we did in the [simple SIR tutorial](workflow.md).
+To perform an optimization of the parameters, a [log posterior probability function](optimization.md) must be setup. We'll load the datasets using a `for` statement and immediately extract three inputs to our log posterior probability function: 1) The Glucose Laurate Ester data as `data`, 2) the measurement error as the arguments of the log likelihood function `log_likelihood_fnc_args` and 3) the initial concentrations used in the experiment in `initial_states`. We will also construct the list of model states to match our datasets to (`states`), which is a list containing eight instances of the Ester state `'Es'`. 
+
+For each measurement of the Glucose Laurate ester concentration an error is available. There is thus no need to analyze the mean-variance ratio as we did in the [simple SIR tutorial](workflow.md) to find an appropriate likelihood function. We'll use a Gaussian likelihood function and use the *sigma* column of our dataset as the arguments of the log likelihood function.
 
 ```python
 from pySODM.optimization.objective_functions import ll_gaussian
@@ -128,7 +130,7 @@ for name in names:
     )
 ```
 
-All we need to to still is define a list containing the five model parameters we'd like to calibrate: {math}`V_f/K_S`, {math}`R_{AS}`, {math}`R_{AW}`,{math}`R_{Es}`, {math}`K_{eq}`, and a list containing an upper and lower bound for every model parameter. We'll use the optional argument `labels` so our MCMC diagnostic figures can use fancy {math}`\LaTeX` labels. Note how we didn't define `weights` to our dataset, so all datasets are weighted equally. We also didn't define prior probability functions for our parameters, this means pySODM will automatically use uniform priors using the provided bounds. For a detailed description of the `log_posterior_probability` function, visit the [Optimization](optimization.md) section in the User Guide.
+All that is left is to define a list containing the five model parameters we'd like to calibrate: {math}`V_f/K_S`, {math}`R_{AS}`, {math}`R_{AW}`,{math}`R_{Es}`, {math}`K_{eq}`, and a list containing an upper and lower bound for every model parameter.  We'll use the optional argument `labels` so our MCMC diagnostic figures can use fancy {math}`\LaTeX` labels. Note how we didn't define `weights` to our dataset, so all datasets are weighted equally. We also didn't define prior probability functions for our parameters, this means pySODM will automatically use uniform priors using the provided bounds.
 
 ```python
 from pySODM.optimization.objective_functions import log_posterior_probability
@@ -166,23 +168,30 @@ if __name__ == '__main__':
 
 We find the following estimates for our parameters:
 ```bash
-theta = [6.46e-04, 1.75e-02, 1.81e+00, 2.27e-01, 1.09e+00]
+theta = [7.95e-04, 1.65e-01, 2.57e+00, 3.49e-01, 4.19e-01]
 ```
 
-Next, we'll use this estimate to initiate our Markov-Chain Monte-Carlo sampler. If anything is unclear in what follows, I highly recommend going through the documentation of `perturbate_theta`, `run_EnsembleSampler` and `emcee_sampler_to_dictionary` available in the [User Guide](optimization.md). We'll initiate `multiplier_mcmc` chains per calibrated parameter, so 25 chains in total. To do so, we'll first use `perturbate_theta` to generate a np.ndarray `pos` of shape `(5, 25)`, which we'll then pass on to `run_EnsembleSampler`.
+Next, we'll use this estimate to initiate our Markov-Chain Monte-Carlo sampler which requires the help of two functions: [perturbate_theta](optimization.md) and [run_EnsembleSampler](optimization.md). We'll initiate 5 chains per calibrated parameter, so 25 chains in total, by. To do so, we'll first use `perturbate_theta` to perturbate our previously obtained estimate `theta` by 25%. The result is a np.ndarray `pos` of shape `(5, 25)`, which we'll then pass on to `run_EnsembleSampler`.
 
 ```python
 if __name__ == '__main__':
 
     from pySODM.optimization.mcmc import perturbate_theta
 
-    # MCMC settings
-    multiplier_mcmc = 5
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.25, 0.25, 0.25, 0.25, 0.25], multiplier=5, bounds=bounds)
 ```
 
-Then, we'll setup and run the sampler until the chains converge. We'll run the sampler for `n_mcmc=500` iterations and print the diagnostic autocorrelation and trace plots every `print_n=20` iterations in a folder called `sampler_output/`. For convenience, we'll save the samples there as well. As an identifier for our "experiment", we'll use `'username'`. While the sampler is running, have a look in the `sampler_output/` folder, which should look as follows,
+Then, we'll setup and run the sampler using `run_EnsembleSampler` until the chains converge. We'll run the sampler for `n_mcmc=500` iterations and print the diagnostic autocorrelation and trace plots every `print_n=20` iterations in a folder called `sampler_output/`. For convenience, we'll save the samples there as well. As an identifier for our "experiment", we'll use `'username'`. While the sampler is running, have a look in the `sampler_output/` folder, which should look as follows,
+
+```
+├── sampler_output 
+|   |── username_BACKEND_2022-12-16.hdf5
+│   ├── autocorrelation
+│       └── username_AUTOCORR_2022-12-16.pdf
+│   └── traceplots
+│       └── username_TRACE_2022-12-16.pdf
+```
 
 ```python
 if __name__ == '__main__':
@@ -196,9 +205,9 @@ if __name__ == '__main__':
     fig_path='sampler_output/'
     identifier = 'username'
 
-    # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': 0, 'end_calibration': 3000,
-              'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': labels}
+    # Some usefull settings we'd like to retain (no pd.Timestamps or np.arrays allowed!)
+    settings={'start_calibration': 0, 'end_calibration': 3000, 'n_chains': nwalkers,
+              'starting_estimate': list(theta), 'labels': labels}
 
     # Sample n_mcmc iterations
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
@@ -206,16 +215,7 @@ if __name__ == '__main__':
                                     settings_dict=settings)
 ```
 
-```
-├── sampler_output 
-|   |── username_BACKEND_2022-12-16.hdf5
-│   ├── autocorrelation
-│       └── username_AUTOCORR_2022-12-16.pdf
-│   └── traceplots
-│       └── username_TRACE_2022-12-16.pdf
-```
-
-The output of the above procedure yields an `emcee.EnsembleSampler` object containing our 100 iterations for 25 chains. We can extract the chains quite easily as follows: `emcee.EnsembleSampler.get_chain()` (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, we're interested in building a dictionary of samples because this interfaces nicely to pySODM's draw functions. To that end, we can use the builtin method `emcee_sampler_to_dictionary`. We'll then use `corner` to visualize the distributions of the five calibrated parameters.
+The output of the above procedure yields an `emcee.EnsembleSampler` object containing our 500 iterations for 25 chains. We can extract the chains quite by using the `get_chain()` method (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, we're interested in building a dictionary of samples because this interfaces nicely to pySODM's draw functions. To that end, we can use the builtin method `emcee_sampler_to_dictionary()`. We'll use the `corner` package to visualize the distributions of the five calibrated parameters.
 
 ```python
 if __name__ == '__main__':
@@ -234,11 +234,11 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 ```
-On the cornerplot we can see that the values of {math}`R_{AS}` are quite small, meaning we can likely drop {math}`R_{AS}` from the model without taking a big hit in terms of goodness-of-fit. {math}`R_{AW}` and {math}`V_f / K_S` correlate quite strongly.
+On the cornerplot we can see that the values of {math}`R_{AS}` and {math}`R_{Es}` are quite small, meaning we can likely drop these parameters from the model without taking a big hit in terms of goodness-of-fit. {math}`R_{AW}` and {math}`V_f / K_S` correlate quite strongly but we can account for this when propagating the uncertainty. The equillibrium of this reaction is clearly unfavourable, indicated by an equillibrium constant of {math}`K_{eq} = 0.42`, so we'll need to find a way to sway the equillibrium. 
 
 ![corner](/_static/figs/enzyme_kinetics/corner.png)
 
-Finally, we can use the *draw functions* to propagate the parameter samples in our model and asses the goodness-of-fit (see the [simple SIR tutorial](workflow.md)). Simulating a model is performed using the `sim` function (see the [simple SIR tutorial](workflow.md) and the [documentation](models.md)). All that is left after simulating the model is to add the observational noise to the model predictions. I've computed the relative magnitude of the error on the datapoints and these are roughly equal to 5%. Given how we've used a Gaussian log likelihood, we'll use `add_gaussian_noise` to add 5% (relative) noise.
+Finally, we can use the *draw functions* to propagate the parameter samples in our model and asses the goodness-of-fit (see the [simple SIR tutorial](workflow.md)). Simulating a model is performed using the [sim](models.md) function. All that is left after simulating the model is to add the observational noise to the model predictions. I've computed the relative magnitude of the error on the datapoints and these are roughly equal to 5%. Given how we've used a Gaussian log likelihood function, we'll use `add_gaussian_noise()` to add 5% (relative) noise.
 
 ```python
 if __name__ == '__main__':
@@ -276,8 +276,11 @@ if __name__ == '__main__':
         plt.close()
 ```
 
-The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 38 mM D-glucose, 464 mM Lauric acid and 24 mM water present in the medium. After 16 hours, the reaction has equillibrated and {math}`34 \pm 2\ mM` (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of {math}`89\% \pm 5\%\ mM` (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields.
+The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 38 mM D-glucose, 464 mM Lauric acid and 24 mM water present in the medium. After 16 hours, the reaction has equillibrated and {math}`30 \pm 2\ mM` (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of {math}`79\% \pm 5\%\ mM` (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields. To conclude, I visualize the yield on a 2D grid spanning the concentrations of D-Glucose and Lauric on the y-axis (given as the acid-to-sugar ratio with 40 mM of D-Glucose present at reaction onset), and the water concentration on the x-axis.
 
 ![fit_3](/_static/figs/enzyme_kinetics/fit_3.png)
+
+![yield](/_static/figs/enzyme_kinetics/yield.png)
+
 
 ## Simulating a Packed-bed reactor (PDE model)
