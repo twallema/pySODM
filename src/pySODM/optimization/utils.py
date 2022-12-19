@@ -55,7 +55,7 @@ def add_gaussian_noise(output, sigma, relative=True):
         if relative == False:
             values = np.random.normal(da.values, sigma)
         elif relative == True:
-            values = np.random.normal(da.values, sigma*da.values)
+            values = np.random.normal(da.values, np.abs(sigma*da.values))
         output[varname].values = values
     return output
 
