@@ -126,9 +126,10 @@ sim_len = (end_date - start_date)/pd.Timedelta(days=1)+warmup
 # Get initial condition
 I_init = df_influenza.loc[start_date]
 # Define model parameters
+beta = np.array([0.034, 0.034, 0.034, 0.034])
 f_a = np.array([0.02, 0.61, 0.88, 0.75])
 gamma = 5
-params={'beta':0.10, 'sigma':1, 'f_a':f_a, 'gamma':5, 'Nc':Nc_except_workschool+Nc_school+Nc_work}
+params={'beta': beta, 'sigma':1, 'f_a':f_a, 'gamma':5, 'Nc':Nc_except_workschool+Nc_school+Nc_work}
 # Define initial condition
 init_states = {'S':initN.values ,'E': (1/(1-f_a))*df_influenza.loc[start_date, slice(None)],
                                  'Ia': (f_a/(1-f_a))*gamma*df_influenza.loc[start_date, slice(None)],
@@ -160,7 +161,7 @@ if __name__ == '__main__':
 
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 50
+    n_pso = 30
     multiplier_pso = 20
     # Define dataset
     data=[df_influenza[start_date:end_date], ]
@@ -171,20 +172,20 @@ if __name__ == '__main__':
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
-    bounds = [(1e-6,0.05), (0,0.99)]
+    bounds = [(1e-6,0.06), (0,0.99)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Extract expanded bounds and labels
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
-    #                   swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
-    theta = [0.0345, 0.02, 0.61, 0.88, 0.75]
-
+    theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
+                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
+    #theta = [0.0345, 0.0345, 0.0345, 0.0345, 0.02, 0.61, 0.88, 0.75] --> 1 beta, 4 f_a's
+    theta = [0.04380897, 0.04963023, 0.02688752, 0.01998158, 0.26422786, 0.78430758, 0.86922779, 0.51841366]
     # Nelder-mead
-    #step = len(expanded_bounds)*[0.01,]
-    #theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
+    step = len(expanded_bounds)*[0.10,]
+    theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
     ######################
     ## Visualize result ##
@@ -222,10 +223,10 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 20
+    n_mcmc = 1000
     multiplier_mcmc = 9
-    print_n = 5
-    discard=20
+    print_n = 50
+    discard = 200
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
