@@ -93,9 +93,9 @@ class make_contact_matrix_function():
             return self.__call__(t)
 
 # Hardcode the contact matrices
-Nc_except_workschool = np.transpose(np.array([[0.68,0.78,3.27,0.45],
-                                              [0.41,2.15,3.52,0.46],
-                                              [0.29,0.59,3.50,0.49],
+Nc_except_workschool = np.transpose(np.array([[0.68+2.01*(3/5),0.78+0.27*(3/5),3.27+0.40*(3/5),0.45],
+                                              [0.41+0.14*(3/5),2.15,3.52,0.46],
+                                              [0.29+0.04*(3/5),0.59,3.50,0.49],
                                               [0.15,0.30,1.85,1.45]]))
 
 Nc_school = np.transpose(np.array([[2.01*(2/5),0.27*(2/5),0.40*(2/5),0.00*(2/5)],
@@ -222,10 +222,10 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 100
+    n_mcmc = 20
     multiplier_mcmc = 9
     print_n = 5
-    discard=50
+    discard=20
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
@@ -267,9 +267,9 @@ if __name__ == '__main__':
     # Simulate model
     out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add poisson observation noise
-    out = add_negative_binomial_noise(out, alpha)
+    out = add_negative_binomial_noise(out, np.mean(alpha))
     # Visualize
-    fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
+    fig, axs = plt.subplots(2,2,sharex=True, figsize=(8,6))
     axs = axs.reshape(-1)
     for id, age_class in enumerate(df_influenza.index.get_level_values('age_group').unique()):
         # Data
