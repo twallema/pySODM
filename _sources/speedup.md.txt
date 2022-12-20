@@ -21,6 +21,8 @@ def TDPF(t, states, params, a_large_dataset):
 Instead, we recommend wrapping the TDPF in a class and using the `@lru_cache()` decorator to place the function where the large dataset is evaluated in working memory.
 
 ```python
+from functools import lru_cache
+
 class make_TDPF():
 
     # Assign large dataset to class

@@ -113,7 +113,9 @@
 </pre></div>
 </div>
 <p>Instead, we recommend wrapping the TDPF in a class and using the <code class="docutils literal notranslate"><span class="pre">&#64;lru_cache()</span></code> decorator to place the function where the large dataset is evaluated in working memory.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">make_TDPF</span><span class="p">():</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+
+<span class="k">class</span> <span class="nc">make_TDPF</span><span class="p">():</span>
 
     <span class="c1"># Assign large dataset to class</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
