@@ -354,6 +354,8 @@ We'll use the concept of *stratifications* to implement these two-dimensional nu
 The derivatives are pre-initialized as zeros and their computation is done by looping over every reacting species and then looping over all spatial nodes except the inlet node ({math}`j=0`). An exception is coded at the outlet, whwere the no-flux boundary approximation is substituted in the system of equations. Stepping through these loops slows the code down and thus we decorate the `integrate()` function with the [numba](https://numba.pydata.org/) `@njit` decorator. Doing so speeds the code up by a factor 16.
 
 ```python
+from pySODM.models.base import ODEModel
+
 class packed_PFR(ODEModel):
     """
     A model of a packed-bed plug-flow reactor with axial dispersion in one dimension
