@@ -126,10 +126,9 @@ sim_len = (end_date - start_date)/pd.Timedelta(days=1)+warmup
 # Get initial condition
 I_init = df_influenza.loc[start_date]
 # Define model parameters
-beta = np.array([0.034, 0.034, 0.034, 0.034])
 f_a = np.array([0.02, 0.61, 0.88, 0.75])
 gamma = 5
-params={'beta': beta, 'sigma':1, 'f_a':f_a, 'gamma':5, 'Nc':Nc_except_workschool+Nc_school+Nc_work}
+params={'beta': 0.034, 'sigma':1, 'f_a':f_a, 'gamma':5, 'Nc':Nc_except_workschool+Nc_school+Nc_work}
 # Define initial condition
 init_states = {'S':initN.values ,'E': (1/(1-f_a))*df_influenza.loc[start_date, slice(None)],
                                  'Ia': (f_a/(1-f_a))*gamma*df_influenza.loc[start_date, slice(None)],
@@ -179,13 +178,13 @@ if __name__ == '__main__':
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
-                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
-    #theta = [0.0345, 0.0345, 0.0345, 0.0345, 0.02, 0.61, 0.88, 0.75] --> 1 beta, 4 f_a's
-    theta = [0.04380897, 0.04963023, 0.02688752, 0.01998158, 0.26422786, 0.78430758, 0.86922779, 0.51841366]
+    #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
+    #                    swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
+    theta = [0.0345, 0.02, 0.61, 0.88, 0.75] # --> 1 beta, 4 f_a's
+    #theta = [0.04380897, 0.04963023, 0.02688752, 0.01998158, 0.26422786, 0.78430758, 0.86922779, 0.51841366]
     # Nelder-mead
-    step = len(expanded_bounds)*[0.10,]
-    theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
+    #step = len(expanded_bounds)*[0.10,]
+    #theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
     ######################
     ## Visualize result ##
@@ -223,10 +222,10 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 1000
+    n_mcmc = 500
     multiplier_mcmc = 9
     print_n = 50
-    discard = 200
+    discard = 50
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
@@ -236,15 +235,15 @@ if __name__ == '__main__':
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'warmup': warmup, 'starting_estimate': list(theta), 'labels': expanded_labels}
-    # Sample 100 iterations
+    # Sample n_mcmc iterations
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)
-    # Sample 100 more
+    # Sample n_mcmc more
     backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.hdf5'))
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
-                                    settings_dict=settings)
+                                    settings_dict=settings)                                    
     # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
     samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)

@@ -7,8 +7,8 @@ class ODE_influenza_model(ODEModel):
     """
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['sigma','gamma', 'Nc']
-    parameter_stratified_names = ['beta', 'f_a']
+    parameter_names = ['beta','sigma','gamma', 'Nc']
+    parameter_stratified_names = ['f_a']
     stratification_names = ['age_group']
 
     @staticmethod
