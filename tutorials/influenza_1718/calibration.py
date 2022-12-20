@@ -76,19 +76,19 @@ class make_contact_matrix_function():
             return self.__call__(t)
         # Christmass holiday
         elif pd.Timestamp('2017-12-20') < t <= pd.Timestamp('2018-01-05'):
-            return self.__call__(t, work=0.70, school=0)
+            return self.__call__(t, work=0.60, school=0)
         # Christmass holiday --> Winter holiday
         elif pd.Timestamp('2017-01-05') < t <= pd.Timestamp('2018-02-09'):
             return self.__call__(t)
         # Winter holiday
         elif pd.Timestamp('2018-02-09') < t <= pd.Timestamp('2018-02-16'):
-            return self.__call__(t, work=0.90, school=0)
+            return self.__call__(t, work=0.80, school=0)
         # Winter holiday --> Easter holiday
         elif pd.Timestamp('2018-02-16') < t <= pd.Timestamp('2018-03-28'):
             return self.__call__(t)
         # Easter holiday
         elif pd.Timestamp('2018-03-28') < t <= pd.Timestamp('2018-04-16'):
-            return self.__call__(t, work=0.70, school=0)
+            return self.__call__(t, work=0.60, school=0)
         else:
             return self.__call__(t)
 
@@ -126,12 +126,13 @@ sim_len = (end_date - start_date)/pd.Timedelta(days=1)+warmup
 # Get initial condition
 I_init = df_influenza.loc[start_date]
 # Define model parameters
-f_a = np.array([0.10, 0.75, 0.90, 0.85])
+f_a = np.array([0.02, 0.61, 0.88, 0.75])
+gamma = 5
 params={'beta':0.10, 'sigma':1, 'f_a':f_a, 'gamma':5, 'Nc':Nc_except_workschool+Nc_school+Nc_work}
 # Define initial condition
-
 init_states = {'S':initN.values ,'E': (1/(1-f_a))*df_influenza.loc[start_date, slice(None)],
-                                 'Im': (1-f_a)*df_influenza.loc[start_date, slice(None)],
+                                 'Ia': (f_a/(1-f_a))*gamma*df_influenza.loc[start_date, slice(None)],
+                                 'Im': gamma*df_influenza.loc[start_date, slice(None)],
                                  'Im_inc': df_influenza.loc[start_date, slice(None)]}
 # Define model coordinates
 coordinates={'age_group': age_groups}
@@ -150,7 +151,7 @@ if __name__ == '__main__':
 
     results, ax = variance_analysis(df_influenza, resample_frequency='5D')
     alpha = results.loc[(slice(None),'negative binomial'), 'theta'].values
-    plt.show()
+    #plt.show()
     plt.close()
 
     #####################
@@ -159,7 +160,7 @@ if __name__ == '__main__':
 
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 1
+    n_pso = 50
     multiplier_pso = 20
     # Define dataset
     data=[df_influenza[start_date:end_date], ]
@@ -179,9 +180,10 @@ if __name__ == '__main__':
     # PSO
     #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
     #                   swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
-    theta = [0.04, 0.10, 0.75, 0.90, 0.85]
+    theta = [0.0345, 0.02, 0.61, 0.88, 0.75]
+
     # Nelder-mead
-    #step = len(expanded_bounds)*[0.10,]
+    #step = len(expanded_bounds)*[0.01,]
     #theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
 
     ######################
