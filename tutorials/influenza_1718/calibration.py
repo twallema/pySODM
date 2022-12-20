@@ -98,10 +98,10 @@ Nc_except_workschool = np.transpose(np.array([[0.68,0.78,3.27,0.45],
                                               [0.29,0.59,3.50,0.49],
                                               [0.15,0.30,1.85,1.45]]))
 
-Nc_school = np.transpose(np.array([[2.01,0.27,0.40,0.00],
-                                   [0.14,3.21,0.27,0.00],
-                                   [0.04,0.05,0.27,0.00],
-                                   [0.00,0.00,0.00,0.00]]))
+Nc_school = np.transpose(np.array([[2.01*(2/5),0.27*(2/5),0.40*(2/5),0.00*(2/5)],
+                                   [0.14*(2/5),3.21,0.27,0.00],
+                                   [0.04*(2/5),0.05,0.27,0.00],
+                                   [0.00*(2/5),0.00,0.00,0.00]]))
 
 Nc_work = np.transpose(np.array([[0.00,0.00,0.47,0.05],
                                  [0.00,0.00,0.91,0.00],
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     # Simulate model
     out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add poisson observation noise
-    out = add_poisson_noise(out)
+    out = add_negative_binomial_noise(out, alpha)
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, sharey=True, figsize=(8,6))
     axs = axs.reshape(-1)
