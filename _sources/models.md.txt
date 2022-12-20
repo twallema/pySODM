@@ -12,6 +12,7 @@ The ODEModel class inherits several attributes from the model class defined by t
 
 * **state_names** (list) - Contains the names (type: str) of the states.
 * **parameter_names** (list) - Contains the names (type: str) of the non-stratified parameters. Non-stratified parameters are not subject to input checks and can thus be of any datatype/size.
+* **integrate** (function) - Function to compute the differentials of every model state. The integrate function must have the timestep `t` as its first input, followed by the `state_names`, then the `parameter_names` and then the `parameter_stratified_names`, all in the correct order. The integrate function must return a differential for every model state of the correct size and in the same order as `state_names`. The integrate function must be a static method (include `@staticmethod`).
 * **stratification_names** (list) - optional - Contains the names of the stratification axes. The names given here become the dimensions in the simulation output `xarray` Dataset.
 * **parameter_stratified_names** (list) - optional - Contains the names of the stratified parameters. Stratified parameters are subject to input checks. They must be a list or a 1D np.ndarray with a length equal to the number of coordinates of the stratification axis. 
     * For one stratification axes: list contains strings - `['stratpar_1', 'stratpar_2']`
@@ -57,6 +58,8 @@ The SDEModel class inherits several attributes from the model class defined by t
 
 * **state_names** (list) - Contains the names (type: str) of the states.
 * **parameter_names** (list) - Contains the names (type: str) of the non-stratified parameters. Non-stratified parameters are not subject to input checks and can thus be of any datatype/size.
+* **compute_rates** (function) - Function returning the rates of transitioning between the model states. `compute_rates()` must have the timestep `t` as its first input, followed by the `state_names`, then the `parameter_names` and then the `parameter_stratified_names`, all in the correct order. `compute_rates()` must be a static method (include `@staticmethod`). The output of `compute_rates()` must be a dictionary. Its keys must be valid model states, a rate is only needed for the states undergoing a transitioning. The corresponding values must be a list containing the rates of the possible transitionings of the state. In this way, a model state can have multiple transitionings.
+* **apply_transitionings** (function) - Function to update the states with the number of drawn transitionings. `apply_transitionings()` must have the timestep `t` as its first input, followed by the solver timestep `tau`, follwed by the dictionary containing the transitionings `transitionings`, then followed by the model states and parameters similarily to `compute_rates()`.
 * **stratification_names** (list) - optional - Contains the names of the stratification axes. The names given here become the dimensions in the simulation output `xarray` Dataset.
 * **parameter_stratified_names** (list) - optional - Contains the names of the stratified parameters. Stratified parameters are subject to input checks. They must be a list or a 1D np.ndarray with a length equal to the number of coordinates of the stratification axis. 
     * For one stratification axes: list contains strings - `['stratpar_1', 'stratpar_2']`
