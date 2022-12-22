@@ -52,5 +52,5 @@ The following features will be implemented in future versions of pySODM,
 ### Versions
 
 - version 0.1 (2022-12-23) 
-
 - version 0.0 (2022-11-14)
+- Pre-development (2020-05-01 - 2022-11-24)
