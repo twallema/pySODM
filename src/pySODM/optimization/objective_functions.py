@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
-from pySODM.optimization.utils import thetas_to_thetas_dict
+from pySODM.optimization.utils import _thetas_to_thetas_dict
 from pySODM.models.validation import validate_initial_states
 
 ##############################
@@ -247,8 +247,20 @@ class log_posterior_probability():
     A generic implementation to compute the log posterior probability of a model given some data, computed as the sum of the log prior probabilities and the log likelihoods.
     # TODO: fully document docstring
     """
-    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights,
-                    log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
+                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+
+        #######################
+        ## Construct weights ##
+        #######################
+
+        if not weights:
+            if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):
+                raise ValueError(
+                    "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), and the extra arguments of the log likelihood function ({3}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args))
+                    )
+            else:
+                weights = len(data)*[1,]
 
         ##################################
         ## Construct initial conditions ##
@@ -614,7 +626,7 @@ class log_posterior_probability():
                         if isinstance(log_likelihood_fnc_args[idx], list):
                             if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                                 raise ValueError(
-                                    f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                    f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                                     )
                         # np.ndarray
                         if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
@@ -745,10 +757,10 @@ class log_posterior_probability():
         if self.warmup_position:
             simulation_kwargs.update({'warmup': thetas[self.warmup_position]})
             # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
+            thetas_dict, n = _thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
         else:
             # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
+            thetas_dict, n = _thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
 
         # Assign thetas for model parameters to the model object
         for param,value in thetas_dict.items():

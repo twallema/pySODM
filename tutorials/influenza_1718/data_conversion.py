@@ -42,7 +42,7 @@ data = data.drop(columns=['YEAR','WEEK'])
 data = data.groupby(by=['DATE','AGE']).sum().squeeze()
 
 # Define a dataframe with the desired format
-new_DATE = pd.date_range(start=data.index.get_level_values('DATE').unique()[0],end=data.index.get_level_values('DATE').unique()[-1])
+new_DATE = data.index.get_level_values('DATE').unique() #pd.date_range(start=data.index.get_level_values('DATE').unique()[0],end=data.index.get_level_values('DATE').unique()[-1])
 iterables=[new_DATE, data.index.get_level_values('AGE').unique()]
 names=['DATE', 'AGE']
 index = pd.MultiIndex.from_product(iterables, names=names)

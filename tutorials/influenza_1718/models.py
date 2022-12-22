@@ -1,4 +1,6 @@
+import pandas as pd
 import numpy as np
+from functools import lru_cache
 from pySODM.models.base import ODEModel, SDEModel
 
 class ODE_influenza_model(ODEModel):
@@ -8,7 +10,7 @@ class ODE_influenza_model(ODEModel):
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma', 'Nc']
-    parameters_stratified_names = ['f_a']
+    parameter_stratified_names = ['f_a']
     stratification_names = ['age_group']
 
     @staticmethod
@@ -33,28 +35,32 @@ class SDE_influenza_model(SDEModel):
     """
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['beta','sigma','gamma','Nc']
-    parameters_stratified_names = ['f_a']
+    parameter_names = ['beta','sigma','gamma','N']
+    parameter_stratified_names = ['f_a']
     stratification_names = ['age_group']
 
     @staticmethod
-    def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
+    def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
         
+        # Protect model against 'faulty' values of f_a
+        f_a = np.where(f_a < 0, 0, f_a)
+        f_a = np.where(f_a > 1, 1, f_a)
+
         # Calculate total population
         T = S+E+Ia+Im+R
 
-        # Rates per model state
+        # Compute rates per model state
         rates = {
-            'S': [beta*np.matmul(Nc, (Ia+Im)/T),],
+            'S': [beta*np.matmul(N, (Ia+Im)/T),],
             'E': [f_a*(1/sigma), (1-f_a)*(1/sigma)],
             'Ia': [(1/gamma)*np.ones(T.shape),],
             'Im': [(1/gamma)*np.ones(T.shape),],
         }
-
+        
         return rates
 
     @staticmethod
-    def apply_transitionings(t, tau, transitionings, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
+    def apply_transitionings(t, tau, transitionings, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
 
         S_new  = S - transitionings['S'][0]
         E_new = E + transitionings['S'][0] - transitionings['E'][0] - transitionings['E'][1]
@@ -65,3 +71,41 @@ class SDE_influenza_model(SDEModel):
 
         return S_new, E_new, Ia_new, Im_new, R_new, Im_inc_new
 
+
+class make_contact_matrix_function():
+
+    # Initialize class with contact matrices
+    def __init__(self, N_work, N_school, N_except_workschool):
+        self.N_work = N_work
+        self.N_school = N_school
+        self.N_except_workschool = N_except_workschool
+    
+    # Define a call function to return the right contact matrix
+    @lru_cache()
+    def __call__(self, t, work=1, school=1):
+        return self.N_except_workschool + work*self.N_work + school*self.N_school
+    
+    # Define a pySODM compatible wrapper with the social policies
+    def contact_function(self, t, states, param, ramp_time):
+
+        delay = pd.Timedelta(days=ramp_time)
+
+        if t <= pd.Timestamp('2017-12-20')+delay:
+            return self.__call__(t)
+        # Christmass holiday
+        elif pd.Timestamp('2017-12-20')+delay < t <= pd.Timestamp('2018-01-05')+delay:
+            return self.__call__(t, work=0.60, school=0)
+        # Christmass holiday --> Winter holiday
+        elif pd.Timestamp('2017-01-05')+delay < t <= pd.Timestamp('2018-02-09')+delay:
+            return self.__call__(t)
+        # Winter holiday
+        elif pd.Timestamp('2018-02-09')+delay < t <= pd.Timestamp('2018-02-16')+delay:
+            return self.__call__(t, work=0.90, school=0)
+        # Winter holiday --> Easter holiday
+        elif pd.Timestamp('2018-02-16')+delay < t <= pd.Timestamp('2018-03-28')+delay:
+            return self.__call__(t)
+        # Easter holiday
+        elif pd.Timestamp('2018-03-28')+delay < t <= pd.Timestamp('2018-04-16')+delay:
+            return self.__call__(t, work=0.60, school=0)
+        else:
+            return self.__call__(t)

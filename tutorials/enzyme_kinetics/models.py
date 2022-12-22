@@ -11,7 +11,7 @@ class packed_PFR(ODEModel):
 
     state_names = ['C_F', 'C_S']
     parameter_names = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
-    parameters_stratified_names = [['kL_a', 'D_ax'],]
+    parameter_stratified_names = [['kL_a', 'D_ax'],]
     stratification_names = ['species', 'x']
 
     @staticmethod
@@ -60,6 +60,7 @@ class PPBB_model(ODEModel):
     parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
 
     @staticmethod
+    @njit
     def integrate(t, S, A, Es, W, c_enzyme, Vf_Ks, R_AS, R_AW, R_Es, K_eq):
 
         # Calculate rate

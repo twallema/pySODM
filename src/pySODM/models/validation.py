@@ -1,8 +1,83 @@
+import copy
 import inspect
 import itertools
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+
+def date_to_diff(actual_start_date, end_date):
+    """
+    Convert date string to int (i.e. number of days since day 0 of simulation,
+    which is warmup days before actual_start_date)
+    """
+    return int((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
+
+def validate_simulation_time(time, warmup):
+    """Validates the simulation time of the sim() function. """
+
+    actual_start_date=None
+    if isinstance(time, float):
+        time = [0-warmup, round(time)]
+    elif isinstance(time, int):
+        time = [0-warmup, time]
+    elif isinstance(time, list):
+        if not len(time) == 2:
+            raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
+        else:
+            # If they are all int or flat (or commonly occuring np.int64/np.float64)
+            if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
+                time = [round(item) for item in time]
+                time[0] -= warmup
+            # If they are all timestamps
+            elif all([isinstance(item, pd.Timestamp) for item in time]):
+                actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                time = [0, date_to_diff(actual_start_date, time[1])]
+            # If they are all strings
+            elif all([isinstance(item, str) for item in time]):
+                time = [pd.Timestamp(item) for item in time]
+                actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                time = [0, date_to_diff(actual_start_date, time[1])]
+            else:
+                raise TypeError(
+                    f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
+                    )
+    else:
+        raise TypeError(
+                "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
+            )
+    return time, actual_start_date
+
+def validate_draw_function(draw_function, parameters, samples):
+    """Validates the draw functions input and output. For use in the sim() function. """
+
+    sig = inspect.signature(draw_function)
+    keywords = list(sig.parameters.keys())
+    # Verify that names of draw function are param_dict, samples_dict
+    if keywords[0] != "param_dict":
+        raise ValueError(
+            f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
+        )
+    elif keywords[1] != "samples_dict":
+        raise ValueError(
+            f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
+        )
+    elif len(keywords) > 2:
+        raise ValueError(
+            f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
+        )
+    # Call draw function
+    cp_draws=copy.deepcopy(parameters)
+    d = draw_function(parameters, samples)
+    parameters = cp_draws
+    if not isinstance(d, dict):
+        raise TypeError(
+            f"A draw function must return a dictionary. Found type {type(d)}"
+        )
+    if set(d.keys()) != set(parameters.keys()):
+        raise ValueError(
+            "Keys of model parameters dictionary returned by draw function do not match with the original dictionary.\n"
+            "Missing keys: {0}. Redundant keys: {1}".format(set(parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(parameters.keys())))
+        )
 
 def fill_initial_state_with_zero(state_names, initial_states):
     for state in state_names:
@@ -41,7 +116,6 @@ def validate_stratifications(stratification_names, coordinates):
             stratification_size = [1]
 
     return stratification_size
-
 
 def validate_parameter_function(func):
     # Validate the function passed to time_dependent_parameters

@@ -3,7 +3,6 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Packages
 import random
-import inspect
 import itertools
 import xarray
 import copy
@@ -13,8 +12,8 @@ import numba as nb
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
-from pySODM.models.utils import date_to_diff, int_to_date
-from pySODM.models.validation import validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
+from pySODM.models.utils import int_to_date
+from pySODM.models.validation import validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
 
 class SDEModel:
     """
@@ -44,7 +43,7 @@ class SDEModel:
 
     state_names = None
     parameter_names = None
-    parameters_stratified_names = None
+    parameter_stratified_names = None
     stratification_names = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
@@ -58,13 +57,13 @@ class SDEModel:
 
         # Validate the time-dependent parameter functions
         if time_dependent_parameters:
-            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameters_stratified_names, self.time_dependent_parameters)
+            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
         
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                            self.parameter_names, self.parameters_stratified_names, self._function_parameters,
+                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
                                                                                             self.compute_rates, self.apply_transitionings)
 
     # Overwrite integrate class
@@ -79,7 +78,7 @@ class SDEModel:
         raise NotImplementedError
 
     @staticmethod
-    def SSA(states, rates):
+    def _SSA(states, rates):
         """
         Stochastic simulation algorithm by Gillespie
         Based on: https://lewiscoleblog.com/gillespie-algorithm
@@ -155,10 +154,10 @@ class SDEModel:
 
         return transitionings, tau
 
-    def tau_leap(self, states, rates, tau):
+    def _tau_leap(self, states, rates, tau):
         """
         Tau-leaping algorithm by Gillespie
-        Loops over the model states, extracts the values of the states and the rates, passes them to `draw_transitionings()`
+        Loops over the model states, extracts the values of the states and the rates, passes them to `_draw_transitionings()`
 
         Inputs
         ------
@@ -185,13 +184,13 @@ class SDEModel:
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
-            transitionings[k] = self.draw_transitionings(states[k], nb.typed.List(rate), tau)
+            transitionings[k] = self._draw_transitionings(states[k], nb.typed.List(rate), tau)
 
         return transitionings, tau
 
     @staticmethod
     @nb.jit(nopython=True)
-    def draw_transitionings(states, rates, tau):
+    def _draw_transitionings(states, rates, tau):
         """
         Draw the transitionings from a multinomial distribution
         The use of the multinomial distribution is necessary to avoid states with two transitionings from becoming negative
@@ -199,7 +198,7 @@ class SDEModel:
         Inputs
         ------
         states: np.ndarray
-            n-dimensional matrix representing a given model state (passed down from `tau_leap()`)
+            n-dimensional matrix representing a given model state (passed down from `_tau_leap()`)
 
         rates: list
             List containing the transitioning rates of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
@@ -291,9 +290,9 @@ class SDEModel:
                 # --------------
 
                 if method == 'SSA':
-                    transitionings, tau = self.SSA(states, rates)
+                    transitionings, tau = self._SSA(states, rates)
                 elif method == 'tau_leap':
-                    transitionings, tau = self.tau_leap(states, rates, tau_input)
+                    transitionings, tau = self._tau_leap(states, rates, tau_input)
                     
                 # -------------
                 # update states 
@@ -305,7 +304,7 @@ class SDEModel:
 
         return func
 
-    def solve_discrete(self, fun, t_eval, y, args):
+    def _solve_discrete(self, fun, t_eval, y, args):
         # Preparations
         y=np.asarray(y) # otherwise error in func : y.reshape does not work
         y=np.reshape(y,[y.size,1])
@@ -342,7 +341,7 @@ class SDEModel:
             y0 = list(itertools.chain(*y0))
 
         # Run the time loop
-        output = self.solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), self.parameters)
+        output = self._solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), self.parameters)
 
         return self._output_to_xarray_dataset(output, actual_start_date)
 
@@ -353,11 +352,11 @@ class SDEModel:
         self.parameters.update(drawn_parameters)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_fcn`
+        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
 
         Parameters
@@ -374,12 +373,12 @@ class SDEModel:
         N : int
             Number of repeated simulations (useful for stochastic models). One by default.
 
-        draw_fcn : function
+        draw_function : function
             A function which takes as its input the dictionary of model parameters and a samples dictionary
             and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
 
         samples : dictionary
-            Sample dictionary used by draw_fcn. Does not need to be supplied if samples_dict is not used in draw_fcn.
+            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
 
         method: str
             Stochastic simulation method. Either 'Stochastic Simulation Algorithm' (SSA), or its tau-leaping approximation (tau_leap).
@@ -401,67 +400,25 @@ class SDEModel:
         """
 
         # Input checks on supplied simulation time
-        actual_start_date=None
-        if isinstance(time, float):
-            time = [0-warmup, round(time)]
-        elif isinstance(time, int):
-            time = [0-warmup, time]
-        elif isinstance(time, list):
-            if not len(time) == 2:
-                raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
-            else:
-                # If they are all int or flat
-                if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
-                    time = [round(item) for item in time]
-                    time[0] -= warmup
-                # If they are all timestamps
-                elif all([isinstance(item, pd.Timestamp) for item in time]):
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                # If they are all strings
-                elif all([isinstance(item, str) for item in time]):
-                    time = [pd.Timestamp(item) for item in time]
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                else:
-                    raise TypeError(
-                        f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
-                        )
-        else:
-            raise TypeError(
-                    "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
-                )
+        time, actual_start_date = validate_simulation_time(time, warmup)
 
         # Input check on draw function
-        if draw_fcn:
-            sig = inspect.signature(draw_fcn)
-            keywords = list(sig.parameters.keys())
-            # Verify that names of draw function are param_dict, samples_dict
-            if keywords[0] != "param_dict":
-                raise ValueError(
-                    f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
-                )
-            elif keywords[1] != "samples_dict":
-                raise ValueError(
-                    f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
-                )
-            elif len(keywords) > 2:
-                raise ValueError(
-                    f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
-                )
+        if draw_function:
+            validate_draw_function(draw_function, self.parameters, samples)
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
-
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
-            if draw_fcn:
+            cp_draws=copy.deepcopy(self.parameters)        
+            if draw_function:
                 out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_fcn(self.parameters,samples))
+                out.update(draw_function(self.parameters,samples))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
+            self.parameters=cp_draws    
 
         # Run simulations
         if processes: # Needed 
@@ -551,7 +508,7 @@ class ODEModel:
 
     state_names = None
     parameter_names = None
-    parameters_stratified_names = None
+    parameter_stratified_names = None
     stratification_names = None
     state_2d = None
 
@@ -566,13 +523,13 @@ class ODEModel:
 
         # Validate the time-dependent parameter functions
         if time_dependent_parameters:
-            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameters_stratified_names, self.time_dependent_parameters)
+            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
 
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                            self.parameter_names, self.parameters_stratified_names, self._function_parameters,
+                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
                                                                                             self._create_fun, self.integrate, self.state_2d)
 
         # Experimental: added to use 2D states for the Economic IO model
@@ -675,10 +632,10 @@ class ODEModel:
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_fcn=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, l=1/2, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, processes=None):
         """
-        Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_fcn`
+        Run a model simulation for the given time period. Can optionally perform `N` repeated simulations of time days.
+        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
 
         Parameters
@@ -695,12 +652,12 @@ class ODEModel:
         N : int
             Number of repeated simulations (useful for stochastic models). One by default.
 
-        draw_fcn : function
+        draw_function : function
             A function which takes as its input the dictionary of model parameters and a samples dictionary
             and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
 
         samples : dictionary
-            Sample dictionary used by draw_fcn. Does not need to be supplied if samples_dict is not used in draw_fcn.
+            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
 
         processes: int
             Number of cores to distribute the N draws over.
@@ -714,9 +671,6 @@ class ODEModel:
 
         rtol: float
             Relative tolerance of Scipy `solve_ivp`. Default: 1e-3. Quick and dirty: 5e-3.
-
-        l: float
-            Leaping time of tau-leaping Gillespie algorithm
 
         Returns
         -------
@@ -735,70 +689,27 @@ class ODEModel:
             )
 
         # Input checks on supplied simulation time
-        actual_start_date=None
-        if isinstance(time, float):
-            time = [0-warmup, round(time)]
-        elif isinstance(time, int):
-            time = [0-warmup, time]
-        elif isinstance(time, list):
-            if not len(time) == 2:
-                raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
-            else:
-                # If they are all int or flat (or commonly occuring np.int64/np.float64)
-                if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
-                    time = [round(item) for item in time]
-                    time[0] -= warmup
-                # If they are all timestamps
-                elif all([isinstance(item, pd.Timestamp) for item in time]):
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                # If they are all strings
-                elif all([isinstance(item, str) for item in time]):
-                    time = [pd.Timestamp(item) for item in time]
-                    actual_start_date = time[0] - pd.Timedelta(days=warmup)
-                    time = [0, date_to_diff(actual_start_date, time[1])]
-                else:
-                    raise TypeError(
-                        f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
-                        )
-        else:
-            raise TypeError(
-                    "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
-                )
-        # Input check on draw function
-        if draw_fcn:
-            sig = inspect.signature(draw_fcn)
-            keywords = list(sig.parameters.keys())
-            # Verify that names of draw function are param_dict, samples_dict
-            if keywords[0] != "param_dict":
-                raise ValueError(
-                    f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
-                )
-            elif keywords[1] != "samples_dict":
-                raise ValueError(
-                    f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
-                )
-            elif len(keywords) > 2:
-                raise ValueError(
-                    f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
-                )
+        time, actual_start_date = validate_simulation_time(time, warmup)
 
+        # Input check on draw function
+        if draw_function:
+            validate_draw_function(draw_function, self.parameters, samples)
+           
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
-
-        # Old linear case used _sim_single_ directly
         
         # Parallel case: https://www.delftstack.com/howto/python/python-pool-map-multiple-arguments/#parallel-function-execution-with-multiple-arguments-using-the-pool.starmap-method
-
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
-            if draw_fcn:
+            cp_draws=copy.deepcopy(self.parameters)
+            if draw_function:
                 out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_fcn(self.parameters,samples))
+                out.update(draw_function(self.parameters,samples))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
+            self.parameters=cp_draws
 
         # Run simulations
         if processes: # Needed 
