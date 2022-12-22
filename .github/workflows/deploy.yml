@@ -1,6 +1,6 @@
 name: Build sphinx documentation website
 
-on: [push, pull_request, workflow_dispatch]
+on: [pull_request]
 jobs:
   deploy:
     runs-on: ubuntu-latest
