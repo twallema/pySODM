@@ -47,8 +47,10 @@ The following features will be implemented in future versions of pySODM,
 
 - Send model output to a multiindex `pd.DataFrame` and give the user the choice between `xarray` or `pandas`. Will make the code more future-proof. Low priority.
 
+- If more the model has more stratifications than the dataset it is calibrated to, pySODM automatically sums over all model axes not found in the dataset. This could be generalized further by having the user supply an optional `lambda` function, telling pySODM how to integrate over every axis.
+
 ### Versions
 
-- version 0.1 (2022-12-xx) 
+- version 0.1 (2022-12-23) 
 
 - version 0.0 (2022-11-14)
