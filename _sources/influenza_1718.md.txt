@@ -1,15 +1,17 @@
 # An SDE Model for the 2017-2018 Influenza Season in Belgium
 
-In this tutorial, we'll revisit epidemiology by setting up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional charateristics of seasonal Influenza and we'll use the concept of *stratifications* to include age groups in our model. Then, we'll use a *time-dependent parameter function* to include the effects of school closures during school holidays. Finally, we'll calibrate two model parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge available.
+In this tutorial, we'll revisit epidemiology by setting up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional charateristics of seasonal Influenza and we'll use the concept of *stratifications* to include four age groups in our model. Opposed to the simple SIR tutorial, where changes in the number of social contacts were not considered, we'll use a *time-dependent parameter function* to include the effects of school closures during school holidays in our Influenza model. Finally, we'll calibrate two of the model's parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge at our disposal.
 
 This tutorial introduces the following concepts,
 - Building a stochastic model and solving it with Gillespie's Tau-Leaping method
 - Stratifying an epidemiological model to include age groups
 - Calibrating stratified parameters to stratified datasets
 
+This tutorial can be replicated using `~/tutorials/influenza_1718/calibration.py`
+
 ## Data
 
-Data on the weekly incidence of visits to General Practictioners (GP) are made publically available by the Belgian Scientific Institute of Public Health (Sciensano). These data were retrieved from the "End of season" report on Influenza in Belgium, named `Influenza 2017-2018 End of Season_NL.pdf` and located in the `data/raw` folder. Using [Webplotdigitizer](https://automeris.io/WebPlotDigitizer/), the weekly number of GP visits in the different age groups were extracted and saved in a file `dataset_influenza_1718.csv` (`data/raw`). Then, the script `data_conversion.py` was used to convert the *raw* weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season into a better suited format (daily incidence data, absolute number of cases). Poisson noise was added to the daily measurements, as the weekly data are the sum of seven noisy measurements resulting from a counting experiment. The formatted data were placed in `data_influenza_1718_format.csv` in the `data/interim` folder.
+Data on the weekly incidence of visits to General Practictioners (GP) are made publically available by the Belgian Scientific Institute of Public Health (Sciensano). These data were retrieved from the "End of season" report on Influenza in Belgium (see `data/raw/Influenza 2017-2018 End of Season_NL.pdf`). Using [Webplotdigitizer](https://automeris.io/WebPlotDigitizer/), the weekly number of GP visits in the different age groups were extracted (see `data/raw/dataset_influenza_1718.csv`). Then, the script `data_conversion.py` was used to convert the *raw* weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season into a better suited format. The weekly incidence was first converted to the absolute GP visits count by multipying with the demographics. Then, it was assumed that the weekly incidence was the sum of seven equal counts throughout the week preceding the data collection, and hence the weekly data were divided by seven. The formatted data are located in `data/interim/data_influenza_1718_format.csv`.
 
 ![data](/_static/figs/influenza_1718/data.png)
 
@@ -17,25 +19,25 @@ The data are loaded in our calibration script `~/tutorials/influenza_1718/calibr
 
 ```bash
 date        age_group
-2017-11-27  (0, 5]        13.0
-            (5, 15]       13.0
-            (15, 65]     370.0
-            (65, 120]     38.0
-2017-11-28  (0, 5]        25.0
-                         ...  
-2018-05-06  (65, 120]      1.0
-2018-05-07  (0, 5]         0.0
-            (5, 15]        0.0
-            (15, 65]       0.0
-            (65, 120]      0.0
-Name: CASES, Length: 648, dtype: float64
+2017-11-27  (0, 5]        15.373303
+            (5, 15]       13.462340
+            (15, 65]     409.713333
+            (65, 120]     33.502705
+                            ...    
+2018-05-07  (0, 5]         0.000000
+            (5, 15]        0.000000
+            (15, 65]       0.000000
+            (65, 120]      0.000000
+Name: CASES, Length: 96, dtype: float64
 ```
 
 The `pd.Multiindex` is important to our log posterior probability function. pySODM can automatically align a stratified model with a stratified dataset and compute the total log posterior probability, as long as the model stratification and the dataframes index level have the same name and share coordinates. The stratification in our dataset is named `'age_group'` and has four coordinates: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])`. The `time`/`date` axis is obligatory as always.
 
+> **note** If we'd stratify our model further to include spatial patches, we could still calibrate the model to the DataFrame above. pySODM would, in its current implementation, automatically sum over the model's spatial axis to align the prediction with the data. Potentially, this automatic summation could be replaced with a `lambda` function.
+
 ## Model dynamics, equations and parameters
 
-We'll extend the SIR model by making two changes. First, we'll add an *exposed* state (E), to account for the latent phase between infection and infectiousness. Second, we'll split the *infectious* state (I) in two because a large fraction of the infectious individuals remain undetected. We'll include a state for individuals who are infectious but remain undetected (Ia), either because these individuals have no symptoms, or these individuals don't visit the general practicioner (GP), and, we'll include a state for individuals who are infectious and go to the GP (Im).
+We'll extend the SIR model by making two changes. First, we'll add an *exposed* state (E), to account for the latent phase between the moment of infection and the onset of infectiousness. Second, we'll split the *infectious* state (I) in two to account that not all infectious individuals visit a GP and remain undetected. We'll include a state for individuals who are infectious but remain undetected (Ia), either because these individuals have no symptoms, or these individuals don't visit the general practicioner (GP), and, we'll include a state for individuals who are infectious and go to the GP (Im).
 
 <img src="./_static/figs/influenza_1718/flowchart.png" width="500" />
 
@@ -52,7 +54,7 @@ T^i &=& S^i + E^i + I_a^i + I_m^i + R^i,\\
 ```
 here, the subscript {math}`i` refers to the model's age groups: {math}`[0,5(, [5,15(, [15,65(,\text{ and } [65,120(` years old. {math}`S` denotes the number of individuals suceptible to the disease, {math}`E` denotes the number of exposed individuals, {math}`I_a` denotes the number of infectious but undetected individuals and {math}`I_m` denotes the number of infectious individuals who visit the GP and {math}`R` denotes the number of removed individuals, either through death or recovery. The model has five parameters,
 - {math}`\beta` : Per-contact chance of Influenza transmission. Calibrated.
-- {math}`N^{ij}` : Square origin-destination matrix containing the number of social contacts in age group {math}`i` with individuals from age group {math}`j`. Extracted from [Socrates](http://www.socialcontactdata.org/socrates/). Dataset: Hoang, Belgium, 2010. Physical contacts only.
+- {math}`N^{ij}` : Square origin-destination matrix containing the number of social contacts in age group {math}`i` with individuals from age group {math}`j`. Extracted from [Socrates](http://www.socialcontactdata.org/socrates/). Dataset: Hoang, Belgium, 2010. Physical contacts with a duration of 15+ minutes only.
 - {math}`f_a^i` : Age-stratified fraction of undetected cases. Calibrated.
 - {math}`\sigma` : Length of the latent phase, assumed equal to two days.
 - {math}`\gamma` : Length of infectiousness, assumed equal to five days.
@@ -80,7 +82,7 @@ R^i(t+\tau) &=& R^i(t) + \mathcal{N}(I_a \rightarrow R)^i + \mathcal{N}(I_a \rig
 
 ### The model
 
-Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a `stratification_names` and we'll declare the parameter {math}`f_a` as being a stratified parameter using `parameter_stratified_names`. As stratification name, we use the same name as the age stratification in the dataset: `'age_groups'`. The coordinates of the stratification will be defined later when the model is initialized. As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one state, the daily number (incidence) of new detected cases, `I_m_inc`, we'll use this state to match our data to.
+Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `stratification_names` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `parameter_stratified_names`. **As stratification name, we use the same name as the age stratification in the dataset: `'age_groups'`. The coordinates of the stratification will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
 
 ```python
 from pySODM.models.base import SDEModel
@@ -98,10 +100,6 @@ class SDE_influenza_model(SDEModel):
 
     @staticmethod
     def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
-        
-        # Protect model against 'faulty' values of f_a
-        f_a = np.where(f_a < 0, 0, f_a)
-        f_a = np.where(f_a > 1, 1, f_a)
 
         # Calculate total population
         T = S+E+Ia+Im+R
@@ -131,13 +129,13 @@ class SDE_influenza_model(SDEModel):
 
 There are some formatting requirements to `compute_rates()` and `apply_transitionings()`, which are listed in the [SDEModel documentation](models.md).
 
-The actual drawing of the transitionings is abstracted away from the user in the `SDEModel` class. Two stochastic simulation algorithms are available. In this tutorial, we'll use the Tau-Leaping method, where the value of `tau` is fixed and the number of transitionings in the interval `t` and `t + \tau` are drawn from a binomial distribution. This method is an approximation of the Stochastic Simulation Algorithm (SSA), where the time until the first transitioning `tau` is computed and only one transitioning can happen at every simulation step. However, as we aim to simulate a large number of individuals (11 million individuals), the time between transitionings becomes very small and the SSA becomes computationally too demanding. 
+The actual drawing of the transitionings is abstracted away from the user in the `SDEModel` class. Two stochastic simulation algorithms are currently available. In this tutorial, we'll use the Tau-Leaping method, where the value of `tau` is fixed and the number of transitionings in the interval `t` and `t + \tau` are drawn from a binomial distribution. This method is an approximation of the Stochastic Simulation Algorithm (SSA), where the time until the first transitioning `tau` is computed and only one transitioning can happen at every simulation step. However, as we aim to simulate a large number of individuals (11 million individuals), the time between transitionings becomes very small and the SSA becomes computationally too demanding. Good values for `tau` are typically found by balancing the use of computational resources against numerical stability. 
 
 ### Social contact function
 
-The number of work and school contacts tends to change during school holidays and this has an effect on Influenza spread. We'll thus use a *time-dependent parameter function* to vary the number of social contacts {math}`N` during the simulation. We'll wrap our `contact_function()` in a class for the sake of user friendliness. The initialization of the class is used to store the contact matrix of work contacts, school contacts, and the total matrix of contacts minus the school and work contacts. The callable function is used to return a contact matrix under varying percentages of work an school contacts. The `contact_function()` is the actual pySODM-compatible *time-dependent parameter function*, which implements the social policies. We'll add our TDPF to the `models.py` script.
+The number of work and school contacts tends to change during school holidays and this has an effect on Influenza spread. We'll thus use a *time-dependent parameter function* to vary the number of social contacts {math}`\mathbf{N}` during the simulation. We'll wrap our `contact_function()` in a class for the sake of user friendliness. The initialization of the class is used to store the contact matrix of work contacts, school contacts, and the total matrix of contacts minus the school and work contacts. The callable function is used to return a contact matrix under varying percentages of work and school contacts. The `contact_function()` is the actual pySODM-compatible *time-dependent parameter function*, which implements the social policies. We'll add our TDPF to the `models.py` script.
 
-We'll assume that during the Christmass and Easter holidays, schools close and work contacts are on average reduced by 30%. During winter holiday, schools close and work contacts are lowered by 10%. These estimates are based on reductions observed in the [Google Community Mobility Reports](https://www.google.com/covid19/mobility/) during the pandemic.
+We'll assume that during the Christmass and Easter holidays, schools close and work contacts are on average reduced by 40%. During winter holiday, schools close and work contacts are lowered by 10%. These estimates are based on reductions observed in the [Google Community Mobility Reports](https://www.google.com/covid19/mobility/) during the pandemic.
 
 ```python
 class make_contact_matrix_function():
@@ -160,7 +158,7 @@ class make_contact_matrix_function():
             return self.__call__(t)
         # Christmass holiday
         elif pd.Timestamp('2017-12-20') < t <= pd.Timestamp('2018-01-05'):
-            return self.__call__(t, work=0.70, school=0)
+            return self.__call__(t, work=0.60, school=0)
         # Christmass holiday --> Winter holiday
         elif pd.Timestamp('2017-01-05') < t <= pd.Timestamp('2018-02-09'):
             return self.__call__(t)
@@ -172,14 +170,14 @@ class make_contact_matrix_function():
             return self.__call__(t)
         # Easter holiday
         elif pd.Timestamp('2018-03-28') < t <= pd.Timestamp('2018-04-16'):
-            return self.__call__(t, work=0.70, school=0)
+            return self.__call__(t, work=0.60, school=0)
         else:
             return self.__call__(t)
 ```
 
 ### Initializing the model
 
-Next, we'll set the model up in our calibration script `~/tutorials/influenza_1718/calibration.py`. We load the model and contact function from `models.py` and initialize the contact matrix function using the hardcoded contact matrices. Then, as always, we define the model parameters, initial states (obtained analytically so the differentials are zero at {math}`t=0`) and coordinates. The coordinates are the same as the dataset: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)]`. 
+Next, we'll set the model up in our calibration script `~/tutorials/influenza_1718/calibration.py`. We load the model and social contact function from `models.py` and initialize the contact matrix function using the social contact matrices (hardcoded in the example). Then, as always, we define the model parameters, initial states (obtained analytically so the differentials are zero at {math}`t=0`) and coordinates. **The coordinates for stratification `age_groups` must be the same as the dataset: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)]`**. 
 
 ```python
 
@@ -202,10 +200,10 @@ params={'beta': 0.034, 'sigma': 1, 'f_a': np.array([0.01, 0.63, 0.88, 0.76]), 'g
 
 # Define initial condition
 init_states = {'S': list(initN.values),
-               'E': list((1/(1-params['f_a']))*df_influenza.loc[start_date, slice(None)]),
-               'Ia': list((params['f_a']/(1-params['f_a']))*params['gamma']*df_influenza.loc[start_date, slice(None)]),
-               'Im': list(params['gamma']*df_influenza.loc[start_date, slice(None)]),
-               'Im_inc': list(df_influenza.loc[start_date, slice(None)])}
+               'E': list((1/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)]),
+               'Ia': list((params['f_a']/(1-params['f_a']))*params['gamma']*df_influenza.loc[start_calibration, slice(None)]),
+               'Im': list(params['gamma']*df_influenza.loc[start_calibration, slice(None)]),
+               'Im_inc': list(df_influenza.loc[start_calibration, slice(None)])}
 
 # Define model coordinates
 coordinates={'age_group': pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])}
@@ -216,34 +214,53 @@ model = influenza_model(init_states,params,coordinates,time_dependent_parameters
 
 ### Calibration
 
-Setting up the log posterior probability function is similar to the previous tutorials. Our multiindexed `pd.DataFrame` containing the age-stratified data and the model's age stratification share the same name and coordinates, pySODM performs the necessary input checks and will automatically align these axes when computing the log posterior probability. We aim to calibrate two model parameters: {math}`\beta` and {math}`\mathbf{f_a}`. However, {math}`\mathbf{f_a}` consists of four elements {math}`f_a^i`, how does pySODM handle this?
+The syntax to set up the log posterior probability function is similar to the previous tutorials. Our multiindexed `pd.DataFrame` containing the age-stratified data and the model's age stratification share the same name and coordinates. pySODM performs the necessary input checks and will automatically align these axes when computing the log posterior probability. We aim to calibrate two model parameters: {math}`\beta` and {math}`\mathbf{f_a}`. However, {math}`\mathbf{f_a}` consists of four elements {math}`f_a^i`, how does pySODM handle this?
 
-As if nothing's up:
+As if nothing's up,
 
 ```python
 
 if __name__ == '__main__':
 
-    # Variables
-    processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 50
-    multiplier_pso = 20
+    from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
+
     # Define dataset
     data=[df_influenza[start_date:end_calibration], ]
     states = ["Im_inc",]
-    weights = np.array([1,])
-    log_likelihood_fnc = [ll_poisson,]
-    log_likelihood_fnc_args = [[],]
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [5*[0.03,],]
+
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
     bounds = [(1e-6,0.06), (0,0.99)]
+
     # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
 ```
 
-In the example above, bounds and labels of {math}`\mathbf{f_a}` are automatically expanded to the right size. However, we retain the possibility of supplying a bound and label per element of {math}`\mathbf{f_a}`. Running the NM/PSO and MCMC optimizations happens in the same manner as the other tutorials.
+In the example above, bounds and labels of {math}`\mathbf{f_a}` are automatically expanded to the right size when the log posterior probability function is initialized. However, I have retained the possibility of supplying a bound and label per element of {math}`\mathbf{f_a}`. Running the NM/PSO and MCMC optimizations happens in the same manner as the other tutorials.
 
-We're now ready to generate our results, we'll calibrate the model using only the data up until January 1st, 2018 and then increase the amount of available data in one month increments. In this way, we'll be able to asses how our calibrated model fares under limited datasets.
+## Results and discussion
 
-## Results
+We're now ready to generate our results, we'll first calibrate the model using data up until January 1st, 2018, well before the peak incidence around mid February, 2018. The, we'll increase the amount of available data until February 1st, 2018 and then March 1st, 2018, representing the moment right before, and right after, the peak incidence. Let's first have a look at the sampled distributions of {math}`\beta` and {math}`\mathbf{f_a}` on the largest dataset (ending March 1st, 2018).
+
+The optimal values of the fraction of undetected cases {math}`\mathbf{f_a}` are: `f_a = [0.01, 0.66, 0.89, 0.70]`. The undetected fraction is thus very small in children aged five years and below, then increases to 89% in individuals aged 15 to 65 years old, and finally decreases to 70% in the senior population. Some (mild) degree of correlation between the infectivity {math}`\beta` and the fraction of undetected cases {math}`\mathbf{f_a}` is visible. This could be expected, a higher infectivity would logically result in a lower fraction of detected cases to obtain the same fit to the data.
+
+![corner_enddate_2018-03-01](/_static/figs/influenza_1718/corner_enddate_2018-03-01.png)
+
+Next, we show, for every age group and for our three calibration datasets, the model trajectories plotted on top of the data. Considering how rudimentary this model is, even the predictions made on January 1st, 2018, one month and a half before the peak incidence, are reasonably accurate and can be informative to policymakers and economists. It should be noted that the peak incidence in all age groups falls at least two weeks earlier than was the case in real life, and this is most apparent in the age group {math}`[15,65(`.
+
+As previously mentioned, this is a rudimentary model and I see two ways of improving its predictive accuracy. First, the model subdivides the population in only four groups depending on their age, this inherently assumes an individual of an age class {math}`i` is equally likely to have contact with any other individual in age group {math}`i`, even if this person lives on the other side of the country. The model accuracy could be improved significantly by including spatial patches (and potentially human mobility) in the model. As the peak incidence during an epidemic is the superposition of the peaks in different areas, adding spatial heterogeneity will likely broaden and postpone the peak incidence. Additionally, including the protective effects of vaccination could likely further improve this model's accuracy by lowering the peak incidence in the elderly population, which is more likely to get vaccinated.
+
+**Calibration ending on January 1st, 2018**
+
+![fit_enddate_2018-01-01](/_static/figs/influenza_1718/fit_enddate_2018-01-01.png)
+
+**Calibration ending on February 1st, 2018**
+
+![fit_enddate_2018-02-01](/_static/figs/influenza_1718/fit_enddate_2018-02-01.png)
+
+**Calibration ending on March 1st, 2018**
+
+![fit_enddate_2018-03-01](/_static/figs/influenza_1718/fit_enddate_2018-03-01.png)
