@@ -1,31 +1,58 @@
 # pySODM
+
+## pySODM
+
 *Simulating and Optimising Dynamical Models in Python 3*
 
-## Documentation website
+### Aim & Scope
 
-https://twallema.github.io/pySODM/index.html
+Over the past four years I've been engaged in several academic modeling & simulation projects in the fields of chemical engineering and epidemiology. I've found these projects typically constitute the following steps:
 
-## Aim & Scope
+1. Build a system dynamical model to describe some real-world phenomenon.
+2. Calibrate the model to a set of experimental data.
+3. Extract knowledge from the calibrated parameter values. Perform additional sensitivity analyses to finetune the model structure.
+4. Use the model to make projections outside the calibrated range.
 
-The goal of pySODM is to simplify building a dynamic model with ordinary differential equations (ODE) or stochastic difference equations (SDE) and calibrating them to data using frequentist or bayesian methods, as these constitute a typical workflow in academic modeling & simulation projects. pySODM does not aim to provide novice modelers with a high-level interface for building systems of ODEs or SDEs, such as [pySD](https://pysd.readthedocs.io/en/master/) or [BPTK-Py](https://bptk.transentis.com/en/latest/). Rather, it aims to provide modelers with a set of DRY building blocks to build arbitrarily complex models. An example would be a compartmental epidemiological model for COVID-19 where the number of social contacts at each timestep *t* is computed using a neural network. In a typical modeling & simulation project, some parts of the code will be serve as generic building blocks while others will contain ad-hoc workflows (think datasets and their conversions, notebooks for exploration). The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den Bossche in May 2020. Their code was used and modified by Tijs Alleman, Jenna Vergeynst and Michiel Rollier to build compartmental models for COVID-19 in Belgium. pySODM is the distillate of this collaboration.
+The goal of pySODM is to reduce the time it takes to step through this workflow by coupling the necessary low-level packages for solving sets of differential equations (`scipy.integrate.solve_ivp()`, [see](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html)), and for performing optimizations (`emcee`, [see](https://emcee.readthedocs.io/en/stable/)). pySODM exploits `xarray.Dataset` ([see](https://docs.xarray.dev/en/stable/)) to function as the glue between the aforementioned packages by uniformly formatting model output. Additional time is saved because basic simulation workflows, such as varying model parameters during the simulation or sampling model parameters from distributions, and basic optimization workflows, such as constructing a posterior probability function, were implemented in an generalized way. Such features may seem easy to implement, but their complexity often blows up in the face of academic realities, such as,
+- I want my models to have n-dimensional states, where each axis in the output represents some property. For instance, having age groups or spatial patches in an SIR model.
+- I want to calibrate my model against high-dimensional data. For instance, disease case data are available on each day and for each age group.
+- I want a model parameter to be updated in accordance with some very large dataset on each simulation timestep. For instance, administering vaccines in an SIR model.
+- I want to calibrate a mixture of model parameters, some being floats, others being vectors to a dataset.
+- etc ...
 
-## What can pySODM do?
+We don't want to have to program these case-specific pipelines every time we build a model. pySODMs added value lies wholy in making the typical modeling & simulation workflow faster. pySODM does not contain implementations of novel solution techniques for ODEs or SDEs, novel optimization algorithms, or novel sensitivity analysis. pySODM does not aim to provide novice modelers with a high-level interface for building systems of ODEs or SDEs, such as [pySD](https://pysd.readthedocs.io/en/master/) or [BPTK-Py](https://bptk.transentis.com/en/latest/). pySODM also does not include the tools to perform sensitivity analysis (step 3 of our workflow), however, coupling to [SAlib](https://salib.readthedocs.io/en/latest/) is straightforward.
 
-1) Build a dynamic system model.
-- Use ordinary differential equations (ODE) and solve them using `scipy.integrate.solve_ivp()`
-- Use a stochastic difference equations (SDE) and sovle them using SSA or Tau-Leaping
-- No high-level interface. The user is responsible for the contents of the integration function (timestep, states, parameters in; differentials out). `pySODM` does provide input checks on the sizes and data types of model states and parameters.
-- *Stratify* or *vectorize* model states easily in *n* dimensions
+The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den Bossche in May 2020. Their code was used and modified by Tijs Alleman, Jenna Vergeynst and Michiel Rollier to build compartmental models for COVID-19 in Belgium (checkout the [references](references.md)). pySODM is the distillate of this collaboration. My motivation for spending the extra time to fully develop pySODM was to make future tutoring of students easier. I hope others may find pySODM as usefull as I do.  
 
-2) Simulate the model.
-- Model output is stored using `xarray`. Every *stratification* can be given a name and coordinates to ease handling of simulation output.
-- Model parameters can be varied over time using arbitrarily complex functions
-- Perform repeated simulations with sampling of model parameters and support for `multiprocessing`
+### Overview of features
 
-3) Calibrate the model to data.
-- Provides building blocks to construct a log likelihood function for optimization
-- Supports matching model states to multiple datasets over stratifications and with mismatching timesteps
-- Provides a pure-Python implementation of Particle Swarm Optimization and Nelder-Mead Optimization, modified to support `multiprocessing`
-- Interfaces to `emcee` for Markov-Chain Monte-Carlo sampling
+| Workflow                     | Features                                                                                                                        |
+|------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| Building a dynamic model     | ODEs and Gillespie (SSA, tau-leaping)                                                                                           |
+|                              | Stratification in n-dimensional states                                                                                          |
+|                              | Output handling in xarray (supports int/float as well as datetime timesteps, assignment of coordinates to stratifications)      |
+|                              | 2D model states (experimental; ODE only)                                                                                        |
+| Simulating a dynamic model   | Time-dependent variation of model parameters using complex functions and large datasets                                         |
+|                              | Simulating models with parameters drawn from distributions for sensitivity/scenario analysis                                    |
+|                              | Supports multiprocessing                                                                                                        |
+| Calibrating a dynamic model  | Toolbox to set up log likelihood functions: correct alignment of data and model prediction, calibration of vector parameters, analysis of mean-variance realtionship, etc.    |
+|                              | Nelder-Mead Optimization and Particle Swarm Optimization with multiprocessing support                                           |
+|                              | Pipeline to `emcee` for Bayesian Inference of model parameters                                                                  |
 
-Additionally, we recommend the use of [SAlib](https://salib.readthedocs.io/en/latest/) to perform global sensitivity analysis.
+### Roadmap
+
+The following features will be implemented in future versions of pySODM,
+
+- Coupling of ODE Models with different stratifications. The user will be able to define a model, consisting of two submodels with states of different sizes. These two models will share one `integrate` function to make coupling of the differentials possible. Output will be returned in seperate `xarray` Datasets. High priority.
+
+- Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.
+
+- Send model output to a multiindex `pd.DataFrame` and give the user the choice between `xarray` or `pandas`. Will make the code more future-proof. Low priority.
+
+- If more the model has more stratifications than the dataset it is calibrated to, pySODM automatically sums over all model axes not found in the dataset. This could be generalized further by having the user supply an optional `lambda` function, telling pySODM how to integrate over every axis.
+
+### Versions
+
+- version 0.1 (2022-12-23) 
+- version 0.0 (2022-11-14)
+- Pre-development (2020-05-01 - 2022-11-24)
