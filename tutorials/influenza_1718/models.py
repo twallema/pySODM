@@ -94,18 +94,18 @@ class make_contact_matrix_function():
             return self.__call__(t)
         # Christmass holiday
         elif pd.Timestamp('2017-12-20')+delay < t <= pd.Timestamp('2018-01-05')+delay:
-            return self.__call__(t, work=0.40, school=0)
+            return self.__call__(t, work=0.60, school=0)
         # Christmass holiday --> Winter holiday
         elif pd.Timestamp('2017-01-05')+delay < t <= pd.Timestamp('2018-02-09')+delay:
             return self.__call__(t)
         # Winter holiday
         elif pd.Timestamp('2018-02-09')+delay < t <= pd.Timestamp('2018-02-16')+delay:
-            return self.__call__(t, work=1, school=0)
+            return self.__call__(t, work=0.90, school=0)
         # Winter holiday --> Easter holiday
         elif pd.Timestamp('2018-02-16')+delay < t <= pd.Timestamp('2018-03-28')+delay:
             return self.__call__(t)
         # Easter holiday
         elif pd.Timestamp('2018-03-28')+delay < t <= pd.Timestamp('2018-04-16')+delay:
-            return self.__call__(t, work=0.40, school=0)
+            return self.__call__(t, work=0.60, school=0)
         else:
             return self.__call__(t)

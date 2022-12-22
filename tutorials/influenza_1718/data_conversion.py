@@ -42,7 +42,7 @@ data = data.drop(columns=['YEAR','WEEK'])
 data = data.groupby(by=['DATE','AGE']).sum().squeeze()
 
 # Define a dataframe with the desired format
-new_DATE = pd.date_range(start=data.index.get_level_values('DATE').unique()[0],end=data.index.get_level_values('DATE').unique()[-1])
+new_DATE = data.index.get_level_values('DATE').unique() #pd.date_range(start=data.index.get_level_values('DATE').unique()[0],end=data.index.get_level_values('DATE').unique()[-1])
 iterables=[new_DATE, data.index.get_level_values('AGE').unique()]
 names=['DATE', 'AGE']
 index = pd.MultiIndex.from_product(iterables, names=names)
@@ -58,14 +58,6 @@ for age_group in merge.index.get_level_values('AGE').unique():
     interpol = merge.loc[slice(None),age_group].interpolate(method='linear').values
     merge.loc[slice(None),age_group] = interpol
     merge.loc[slice(None),age_group] = merge.loc[slice(None),age_group].values*N.loc[age_group]/100000
-
-#######################
-## Add Poisson noise ##
-#######################
-
-#alpha=0.03
-#merge.loc[slice(None), slice(None)] = np.random.negative_binomial(1/alpha, (1/alpha)/(merge.values + (1/alpha)))
-merge.loc[slice(None), slice(None)] = np.random.poisson(merge.values)
 
 #################
 ## Save result ##
