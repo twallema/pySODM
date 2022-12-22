@@ -17,6 +17,7 @@
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -48,7 +49,19 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling &amp; simulation workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enzyme_kinetics.html">Enzyme kinetics</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Influenza 2017-2018</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Influenza 2017-2018</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-dynamics-equations-and-parameters">Model dynamics, equations and parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coding-it-up">Coding it up</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-model">The model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#social-contact-function">Social contact function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#initializing-the-model">Initializing the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#calibration">Calibration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#results">Results</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
@@ -91,6 +104,237 @@
              
   <section id="an-sde-model-for-the-2017-2018-influenza-season-in-belgium">
 <h1>An SDE Model for the 2017-2018 Influenza Season in Belgium<a class="headerlink" href="#an-sde-model-for-the-2017-2018-influenza-season-in-belgium" title="Permalink to this heading">¶</a></h1>
+<p>In this tutorial, we’ll revisit epidemiology by setting up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we’ll expand the dynamics of the <a class="reference internal" href="workflow.html"><span class="doc std std-doc">simple SIR model</span></a> to account for additional charateristics of seasonal Influenza and we’ll use the concept of <em>stratifications</em> to include age groups in our model. Then, we’ll use a <em>time-dependent parameter function</em> to include the effects of school closures during school holidays. Finally, we’ll calibrate two model parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge available.</p>
+<p>This tutorial introduces the following concepts,</p>
+<ul class="simple">
+<li><p>Building a stochastic model and solving it with Gillespie’s Tau-Leaping method</p></li>
+<li><p>Stratifying an epidemiological model to include age groups</p></li>
+<li><p>Calibrating stratified parameters to stratified datasets</p></li>
+</ul>
+<section id="data">
+<h2>Data<a class="headerlink" href="#data" title="Permalink to this heading">¶</a></h2>
+<p>Data on the weekly incidence of visits to General Practictioners (GP) are made publically available by the Belgian Scientific Institute of Public Health (Sciensano). These data were retrieved from the “End of season” report on Influenza in Belgium, named <code class="docutils literal notranslate"><span class="pre">Influenza</span> <span class="pre">2017-2018</span> <span class="pre">End</span> <span class="pre">of</span> <span class="pre">Season_NL.pdf</span></code> and located in the <code class="docutils literal notranslate"><span class="pre">data/raw</span></code> folder. Using <a class="reference external" href="https://automeris.io/WebPlotDigitizer/">Webplotdigitizer</a>, the weekly number of GP visits in the different age groups were extracted and saved in a file <code class="docutils literal notranslate"><span class="pre">dataset_influenza_1718.csv</span></code> (<code class="docutils literal notranslate"><span class="pre">data/raw</span></code>). Then, the script <code class="docutils literal notranslate"><span class="pre">data_conversion.py</span></code> was used to convert the <em>raw</em> weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season into a better suited format (daily incidence data, absolute number of cases). Poisson noise was added to the daily measurements, as the weekly data are the sum of seven noisy measurements resulting from a counting experiment. The formatted data were placed in <code class="docutils literal notranslate"><span class="pre">data_influenza_1718_format.csv</span></code> in the <code class="docutils literal notranslate"><span class="pre">data/interim</span></code> folder.</p>
+<p><img alt="data" src="_images/data.png" /></p>
+<p>The data are loaded in our calibration script <code class="docutils literal notranslate"><span class="pre">~/tutorials/influenza_1718/calibration.py</span></code> as a <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> with a <code class="docutils literal notranslate"><span class="pre">pd.Multiindex</span></code>,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>date        age_group
+<span class="m">2017</span>-11-27  <span class="o">(</span><span class="m">0</span>, <span class="m">5</span><span class="o">]</span>        <span class="m">13</span>.0
+            <span class="o">(</span><span class="m">5</span>, <span class="m">15</span><span class="o">]</span>       <span class="m">13</span>.0
+            <span class="o">(</span><span class="m">15</span>, <span class="m">65</span><span class="o">]</span>     <span class="m">370</span>.0
+            <span class="o">(</span><span class="m">65</span>, <span class="m">120</span><span class="o">]</span>     <span class="m">38</span>.0
+<span class="m">2017</span>-11-28  <span class="o">(</span><span class="m">0</span>, <span class="m">5</span><span class="o">]</span>        <span class="m">25</span>.0
+                         ...  
+<span class="m">2018</span>-05-06  <span class="o">(</span><span class="m">65</span>, <span class="m">120</span><span class="o">]</span>      <span class="m">1</span>.0
+<span class="m">2018</span>-05-07  <span class="o">(</span><span class="m">0</span>, <span class="m">5</span><span class="o">]</span>         <span class="m">0</span>.0
+            <span class="o">(</span><span class="m">5</span>, <span class="m">15</span><span class="o">]</span>        <span class="m">0</span>.0
+            <span class="o">(</span><span class="m">15</span>, <span class="m">65</span><span class="o">]</span>       <span class="m">0</span>.0
+            <span class="o">(</span><span class="m">65</span>, <span class="m">120</span><span class="o">]</span>      <span class="m">0</span>.0
+Name: CASES, Length: <span class="m">648</span>, dtype: float64
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">pd.Multiindex</span></code> is important to our log posterior probability function. pySODM can automatically align a stratified model with a stratified dataset and compute the total log posterior probability, as long as the model stratification and the dataframes index level have the same name and share coordinates. The stratification in our dataset is named <code class="docutils literal notranslate"><span class="pre">'age_group'</span></code> and has four coordinates: <code class="docutils literal notranslate"><span class="pre">pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])</span></code>. The <code class="docutils literal notranslate"><span class="pre">time</span></code>/<code class="docutils literal notranslate"><span class="pre">date</span></code> axis is obligatory as always.</p>
+</section>
+<section id="model-dynamics-equations-and-parameters">
+<h2>Model dynamics, equations and parameters<a class="headerlink" href="#model-dynamics-equations-and-parameters" title="Permalink to this heading">¶</a></h2>
+<p>We’ll extend the SIR model by making two changes. First, we’ll add an <em>exposed</em> state (E), to account for the latent phase between infection and infectiousness. Second, we’ll split the <em>infectious</em> state (I) in two because a large fraction of the infectious individuals remain undetected. We’ll include a state for individuals who are infectious but remain undetected (Ia), either because these individuals have no symptoms, or these individuals don’t visit the general practicioner (GP), and, we’ll include a state for individuals who are infectious and go to the GP (Im).</p>
+<img src="./_static/figs/influenza_1718/flowchart.png" width="500" />
+<p>We’ll simulate these dynamics stochastically with Gillespie’s Tau-Leaping method. Instead of defining a differential equation for every model state, we need to define the rates of all possible transitionings in the system,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{cases}
+T^i &amp;=&amp; S^i + E^i + I_a^i + I_m^i + R^i,\\
+\mathcal{R}(S \rightarrow E_i)^i &amp;=&amp; \beta \sum_j N^{ij} \dfrac{(I_a^j + I_m^j)}{T^j},\\
+\mathcal{R}(E \rightarrow I_a)^i &amp;=&amp; \dfrac{f_a^i}{\sigma}, \\
+\mathcal{R}(E \rightarrow I_m)^i &amp;=&amp; \dfrac{1-f_a^i}{\sigma}, \\
+\mathcal{R}(I_a \rightarrow R)^i &amp;=&amp; \dfrac{1}{\gamma}, \\
+\mathcal{R}(I_m \rightarrow R)^i &amp;=&amp; \dfrac{1}{\gamma}, 
+\end{cases}\end{split}\]</div>
+<p>here, the subscript <span class="math notranslate nohighlight">\(i\)</span> refers to the model’s age groups: <span class="math notranslate nohighlight">\([0,5(, [5,15(, [15,65(,\text{ and } [65,120(\)</span> years old. <span class="math notranslate nohighlight">\(S\)</span> denotes the number of individuals suceptible to the disease, <span class="math notranslate nohighlight">\(E\)</span> denotes the number of exposed individuals, <span class="math notranslate nohighlight">\(I_a\)</span> denotes the number of infectious but undetected individuals and <span class="math notranslate nohighlight">\(I_m\)</span> denotes the number of infectious individuals who visit the GP and <span class="math notranslate nohighlight">\(R\)</span> denotes the number of removed individuals, either through death or recovery. The model has five parameters,</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\beta\)</span> : Per-contact chance of Influenza transmission. Calibrated.</p></li>
+<li><p><span class="math notranslate nohighlight">\(N^{ij}\)</span> : Square origin-destination matrix containing the number of social contacts in age group <span class="math notranslate nohighlight">\(i\)</span> with individuals from age group <span class="math notranslate nohighlight">\(j\)</span>. Extracted from <a class="reference external" href="http://www.socialcontactdata.org/socrates/">Socrates</a>. Dataset: Hoang, Belgium, 2010. Physical contacts only.</p></li>
+<li><p><span class="math notranslate nohighlight">\(f_a^i\)</span> : Age-stratified fraction of undetected cases. Calibrated.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\sigma\)</span> : Length of the latent phase, assumed equal to two days.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\gamma\)</span> : Length of infectiousness, assumed equal to five days.</p></li>
+</ul>
+<p>Assuming these rates are exponentially distributed, the probability of a single transition from a generic state A to B in age class <span class="math notranslate nohighlight">\(i\)</span> happening between time <span class="math notranslate nohighlight">\(t\)</span> and <span class="math notranslate nohighlight">\(t+\tau\)</span>, is,</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{P}(A \rightarrow B)^i = 1 - e^{- \tau*\mathcal{R}(A \rightarrow B)^i}.\]</div>
+<p>The corresponding number of transitions <span class="math notranslate nohighlight">\(A \rightarrow B\)</span> in age class <span class="math notranslate nohighlight">\(i\)</span> and between time <span class="math notranslate nohighlight">\(t\)</span> and <span class="math notranslate nohighlight">\(t + \tau\)</span> are then generated by drawing from a binomial distribution,</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{N}(A \rightarrow B)^i = Binom(\mathcal{P}(A \rightarrow B)^i, A^i).\]</div>
+<p>The number of individuals in each of the compartments at time <span class="math notranslate nohighlight">\(t + \tau\)</span> is then given by,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{cases}
+S^i(t+\tau) &amp;=&amp; S^i(t) - \mathcal{N}(S \rightarrow E)^i,\\
+E^i(t+\tau) &amp;=&amp; E^i(t) + \mathcal{N}(S \rightarrow E)^i - \mathcal{N}(E \rightarrow I_a)^i - \mathcal{N}(E \rightarrow I_m)^i,\\
+I_a^i(t+\tau) &amp;=&amp; I_a^i(t) + \mathcal{N}(E \rightarrow I_a)^i - \mathcal{N}(I_a \rightarrow R)^i, \\
+I_m^i(t+\tau) &amp;=&amp; I_m^i(t) + \mathcal{N}(E \rightarrow I_m)^i - \mathcal{N}(I_m \rightarrow R)^i, \\
+R^i(t+\tau) &amp;=&amp; R^i(t) + \mathcal{N}(I_a \rightarrow R)^i + \mathcal{N}(I_a \rightarrow R)^i,
+\end{cases}\end{split}\]</div>
+</section>
+<section id="coding-it-up">
+<h2>Coding it up<a class="headerlink" href="#coding-it-up" title="Permalink to this heading">¶</a></h2>
+<section id="the-model">
+<h3>The model<a class="headerlink" href="#the-model" title="Permalink to this heading">¶</a></h3>
+<p>Opposed to ODE models, where the user had to define an <code class="docutils literal notranslate"><span class="pre">integrate()</span></code> function to compute the values of the derivatives at time <span class="math notranslate nohighlight">\(t\)</span>, the user will have to define <a class="reference internal" href="models.html"><span class="doc std std-doc">two functions</span></a> to setup an SDE model: 1) A function to compute the rates at time <span class="math notranslate nohighlight">\(t\)</span> named <code class="docutils literal notranslate"><span class="pre">compute_rates()</span></code>, and 2) A function to compute the values of the model states at time <span class="math notranslate nohighlight">\(t+\tau\)</span> named <code class="docutils literal notranslate"><span class="pre">apply_transitionings()</span></code>. As we did in the <a class="reference internal" href="enzyme_kinetics.html"><span class="doc std std-doc">packed-bed continuous flow reactor</span></a> tutorial, we’ll stratifiy the model into age groups by specifying a <code class="docutils literal notranslate"><span class="pre">stratification_names</span></code> and we’ll declare the parameter <span class="math notranslate nohighlight">\(f_a\)</span> as being a stratified parameter using <code class="docutils literal notranslate"><span class="pre">parameter_stratified_names</span></code>. As stratification name, we use the same name as the age stratification in the dataset: <code class="docutils literal notranslate"><span class="pre">'age_groups'</span></code>. The coordinates of the stratification will be defined later when the model is initialized. As in the <a class="reference internal" href="enzyme_kinetics.html"><span class="doc std std-doc">enzyme kinetics tutorial</span></a>, we’ll group our model in a file called <code class="docutils literal notranslate"><span class="pre">models.py</span></code> to reduce the complexity of our calibration script. We introduce one state, the daily number (incidence) of new detected cases, <code class="docutils literal notranslate"><span class="pre">I_m_inc</span></code>, we’ll use this state to match our data to.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">SDEModel</span>
+
+<span class="k">class</span> <span class="nc">SDE_influenza_model</span><span class="p">(</span><span class="n">SDEModel</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple stochastic SEIR model for influenza with undetected carriers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;E&#39;</span><span class="p">,</span><span class="s1">&#39;Ia&#39;</span><span class="p">,</span><span class="s1">&#39;Im&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">,</span><span class="s1">&#39;Im_inc&#39;</span><span class="p">]</span>
+    <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;sigma&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span><span class="s1">&#39;N&#39;</span><span class="p">]</span>
+    <span class="n">parameter_stratified_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;f_a&#39;</span><span class="p">]</span>
+    <span class="n">stratification_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;age_group&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">compute_rates</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">Ia</span><span class="p">,</span> <span class="n">Im</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">Im_inc</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">f_a</span><span class="p">):</span>
+        
+        <span class="c1"># Protect model against &#39;faulty&#39; values of f_a</span>
+        <span class="n">f_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">f_a</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">f_a</span><span class="p">)</span>
+        <span class="n">f_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">f_a</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f_a</span><span class="p">)</span>
+
+        <span class="c1"># Calculate total population</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">S</span><span class="o">+</span><span class="n">E</span><span class="o">+</span><span class="n">Ia</span><span class="o">+</span><span class="n">Im</span><span class="o">+</span><span class="n">R</span>
+
+        <span class="c1"># Compute rates per model state</span>
+        <span class="n">rates</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">beta</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="p">(</span><span class="n">Ia</span><span class="o">+</span><span class="n">Im</span><span class="p">)</span><span class="o">/</span><span class="n">T</span><span class="p">),],</span>
+            <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">f_a</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">sigma</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">f_a</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">sigma</span><span class="p">)],</span>
+            <span class="s1">&#39;Ia&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="mi">1</span><span class="o">/</span><span class="n">gamma</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">),],</span>
+            <span class="s1">&#39;Im&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="mi">1</span><span class="o">/</span><span class="n">gamma</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">),],</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">rates</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">apply_transitionings</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">transitionings</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">Ia</span><span class="p">,</span> <span class="n">Im</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">Im_inc</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">f_a</span><span class="p">):</span>
+
+        <span class="n">S_new</span>  <span class="o">=</span> <span class="n">S</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">E_new</span> <span class="o">=</span> <span class="n">E</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">Ia_new</span> <span class="o">=</span> <span class="n">Ia</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Ia&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Im_new</span> <span class="o">=</span> <span class="n">Im</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Im&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">R_new</span> <span class="o">=</span> <span class="n">R</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Ia&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Im&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Im_inc_new</span> <span class="o">=</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">S_new</span><span class="p">,</span> <span class="n">E_new</span><span class="p">,</span> <span class="n">Ia_new</span><span class="p">,</span> <span class="n">Im_new</span><span class="p">,</span> <span class="n">R_new</span><span class="p">,</span> <span class="n">Im_inc_new</span>
+</pre></div>
+</div>
+<p>There are some formatting requirements to <code class="docutils literal notranslate"><span class="pre">compute_rates()</span></code> and <code class="docutils literal notranslate"><span class="pre">apply_transitionings()</span></code>, which are listed in the <a class="reference internal" href="models.html"><span class="doc std std-doc">SDEModel documentation</span></a>.</p>
+<p>The actual drawing of the transitionings is abstracted away from the user in the <code class="docutils literal notranslate"><span class="pre">SDEModel</span></code> class. Two stochastic simulation algorithms are available. In this tutorial, we’ll use the Tau-Leaping method, where the value of <code class="docutils literal notranslate"><span class="pre">tau</span></code> is fixed and the number of transitionings in the interval <code class="docutils literal notranslate"><span class="pre">t</span></code> and <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">+</span> <span class="pre">\tau</span></code> are drawn from a binomial distribution. This method is an approximation of the Stochastic Simulation Algorithm (SSA), where the time until the first transitioning <code class="docutils literal notranslate"><span class="pre">tau</span></code> is computed and only one transitioning can happen at every simulation step. However, as we aim to simulate a large number of individuals (11 million individuals), the time between transitionings becomes very small and the SSA becomes computationally too demanding.</p>
+</section>
+<section id="social-contact-function">
+<h3>Social contact function<a class="headerlink" href="#social-contact-function" title="Permalink to this heading">¶</a></h3>
+<p>The number of work and school contacts tends to change during school holidays and this has an effect on Influenza spread. We’ll thus use a <em>time-dependent parameter function</em> to vary the number of social contacts <span class="math notranslate nohighlight">\(N\)</span> during the simulation. We’ll wrap our <code class="docutils literal notranslate"><span class="pre">contact_function()</span></code> in a class for the sake of user friendliness. The initialization of the class is used to store the contact matrix of work contacts, school contacts, and the total matrix of contacts minus the school and work contacts. The callable function is used to return a contact matrix under varying percentages of work an school contacts. The <code class="docutils literal notranslate"><span class="pre">contact_function()</span></code> is the actual pySODM-compatible <em>time-dependent parameter function</em>, which implements the social policies. We’ll add our TDPF to the <code class="docutils literal notranslate"><span class="pre">models.py</span></code> script.</p>
+<p>We’ll assume that during the Christmass and Easter holidays, schools close and work contacts are on average reduced by 30%. During winter holiday, schools close and work contacts are lowered by 10%. These estimates are based on reductions observed in the <a class="reference external" href="https://www.google.com/covid19/mobility/">Google Community Mobility Reports</a> during the pandemic.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">make_contact_matrix_function</span><span class="p">():</span>
+
+    <span class="c1"># Initialize class with contact matrices</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N_work</span><span class="p">,</span> <span class="n">N_school</span><span class="p">,</span> <span class="n">N_except_workschool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_work</span> <span class="o">=</span> <span class="n">N_work</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_school</span> <span class="o">=</span> <span class="n">N_school</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_except_workschool</span> <span class="o">=</span> <span class="n">N_except_workschool</span>
+    
+    <span class="c1"># Define a call function to return the right contact matrix</span>
+    <span class="nd">@lru_cache</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">work</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">school</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_except_workschool</span> <span class="o">+</span> <span class="n">work</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">N_work</span> <span class="o">+</span> <span class="n">school</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">N_school</span>
+    
+    <span class="c1"># Define a pySODM compatible wrapper with the social policies</span>
+    <span class="k">def</span> <span class="nf">contact_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2017-12-20&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="c1"># Christmass holiday</span>
+        <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2017-12-20&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-01-05&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">work</span><span class="o">=</span><span class="mf">0.70</span><span class="p">,</span> <span class="n">school</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Christmass holiday --&gt; Winter holiday</span>
+        <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2017-01-05&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-02-09&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="c1"># Winter holiday</span>
+        <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-02-09&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-02-16&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">work</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span> <span class="n">school</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Winter holiday --&gt; Easter holiday</span>
+        <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-02-16&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-03-28&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="c1"># Easter holiday</span>
+        <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-03-28&#39;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-04-16&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">work</span><span class="o">=</span><span class="mf">0.70</span><span class="p">,</span> <span class="n">school</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="initializing-the-model">
+<h3>Initializing the model<a class="headerlink" href="#initializing-the-model" title="Permalink to this heading">¶</a></h3>
+<p>Next, we’ll set the model up in our calibration script <code class="docutils literal notranslate"><span class="pre">~/tutorials/influenza_1718/calibration.py</span></code>. We load the model and contact function from <code class="docutils literal notranslate"><span class="pre">models.py</span></code> and initialize the contact matrix function using the hardcoded contact matrices. Then, as always, we define the model parameters, initial states (obtained analytically so the differentials are zero at <span class="math notranslate nohighlight">\(t=0\)</span>) and coordinates. The coordinates are the same as the dataset: <code class="docutils literal notranslate"><span class="pre">pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)]</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="c1"># Load model</span>
+<span class="kn">from</span> <span class="nn">models</span> <span class="kn">import</span> <span class="n">SDE_influenza_model</span> <span class="k">as</span> <span class="n">influenza_model</span>
+
+<span class="c1"># Load TDPF</span>
+<span class="kn">from</span> <span class="nn">models</span> <span class="kn">import</span> <span class="n">make_contact_matrix_function</span>
+
+<span class="c1"># Hardcode the contact matrices</span>
+<span class="n">Nc_except_workschool</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">Nc_school</span> <span class="o">=</span> <span class="o">..</span>
+<span class="n">Nc_work</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="c1"># Initialize contact function</span>
+<span class="n">contact_function</span> <span class="o">=</span> <span class="n">make_contact_matrix_function</span><span class="p">(</span><span class="n">Nc_work</span><span class="p">,</span> <span class="n">Nc_school</span><span class="p">,</span> <span class="n">Nc_except_workschool</span><span class="p">)</span><span class="o">.</span><span class="n">contact_function</span>
+
+<span class="c1"># Define model parameters</span>
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.034</span><span class="p">,</span> <span class="s1">&#39;sigma&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;f_a&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.63</span><span class="p">,</span> <span class="mf">0.88</span><span class="p">,</span> <span class="mf">0.76</span><span class="p">]),</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N_except_workschool</span><span class="o">+</span><span class="n">N_school</span><span class="o">+</span><span class="n">N_work</span><span class="p">}</span>
+
+<span class="c1"># Define initial condition</span>
+<span class="n">init_states</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">initN</span><span class="o">.</span><span class="n">values</span><span class="p">),</span>
+               <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">((</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;f_a&#39;</span><span class="p">]))</span><span class="o">*</span><span class="n">df_influenza</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">start_date</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]),</span>
+               <span class="s1">&#39;Ia&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">((</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;f_a&#39;</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;f_a&#39;</span><span class="p">]))</span><span class="o">*</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">df_influenza</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">start_date</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]),</span>
+               <span class="s1">&#39;Im&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">df_influenza</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">start_date</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]),</span>
+               <span class="s1">&#39;Im_inc&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">df_influenza</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">start_date</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)])}</span>
+
+<span class="c1"># Define model coordinates</span>
+<span class="n">coordinates</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;age_group&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">IntervalIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">),(</span><span class="mi">5</span><span class="p">,</span><span class="mi">15</span><span class="p">),(</span><span class="mi">15</span><span class="p">,</span><span class="mi">65</span><span class="p">),(</span><span class="mi">65</span><span class="p">,</span><span class="mi">120</span><span class="p">)])}</span>
+
+<span class="c1"># Initialize model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">influenza_model</span><span class="p">(</span><span class="n">init_states</span><span class="p">,</span><span class="n">params</span><span class="p">,</span><span class="n">coordinates</span><span class="p">,</span><span class="n">time_dependent_parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">contact_function</span><span class="p">})</span>
+</pre></div>
+</div>
+</section>
+<section id="calibration">
+<h3>Calibration<a class="headerlink" href="#calibration" title="Permalink to this heading">¶</a></h3>
+<p>Setting up the log posterior probability function is similar to the previous tutorials. Our multiindexed <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> containing the age-stratified data and the model’s age stratification share the same name and coordinates, pySODM performs the necessary input checks and will automatically align these axes when computing the log posterior probability. We aim to calibrate two model parameters: <span class="math notranslate nohighlight">\(\beta\)</span> and <span class="math notranslate nohighlight">\(\mathbf{f_a}\)</span>. However, <span class="math notranslate nohighlight">\(\mathbf{f_a}\)</span> consists of four elements <span class="math notranslate nohighlight">\(f_a^i\)</span>, how does pySODM handle this?</p>
+<p>As if nothing’s up:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Variables</span>
+    <span class="n">processes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;SLURM_CPUS_ON_NODE&#39;</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">n_pso</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">multiplier_pso</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="c1"># Define dataset</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">df_influenza</span><span class="p">[</span><span class="n">start_date</span><span class="p">:</span><span class="n">end_calibration</span><span class="p">],</span> <span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Im_inc&quot;</span><span class="p">,]</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,])</span>
+    <span class="n">log_likelihood_fnc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ll_poisson</span><span class="p">,]</span>
+    <span class="n">log_likelihood_fnc_args</span> <span class="o">=</span> <span class="p">[[],]</span>
+    <span class="c1"># Calibated parameters and bounds</span>
+    <span class="n">pars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;f_a&#39;</span><span class="p">]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$</span><span class="se">\\</span><span class="s1">beta$&#39;</span><span class="p">,</span> <span class="s1">&#39;$f_a$&#39;</span><span class="p">]</span>
+    <span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1e-6</span><span class="p">,</span><span class="mf">0.06</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.99</span><span class="p">)]</span>
+    <span class="c1"># Setup objective function (no priors --&gt; uniform priors based on bounds)</span>
+    <span class="n">objective_function</span> <span class="o">=</span> <span class="n">log_posterior_probability</span><span class="p">(</span><span class="n">model</span><span class="p">,</span><span class="n">pars</span><span class="p">,</span><span class="n">bounds</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">states</span><span class="p">,</span><span class="n">log_likelihood_fnc</span><span class="p">,</span><span class="n">log_likelihood_fnc_args</span><span class="p">,</span><span class="n">weights</span><span class="p">,</span><span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the example above, bounds and labels of <span class="math notranslate nohighlight">\(\mathbf{f_a}\)</span> are automatically expanded to the right size. However, we retain the possibility of supplying a bound and label per element of <span class="math notranslate nohighlight">\(\mathbf{f_a}\)</span>. Running the NM/PSO and MCMC optimizations happens in the same manner as the other tutorials.</p>
+<p>We’re now ready to generate our results, we’ll calibrate the model using only the data up until January 1st, 2018 and then increase the amount of available data in one month increments. In this way, we’ll be able to asses how our calibrated model fares under limited datasets.</p>
+</section>
+</section>
+<section id="results">
+<h2>Results<a class="headerlink" href="#results" title="Permalink to this heading">¶</a></h2>
+</section>
 </section>
 
 
