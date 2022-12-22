@@ -5,18 +5,15 @@ This script contains a calibration of an influenza model to 2017-2018 data.
 __author__      = "Tijs Alleman & Wolf Demunyck"
 __copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University. All Rights Reserved."
 
-
 ############################
 ## Load required packages ##
 ############################
 
 import sys,os
 import random
-import emcee
 import datetime
 import pandas as pd
 import numpy as np
-from functools import lru_cache
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
@@ -31,11 +28,18 @@ import corner
 import warnings
 warnings.filterwarnings("ignore")
 
+##############
+## Settings ##
+##############
+
+N=20 # Repeated simulations
+end_calibration = pd.Timestamp('2018-06-01')
+
 ###############
 ## Load data ##
 ###############
 
-# Load data
+# Load case data
 data = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format.csv'), index_col=[0,1], parse_dates=True)
 data = data.squeeze()
 # Re-insert pd.IntervalIndex (pd.IntervalIndex is always loaded as a string..)
@@ -44,6 +48,10 @@ iterables = [data.index.get_level_values('DATE').unique(), age_groups]
 names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
 df_influenza = pd.Series(index=index, name='CASES', data=data.values)
+# Extract start and enddate
+start_date = df_influenza.index.get_level_values('date').unique()[0]
+end_date = df_influenza.index.get_level_values('date').unique()[-1] 
+
 # Hardcode Belgian demographics
 initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 2204478]))
 
@@ -57,102 +65,65 @@ from models import SDE_influenza_model as influenza_model
 ## Define a social policy function ##
 #####################################
 
-class make_contact_matrix_function():
+from models import make_contact_matrix_function
 
-    # Initialize class with contact matrices
-    def __init__(self, Nc_work, Nc_school, Nc_except_workschool):
-        self.Nc_work = Nc_work
-        self.Nc_school = Nc_school
-        self.Nc_except_workschool = Nc_except_workschool
-    
-    # Define a call function to return the right contact matrix
-    @lru_cache()
-    def __call__(self, t, work=1, school=1):
-        return self.Nc_except_workschool + work*self.Nc_work + school*self.Nc_school
-    
-    # Define a pySODM compatible wrapper with the social policies
-    def contact_function(self, t, states, param):
-        if t <= pd.Timestamp('2017-12-20'):
-            return self.__call__(t)
-        # Christmass holiday
-        elif pd.Timestamp('2017-12-20') < t <= pd.Timestamp('2018-01-05'):
-            return self.__call__(t, work=0.60, school=0)
-        # Christmass holiday --> Winter holiday
-        elif pd.Timestamp('2017-01-05') < t <= pd.Timestamp('2018-02-09'):
-            return self.__call__(t)
-        # Winter holiday
-        elif pd.Timestamp('2018-02-09') < t <= pd.Timestamp('2018-02-16'):
-            return self.__call__(t, work=0.80, school=0)
-        # Winter holiday --> Easter holiday
-        elif pd.Timestamp('2018-02-16') < t <= pd.Timestamp('2018-03-28'):
-            return self.__call__(t)
-        # Easter holiday
-        elif pd.Timestamp('2018-03-28') < t <= pd.Timestamp('2018-04-16'):
-            return self.__call__(t, work=0.60, school=0)
-        else:
-            return self.__call__(t)
-
-# Hardcode the contact matrices
-Nc_except_workschool = np.transpose(np.array([[0.68+2.01*(3/5),0.78+0.27*(3/5),3.27+0.40*(3/5),0.45],
+# Hardcode the contact matrices (physical only)
+N_except_workschool = np.transpose(np.array([[0.68+2.01*(3/5),0.78+0.27*(3/5),3.27+0.40*(3/5),0.45],
                                               [0.41+0.14*(3/5),2.15,3.52,0.46],
                                               [0.29+0.04*(3/5),0.59,3.50,0.49],
                                               [0.15,0.30,1.85,1.45]]))
 
-Nc_school = np.transpose(np.array([[2.01*(2/5),0.27*(2/5),0.40*(2/5),0.00*(2/5)],
+N_school = np.transpose(np.array([[2.01*(2/5),0.27*(2/5),0.40*(2/5),0.00*(2/5)],
                                    [0.14*(2/5),3.21,0.27,0.00],
                                    [0.04*(2/5),0.05,0.27,0.00],
                                    [0.00*(2/5),0.00,0.00,0.00]]))
 
-Nc_work = np.transpose(np.array([[0.00,0.00,0.47,0.05],
+N_work = np.transpose(np.array([[0.00,0.00,0.47,0.05],
                                  [0.00,0.00,0.91,0.00],
                                  [0.04,0.15,3.12,0.16],
-                                 [0.02,0.00,0.61,0.04]]))
+                                 [0.02,0.00,0.61,0.04]]))      
+
+
+N_except_workschool = np.transpose(np.array([[0.60+1.59*(3/5), 0.69+0.20*(3/5), 2.85+0.31*(3/5), 0.36],
+                                             [0.36+0.10*(3/5), 1.93, 3.18, 0.40],
+                                             [0.25+0.03*(3/5), 0.53, 2.94, 0.37],
+                                             [0.12, 0.25, 1.39, 1.09]]))
+
+N_school = np.transpose(np.array([[1.59*(2/5), 0.20*(2/5), 0.31*(2/5), 0.00*(2/5)],
+                                  [0.10*(2/5), 2.87, 0.23, 0.00],
+                                  [0.03*(2/5), 0.04, 0.19, 0.00],
+                                  [0.00*(2/5), 0.00, 0.00, 0.00]]))
+
+N_work = np.transpose(np.array([[0.00, 0.00, 0.35, 0.05],
+                                [0.00, 0.00, 0.76, 0.00],
+                                [0.03, 0.13, 2.33, 0.12],
+                                [0.02, 0.00, 0.46, 0.00]]))
 
 # Initialize contact function
-contact_function = make_contact_matrix_function(Nc_work, Nc_school, Nc_except_workschool).contact_function
+contact_function = make_contact_matrix_function(N_work, N_school, N_except_workschool).contact_function
 
 #################
 ## Setup model ##
 #################
 
-# Number of repeated experiments
-N=20
-# Set start date and warmup
-warmup=0
-start_idx=0
-start_date = df_influenza.index.get_level_values('date').unique()[start_idx]
-end_date = df_influenza.index.get_level_values('date').unique()[-1] 
-sim_len = (end_date - start_date)/pd.Timedelta(days=1)+warmup
-# Get initial condition
-I_init = df_influenza.loc[start_date]
 # Define model parameters
-f_a = np.array([0.02, 0.61, 0.88, 0.75])
-gamma = 5
-params={'beta': 0.034, 'sigma':1, 'f_a':f_a, 'gamma':5, 'Nc':Nc_except_workschool+Nc_school+Nc_work}
+params={'beta': 0.034, 'sigma': 1, 'f_a': np.array([0.01, 0.63, 0.88, 0.76]), 'gamma': 5, 'N': N_except_workschool+N_school+N_work, 'ramp_time': 0}
 # Define initial condition
-init_states = {'S':initN.values ,'E': (1/(1-f_a))*df_influenza.loc[start_date, slice(None)],
-                                 'Ia': (f_a/(1-f_a))*gamma*df_influenza.loc[start_date, slice(None)],
-                                 'Im': gamma*df_influenza.loc[start_date, slice(None)],
-                                 'Im_inc': df_influenza.loc[start_date, slice(None)]}
+init_states = {'S': list(initN.values),
+               'E': list(np.rint((1/(1-params['f_a']))*df_influenza.loc[start_date, slice(None)])),
+               'Ia': list(np.rint((params['f_a']/(1-params['f_a']))*params['gamma']*df_influenza.loc[start_date, slice(None)])),
+               'Im': list(np.rint(params['gamma']*df_influenza.loc[start_date, slice(None)])),
+               'Im_inc': list(np.rint(df_influenza.loc[start_date, slice(None)]))}
 # Define model coordinates
 coordinates={'age_group': age_groups}
 # Initialize model
-model = influenza_model(init_states,params,coordinates,time_dependent_parameters={'Nc': contact_function})
+model = influenza_model(init_states,params,coordinates,time_dependent_parameters={'N': contact_function})
 
 #####################
 ## Calibrate model ##
 #####################
 
 if __name__ == '__main__':
-
-    #######################
-    ## Variance analysis ##
-    #######################
-
-    results, ax = variance_analysis(df_influenza, resample_frequency='5D')
-    alpha = results.loc[(slice(None),'negative binomial'), 'theta'].values
-    #plt.show()
-    plt.close()
 
     #####################
     ## PSO/Nelder-Mead ##
@@ -163,11 +134,11 @@ if __name__ == '__main__':
     n_pso = 30
     multiplier_pso = 20
     # Define dataset
-    data=[df_influenza[start_date:end_date], ]
+    data=[df_influenza[start_date:end_calibration], ]
     states = ["Im_inc",]
     weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha,]
+    log_likelihood_fnc = [ll_poisson,]
+    log_likelihood_fnc_args = [[],]
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
@@ -178,13 +149,18 @@ if __name__ == '__main__':
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    #theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
+    #theta = pso.optimize(objective_function,
     #                    swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
-    theta = [0.0345, 0.02, 0.61, 0.88, 0.75] # --> 1 beta, 4 f_a's
-    #theta = [0.04380897, 0.04963023, 0.02688752, 0.01998158, 0.26422786, 0.78430758, 0.86922779, 0.51841366]
+    # SDE Model 
+    #theta = [0.0337, 0.055, 0.70, 0.92, 0.68] # enddate 2018-01-01
+    #theta = [0.0352, 0.027, 0.67, 0.93, 0.80] # enddate 2018-02-01
+    #theta = [0.03497, 0.024, 0.65, 0.91, 0.81] # enddate 2018-02-15
+    #theta = [0.03395, 0.0057, 0.60, 0.88, 0.74] # enddate 2018-03-01
+    theta = [0.0411, 0.018, 0.60, 0.87, 0.71] # end of data
+
     # Nelder-mead
-    #step = len(expanded_bounds)*[0.10,]
-    #theta = nelder_mead.optimize(objective_function, np.array(theta), step, kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=processes, max_iter=n_pso)[0]
+    #step = len(expanded_bounds)*[0.05,]
+    #theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
 
     ######################
     ## Visualize result ##
@@ -193,22 +169,22 @@ if __name__ == '__main__':
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
     # Simulate model
-    out = model.sim([start_date, end_date], warmup=warmup, samples={}, N=N)
+    out = model.sim([start_date, end_date], samples={}, N=N, output_timestep=0.1)
     # Add poisson obervational noise
-    out = add_negative_binomial_noise(out, np.mean(alpha))
+    out = add_poisson_noise(out)
     # Visualize
     fig, axs = plt.subplots(2, 2, sharex=True, figsize=(8,6))
     axs = axs.reshape(-1)
     for id, age_class in enumerate(df_influenza.index.get_level_values('age_group').unique()):
         # Data
-        axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
-        #axs[id].scatter(df_influenza.index.get_level_values('date').unique(), df_influenza.loc[slice(None),age_class], color='black', alpha=0.4, linestyle='None', facecolors='none', s=60, linewidth=2, label='data')
+        axs[id].scatter(df_influenza[start_date:end_calibration].index.get_level_values('date').unique(), df_influenza.loc[slice(start_date,end_calibration), age_class], color='black', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='observed')
+        axs[id].scatter(df_influenza[end_calibration:end_date].index.get_level_values('date').unique(), df_influenza.loc[slice(end_calibration,end_date), age_class], color='red', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='unobserved')
         # Model trajectories
         for i in range(N):
-            axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+            axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='blue', alpha=0.05, linewidth=1)
         # Format
         axs[id].set_title(age_class)
-        axs[id].legend(['$I_{m, inc}$','data'])
+        axs[id].legend()
         axs[id].xaxis.set_major_locator(plt.MaxNLocator(5))
         for tick in axs[id].get_xticklabels():
             tick.set_rotation(30)
@@ -222,7 +198,7 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 500
+    n_mcmc = 100
     multiplier_mcmc = 9
     print_n = 50
     discard = 50
@@ -231,19 +207,21 @@ if __name__ == '__main__':
     identifier = 'username'
     run_date = str(datetime.date.today())
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.01*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.20*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
-              'n_chains': nwalkers, 'warmup': warmup, 'starting_estimate': list(theta), 'labels': expanded_labels}
+              'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': expanded_labels}
     # Sample n_mcmc iterations
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                    settings_dict=settings)
-    # Sample n_mcmc more
-    backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.hdf5'))
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
-                                    settings_dict=settings)                                    
+                                    settings_dict=settings)                           
+    # Sample 5*n_mcmc more
+    #for i in range(1):
+    #    backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+'username_BACKEND_'+run_date+'.hdf5'))
+    #    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
+    #                                fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
+    #                                settings_dict=settings)  
+                                                                   
     # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
     samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
@@ -261,24 +239,27 @@ if __name__ == '__main__':
  
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
+        # Sample model parameters
         idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
         param_dict['f_a'] = np.array([slice[idx] for slice in samples_dict['f_a']])
+        param_dict['ramp_time'] = np.random.triangular(left=-3, mode=0, right=3)
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date], warmup=warmup, N=N, samples=samples_dict, draw_function=draw_fcn, processes=processes)
-    # Add poisson observation noise
-    out = add_negative_binomial_noise(out, np.mean(alpha))
+    out = model.sim([start_date, end_date], N=N, output_timestep=0.1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    # Add negative binomial observation noise
+    out = add_poisson_noise(out)
     # Visualize
     fig, axs = plt.subplots(2,2,sharex=True, figsize=(8,6))
     axs = axs.reshape(-1)
     for id, age_class in enumerate(df_influenza.index.get_level_values('age_group').unique()):
         # Data
-        axs[id].plot(df_influenza.index.get_level_values('date').unique(),df_influenza.loc[slice(None),age_class], color='orange')
+        axs[id].scatter(df_influenza[start_date:end_calibration].index.get_level_values('date').unique(), df_influenza.loc[slice(start_date,end_calibration), age_class], color='black', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='observed')
+        axs[id].scatter(df_influenza[end_calibration:end_date].index.get_level_values('date').unique(), df_influenza.loc[slice(end_calibration,end_date), age_class], color='red', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='unobserved')
         # Model trajectories
         for i in range(N):
-            axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='black', alpha=0.1, linewidth=1)
+            axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='blue', alpha=0.1, linewidth=1)
         axs[id].set_title(age_class)
-        axs[id].legend(['$I_{m, inc}$','data'])
+        axs[id].legend()
         axs[id].xaxis.set_major_locator(plt.MaxNLocator(5))
         for tick in axs[id].get_xticklabels():
             tick.set_rotation(30)

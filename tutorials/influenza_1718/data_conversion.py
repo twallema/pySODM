@@ -59,12 +59,13 @@ for age_group in merge.index.get_level_values('AGE').unique():
     merge.loc[slice(None),age_group] = interpol
     merge.loc[slice(None),age_group] = merge.loc[slice(None),age_group].values*N.loc[age_group]/100000
 
-#################################
-## Add Negative Binomial noise ##
-#################################
+#######################
+## Add Poisson noise ##
+#######################
 
-alpha=0.03
-merge.loc[slice(None), slice(None)] = np.random.negative_binomial(1/alpha, (1/alpha)/(merge.values + (1/alpha)))
+#alpha=0.03
+#merge.loc[slice(None), slice(None)] = np.random.negative_binomial(1/alpha, (1/alpha)/(merge.values + (1/alpha)))
+merge.loc[slice(None), slice(None)] = np.random.poisson(merge.values)
 
 #################
 ## Save result ##
