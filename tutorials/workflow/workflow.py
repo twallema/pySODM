@@ -77,6 +77,13 @@ init_states = {'S': 1000, 'I': 1}
 # Initialize model
 model = ODE_SIR(states=init_states, parameters=params)
 
+
+# Simulate from t=0 until t=121
+out = model.sim([0, 121])
+
+# Is equivalent to:
+out = model.sim(121)
+
 #########################
 ## Calibrate the model ##
 #########################
