@@ -52,7 +52,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling &amp; simulation workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling and calibration workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="enzyme_kinetics.html">Enzyme kinetics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="influenza_1718.html">Influenza 2017-2018</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
@@ -168,6 +169,7 @@
 <li><p>Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.</p></li>
 <li><p>Send model output to a multiindex <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> and give the user the choice between <code class="docutils literal notranslate"><span class="pre">xarray</span></code> or <code class="docutils literal notranslate"><span class="pre">pandas</span></code>. Will make the code more future-proof. Low priority.</p></li>
 <li><p>If more the model has more stratifications than the dataset it is calibrated to, pySODM automatically sums over all model axes not found in the dataset. This could be generalized further by having the user supply an optional <code class="docutils literal notranslate"><span class="pre">lambda</span></code> function, telling pySODM how to integrate over every axis.</p></li>
+<li><p>Currently, a <em>time-dependent parameter function</em> takes only the parameter to be varied <code class="docutils literal notranslate"><span class="pre">param</span></code> as an input. Perhaps the entire parameter dictionary should be given instead for more flexibility?</p></li>
 </ul>
 </section>
 <section id="versions">
