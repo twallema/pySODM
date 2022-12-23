@@ -1,17 +1,16 @@
-name: pySODM
+name: PYSODM
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python=3.10
-  - jupyter
   - pandas
   - numpy
   - scipy
+  - numba   
   - xarray
   - emcee
+  - h5py  
   - tqdm
   - corner
-  - h5py 
   - matplotlib
-  - numba  
