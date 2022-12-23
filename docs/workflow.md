@@ -1,4 +1,4 @@
-## Modeling and Simulation Workflow
+## Modeling and Calibration Workflow
 
 In this tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered by means of preventive measures. By using a simple model, we can focus on the general workflow and on the most important functions of `pySODM`, which will be similar in the more research-driven [enzyme kinetics](enzyme_kinetics.md) and [Influenza tutorials](influenza_1718.md) available on this documentation website.
 

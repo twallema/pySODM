@@ -12,13 +12,13 @@ Welcome to pySODM's documentation
 
    Introduction <introduction.md>
    Installation <installation.md>
-   Quickstart <quickstart.md>
 
 .. toctree::
    :caption: Tutorials
    :maxdepth: 1
 
-   Modeling & simulation workflow <workflow.md>
+   Quickstart <quickstart.md>
+   Modeling and calibration workflow <workflow.md>
    Enzyme kinetics <enzyme_kinetics.md>
    Influenza 2017-2018 <influenza_1718.md>
    Additional references <references.md>
