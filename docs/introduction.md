@@ -49,6 +49,8 @@ The following features will be implemented in future versions of pySODM,
 
 - If more the model has more stratifications than the dataset it is calibrated to, pySODM automatically sums over all model axes not found in the dataset. This could be generalized further by having the user supply an optional `lambda` function, telling pySODM how to integrate over every axis.
 
+- Currently, a *time-dependent parameter function* takes only the parameter to be varied `param` as an input. Perhaps the entire parameter dictionary should be given instead for more flexibility?
+
 ### Versions
 
 - version 0.1 (2022-12-23) 
