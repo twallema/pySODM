@@ -136,16 +136,16 @@ def validate_parameter_function(func):
     else:
         return keywords[3:]
 
-def validate_time_dependent_parameters(parameter_names, parameters_stratified_names,time_dependent_parameters):
+def validate_time_dependent_parameters(parameter_names, parameter_stratified_names,time_dependent_parameters):
 
     extra_params = []
     all_param_names = parameter_names.copy()
 
-    if parameters_stratified_names:
-        if not isinstance(parameters_stratified_names[0], list):
-            all_param_names += parameters_stratified_names
+    if parameter_stratified_names:
+        if not isinstance(parameter_stratified_names[0], list):
+            all_param_names += parameter_stratified_names
         else:
-            for lst in parameters_stratified_names:
+            for lst in parameter_stratified_names:
                 all_param_names.extend(lst)
             
     for param, func in time_dependent_parameters.items():
@@ -258,7 +258,7 @@ def merge_parameter_names_parameter_stratified_names(parameter_names, parameter_
     return merged_params
 
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
-                        parameters_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
+                        parameter_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
     """
     This does some basic validation of the model + initialization:
 
@@ -284,17 +284,19 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             "The first argument of the integrate function should always be 't'"
         )
     # Add parameters and stratified parameters to one list: specified_params
-    specified_params = parameter_names.copy()
-    if parameters_stratified_names:
-        if not isinstance(parameters_stratified_names[0], list):
-            if len(parameters_stratified_names) == 1:
-                specified_params += parameters_stratified_names
-            else:
-                for stratified_names in parameters_stratified_names:
-                    specified_params += [stratified_names,]
-        else:
-            for stratified_names in parameters_stratified_names:
-                specified_params += stratified_names
+    # specified_params = parameter_names.copy()
+    # if parameter_stratified_names:
+    #     if not isinstance(parameter_stratified_names[0], list):
+    #         if len(parameter_stratified_names) == 1:
+    #             specified_params += parameter_stratified_names
+    #         else:
+    #             for stratified_names in parameter_stratified_names:
+    #                 specified_params += [stratified_names,]
+    #     else:
+    #         for stratified_names in parameter_stratified_names:
+    #             specified_params += stratified_names
+
+    specified_params = merge_parameter_names_parameter_stratified_names(parameter_names, parameter_stratified_names)
     # Check if all the states and parameters are present
     if set(specified_params + state_names) != set(keywords[1:]):
         # Extract redundant and missing parameters
@@ -352,23 +354,23 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             )
 
     # the size of the stratified parameters
-    if parameters_stratified_names:
+    if parameter_stratified_names:
         i = 0
-        if not isinstance(parameters_stratified_names[0], list):
-            if len(parameters_stratified_names) == 1:
-                for param in parameters_stratified_names:
+        if not isinstance(parameter_stratified_names[0], list):
+            if len(parameter_stratified_names) == 1:
+                for param in parameter_stratified_names:
                     validate_stratified_parameters(
                             parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
             else:
-                for param in parameters_stratified_names:
+                for param in parameter_stratified_names:
                     validate_stratified_parameters(
                             parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
         else:
-            for stratified_names in parameters_stratified_names:
+            for stratified_names in parameter_stratified_names:
                 for param in stratified_names:
                     validate_stratified_parameters(
                         parameters[param], param, "stratified parameter",i,stratification_size,coordinates
@@ -416,7 +418,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     return initial_states, parameters, _n_function_params, list(_extra_params)
 
 def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
-                        parameters_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):
+                        parameter_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):
     """
     This does some basic validation of the model + initialization:
 
@@ -460,21 +462,21 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     compute_rates_params = keywords[start_index + N_states :]
     specified_params = parameter_names.copy()
 
-    if parameters_stratified_names:
-        if not isinstance(parameters_stratified_names[0], list):
-            if len(parameters_stratified_names) == 1:
-                specified_params += parameters_stratified_names
+    if parameter_stratified_names:
+        if not isinstance(parameter_stratified_names[0], list):
+            if len(parameter_stratified_names) == 1:
+                specified_params += parameter_stratified_names
             else:
-                for stratified_names in parameters_stratified_names:
+                for stratified_names in parameter_stratified_names:
                     specified_params += [stratified_names,]
         else:
-            for stratified_names in parameters_stratified_names:
+            for stratified_names in parameter_stratified_names:
                 specified_params += stratified_names
 
     if compute_rates_params != specified_params:
         raise ValueError(
             "The parameters in the 'compute_rates' function definition do not match "
-            "the provided 'parameter_names' + 'parameters_stratified_names': "
+            "the provided 'parameter_names' + 'parameter_stratified_names': "
             "{0} vs {1}".format(compute_rates_params, specified_params)
         )
 
@@ -541,21 +543,21 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     apply_transitionings_params = keywords[start_index + N_states :]
     specified_params = parameter_names.copy()
 
-    if parameters_stratified_names:
-        if not isinstance(parameters_stratified_names[0], list):
-            if len(parameters_stratified_names) == 1:
-                specified_params += parameters_stratified_names
+    if parameter_stratified_names:
+        if not isinstance(parameter_stratified_names[0], list):
+            if len(parameter_stratified_names) == 1:
+                specified_params += parameter_stratified_names
             else:
-                for stratified_names in parameters_stratified_names:
+                for stratified_names in parameter_stratified_names:
                     specified_params += [stratified_names,]
         else:
-            for stratified_names in parameters_stratified_names:
+            for stratified_names in parameter_stratified_names:
                 specified_params += stratified_names
 
     if apply_transitionings_params != specified_params:
         raise ValueError(
             "The parameters in the 'apply_transitionings' function definition do not match "
-            "the provided 'parameter_names' + 'parameters_stratified_names': "
+            "the provided 'parameter_names' + 'parameter_stratified_names': "
             "{0} vs {1}".format(apply_transitionings_params, specified_params)
         )
 
@@ -610,23 +612,23 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     ###############################################################################
 
     # the size of the stratified parameters
-    if parameters_stratified_names:
+    if parameter_stratified_names:
         i = 0
-        if not isinstance(parameters_stratified_names[0], list):
-            if len(parameters_stratified_names) == 1:
-                for param in parameters_stratified_names:
+        if not isinstance(parameter_stratified_names[0], list):
+            if len(parameter_stratified_names) == 1:
+                for param in parameter_stratified_names:
                     validate_stratified_parameters(
                             parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
             else:
-                for param in parameters_stratified_names:
+                for param in parameter_stratified_names:
                     validate_stratified_parameters(
                             parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                         )
                 i = i + 1
         else:
-            for stratified_names in parameters_stratified_names:
+            for stratified_names in parameter_stratified_names:
                 for param in stratified_names:
                     validate_stratified_parameters(
                         parameters[param], param, "stratified parameter",i,stratification_size,coordinates
