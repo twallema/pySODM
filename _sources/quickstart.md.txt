@@ -40,10 +40,14 @@ model = SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 Simulate the model using the `sim()` method. The solver method and tolerance, as well as the timesteps in the output can be tailored. pySODM supports the use of `datetime` types as timesteps.
 
 ```python
+# Timesteps
 out = model.sim(121)
+
+# Dates
+out = model.sim(['2022-12-01', '2023-05-01'])
 ```
 
-Results are sent to an `xarray.Dataset`, for more information on indexing and selecting data, [see](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
+Results are sent to an `xarray.Dataset`, for more information on indexing and selecting data using `xarray`, [see](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
 ```bash
 <xarray.Dataset>
 Dimensions:  (time: 122)
@@ -53,9 +57,9 @@ Data variables:
     S        (time) float64 1e+03 999.6 999.2 998.7 ... 287.2 287.2 287.2 287.2
     I        (time) float64 1.0 1.161 1.348 1.565 ... 0.1455 0.1316 0.1192
     R        (time) float64 0.0 0.2157 0.4662 0.7569 ... 713.6 713.7 713.7 713.7
-
-
 ```
+
+![SIR_time](/_static/figs/workflow/SIR_time.png)
 
 ## Stratifications: adding age groups to the SIR model
 
@@ -144,7 +148,7 @@ Data variables:
 
 ### Time-dependent parameter function
 
-Parameters can also be varied through the course of one simulation using a *time-dependent parameter function*, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments.
+Parameters can also be varied through the course of one simulation using a *time-dependent parameter function*, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments (including other model parameters).
 
 ```python
 def vary_my_parameter(t, states, param, an_additional_parameter):

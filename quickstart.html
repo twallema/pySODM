@@ -136,10 +136,14 @@
 </pre></div>
 </div>
 <p>Simulate the model using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method. The solver method and tolerance, as well as the timesteps in the output can be tailored. pySODM supports the use of <code class="docutils literal notranslate"><span class="pre">datetime</span></code> types as timesteps.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timesteps</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+
+<span class="c1"># Dates</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">([</span><span class="s1">&#39;2022-12-01&#39;</span><span class="p">,</span> <span class="s1">&#39;2023-05-01&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
-<p>Results are sent to an <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>, for more information on indexing and selecting data, <a class="reference external" href="https://docs.xarray.dev/en/stable/user-guide/indexing.html">see</a>.</p>
+<p>Results are sent to an <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>, for more information on indexing and selecting data using <code class="docutils literal notranslate"><span class="pre">xarray</span></code>, <a class="reference external" href="https://docs.xarray.dev/en/stable/user-guide/indexing.html">see</a>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
 Dimensions:<span class="w">  </span><span class="o">(</span>time:<span class="w"> </span><span class="m">122</span><span class="o">)</span>
 Coordinates:
@@ -150,6 +154,7 @@ Data<span class="w"> </span>variables:
 <span class="w">    </span>R<span class="w">        </span><span class="o">(</span><span class="nb">time</span><span class="o">)</span><span class="w"> </span>float64<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">0</span>.2157<span class="w"> </span><span class="m">0</span>.4662<span class="w"> </span><span class="m">0</span>.7569<span class="w"> </span>...<span class="w"> </span><span class="m">713</span>.6<span class="w"> </span><span class="m">713</span>.7<span class="w"> </span><span class="m">713</span>.7<span class="w"> </span><span class="m">713</span>.7
 </pre></div>
 </div>
+<p><img alt="SIR_time" src="_images/SIR_time.png" /></p>
 </section>
 <section id="stratifications-adding-age-groups-to-the-sir-model">
 <h2>Stratifications: adding age groups to the SIR model<a class="headerlink" href="#stratifications-adding-age-groups-to-the-sir-model" title="Permalink to this heading">¶</a></h2>
@@ -231,7 +236,7 @@ Data<span class="w"> </span>variables:
 </section>
 <section id="time-dependent-parameter-function">
 <h3>Time-dependent parameter function<a class="headerlink" href="#time-dependent-parameter-function" title="Permalink to this heading">¶</a></h3>
-<p>Parameters can also be varied through the course of one simulation using a <em>time-dependent parameter function</em>, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments.</p>
+<p>Parameters can also be varied through the course of one simulation using a <em>time-dependent parameter function</em>, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments (including other model parameters).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">vary_my_parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">an_additional_parameter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A function to vary a model parameter&quot;&quot;&quot;</span>
 
