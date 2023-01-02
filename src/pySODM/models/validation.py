@@ -442,7 +442,7 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
             "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
         )
     # Save a copy to validate the model later on
-    parameters_wo_TDPF_pars = {param: parameters[param] for param in specified_params}
+    specified_params_wo_TDPF_pars = specified_params.copy()
     # additional parameters from time-dependent parameter functions
     # are added to specified_params after the above check
     if _function_parameters:
@@ -618,7 +618,8 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
 
     # compute_rates
     # ~~~~~~~~~~~~~
-
+    # TODO: Throw out _extra_params here
+    parameters_wo_TDPF_pars = {param: parameters[param] for param in specified_params_wo_TDPF_pars}
     # Call the function with initial values to check if the function returns the right format of dictionary
     rates = compute_rates_func(10, **initial_states, **parameters_wo_TDPF_pars)
     # Check if a dictionary is returned
