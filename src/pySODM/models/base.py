@@ -13,7 +13,7 @@ import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date
-from pySODM.models.validation import validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel
+from pySODM.models.validation import validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates
 
 class SDEModel:
     """
@@ -517,6 +517,15 @@ class ODEModel:
         self.parameters = parameters
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
+
+        # Duplicates in lists containing names of states/parameters/stratifications?
+        # TODO: stratified parameters?
+        check_duplicates(self.state_names, 'state_names')
+        check_duplicates(self.parameter_names, 'parameter_names')
+        if self.stratification_names:
+            check_duplicates(self.stratification_names, 'stratification_names')
+        if self.state_2d:
+            check_duplicates(self.state_2d, 'state_2d')
 
         # Validate and compute the stratification sizes
         self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)

@@ -233,6 +233,15 @@ def validate_stratified_parameters(values, name, object_name,i,stratification_si
             )
         )
 
+def check_duplicates(lst, name):
+    """A function raising an error if lst contains duplicates"""
+    seen = set()
+    dupes = [x for x in lst if x in seen or seen.add(x)]
+    if dupes:
+        raise ValueError(
+            f"List '{name}' contains duplicates: {dupes}"
+        )
+
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameters_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
     """
@@ -292,7 +301,13 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
         _extra_params = [item for sublist in _function_parameters for item in sublist]
         # Remove duplicate arguments in time dependent parameter functions
         _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
-        specified_params += _extra_params
+        # Check if TDPF has a parameter already specified in the model
+        if list(set(_extra_params) & set(specified_params)):
+            raise ValueError(
+                f"The parameters {list(set(_extra_params) & set(specified_params))} are used both in a time-dependent parameter function and in the integrate function. "
+            )
+        else:
+            specified_params += _extra_params
         len_before = len(specified_params)
         # Line below removes duplicate arguments with integrate defenition
         specified_params = OrderedDict((x, True) for x in specified_params).keys()

@@ -244,7 +244,7 @@ def test_model_stratified_init_validation():
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     # validate model class itself
-    msg = "The parameters in the 'integrate' function definition do not match"
+    msg = "The provided state names and parameters don't match the parameters and states of the integrate function"
     SIRstratified.parameter_names = ["gamma", "alpha"]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
@@ -323,9 +323,10 @@ def test_TDPF_stratified():
             return param * gamma
 
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
+    msg="are used both in a time-dependent parameter function and in the integrate function"
+    with pytest.raises(ValueError, match=msg):
+        model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
-    output2 = model2.sim(time)
 
 # TDPF on a regular parameter
 def test_TDPF_nonstratified():
