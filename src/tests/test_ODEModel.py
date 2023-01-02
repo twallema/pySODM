@@ -323,11 +323,11 @@ def test_TDPF_stratified():
             return param * gamma
 
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    msg="are used both in a time-dependent parameter function and in the integrate function"
-    with pytest.raises(ValueError, match=msg):
-        model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
+    #msg="are used both in a time-dependent parameter function and in the integrate function"
+    #with pytest.raises(ValueError, match=msg):
+    model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
-
+    output2 = model2.sim(time)      
 # TDPF on a regular parameter
 def test_TDPF_nonstratified():
     # states, parameters, coordinates

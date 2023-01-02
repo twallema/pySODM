@@ -242,6 +242,21 @@ def check_duplicates(lst, name):
             f"List '{name}' contains duplicates: {dupes}"
         )
 
+def merge_parameter_names_parameter_stratified_names(parameter_names, parameter_stratified_names):
+    """ A function to merge the 'parameter_names' and 'parameter_stratified_names' lists"""
+    merged_params = parameter_names.copy()
+    if parameter_stratified_names:
+        if not isinstance(parameter_stratified_names[0], list):
+            if len(parameter_stratified_names) == 1:
+                merged_params += parameter_stratified_names
+            else:
+                for stratified_names in parameter_stratified_names:
+                    merged_params += [stratified_names,]
+        else:
+            for stratified_names in parameter_stratified_names:
+                merged_params += stratified_names
+    return merged_params
+
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameters_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
     """
@@ -302,12 +317,12 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
         # Remove duplicate arguments in time dependent parameter functions
         _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
         # Check if TDPF has a parameter already specified in the model
-        if list(set(_extra_params) & set(specified_params)):
-            raise ValueError(
-                f"The parameters {list(set(_extra_params) & set(specified_params))} are used both in a time-dependent parameter function and in the integrate function. "
-            )
-        else:
-            specified_params += _extra_params
+        #if list(set(_extra_params) & set(specified_params)):
+        #    raise ValueError(
+        #        f"The parameters {list(set(_extra_params) & set(specified_params))} are used both in a time-dependent parameter function and in the integrate function. "
+        #    )
+        #else:
+        specified_params += _extra_params
         len_before = len(specified_params)
         # Line below removes duplicate arguments with integrate defenition
         specified_params = OrderedDict((x, True) for x in specified_params).keys()

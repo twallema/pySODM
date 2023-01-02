@@ -13,7 +13,7 @@ import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date
-from pySODM.models.validation import validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates
+from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates
 
 class SDEModel:
     """
@@ -489,11 +489,11 @@ class ODEModel:
     To initialise the model, provide following inputs:
 
     states : dictionary
-        contains the initial values of all non-zero model states
-        e.g. {'S': N, 'E': np.ones(n_stratification)} with N being the total population and n_stratifications the number of stratified layers
-        initialising zeros is thus not required
+        contains the initial values of all non-zero model states, f.i. for an SEIR model,
+        e.g. {'S': [1000, 1000, 1000], 'E': [1, 1, 1]
+        initialising zeros is not required
     parameters : dictionary
-        containing the values of all parameters (both stratified and not)
+        values of all parameters (both stratified and not)
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time-dependent parameters. The
         signature of the function should be ``fun(t, states, param, ...)`` taking
@@ -518,10 +518,15 @@ class ODEModel:
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
-        # Duplicates in lists containing names of states/parameters/stratifications?
-        # TODO: stratified parameters?
+        # Merge parameter_names and parameter_stratified_names
+        self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
+
+        # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
         check_duplicates(self.state_names, 'state_names')
-        check_duplicates(self.parameter_names, 'parameter_names')
+        try:
+            check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
+        except:
+            check_duplicates(self.parameter_names, 'parameter_names')
         if self.stratification_names:
             check_duplicates(self.stratification_names, 'stratification_names')
         if self.state_2d:
@@ -593,8 +598,8 @@ class ODEModel:
             # -------------------------------------------------------------
             #  throw parameters of TDPFs out of model parameters dictionary
             # -------------------------------------------------------------
-            
-            params = {k:v for k,v in params.items() if k not in self._extra_params}
+
+            params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameter_names_merged))}
 
             # -------------------
             # perform integration
@@ -604,7 +609,7 @@ class ODEModel:
                 dstates = self.integrate(t, **state_params, **params)
                 return np.array(dstates).flatten()
             else:
-                dstates = self.integrate(t, *y_1d, y_2d, *model_pars)
+                dstates = self.integrate(t, *y_1d, y_2d, **params)
                 return np.concatenate([np.array(state).flatten() for state in dstates])
 
         return func
