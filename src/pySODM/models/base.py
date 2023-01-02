@@ -24,11 +24,11 @@ class SDEModel:
     To initialise the model, provide following inputs:
 
     states : dictionary
-        contains the initial values of all non-zero model states
-        e.g. {'S': N, 'E': np.ones(n_stratification)} with N being the total population and n_stratifications the number of stratified layers
-        initialising zeros is thus not required
+        contains the initial values of all non-zero model states, f.i. for an SEIR model,
+        e.g. {'S': [1000, 1000, 1000], 'E': [1, 1, 1]
+        initialising zeros is not required
     parameters : dictionary
-        containing the values of all parameters (both stratified and not)
+        values of all parameters (both stratified and not)
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time-dependent parameters. The
         signature of the function should be ``fun(t, states, param, ...)`` taking
@@ -51,6 +51,18 @@ class SDEModel:
         self.parameters = parameters
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
+
+        # Merge parameter_names and parameter_stratified_names
+        self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
+
+        # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
+        check_duplicates(self.state_names, 'state_names')
+        try:
+            check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
+        except:
+            check_duplicates(self.parameter_names, 'parameter_names')
+        if self.stratification_names:
+            check_duplicates(self.stratification_names, 'stratification_names')
 
         # Validate and compute the stratification sizes
         self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
@@ -270,20 +282,17 @@ class SDEModel:
                         func_params = {key: params[key] for key in self._function_parameters[i]}
                         params[param] = param_func(date, states, pars[param], **func_params)
 
-                # ----------------------------------
-                # construct list of model parameters
-                # ----------------------------------
+                # -------------------------------------------------------------
+                #  throw parameters of TDPFs out of model parameters dictionary
+                # -------------------------------------------------------------
 
-                if self._n_function_params > 0:
-                    model_pars = list(params.values())[:-self._n_function_params]
-                else:
-                    model_pars = list(params.values())
+                params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameter_names_merged))}
 
                 # -------------
                 # compute rates
                 # -------------
 
-                rates = self.compute_rates(t, *y_reshaped, *model_pars)
+                rates = self.compute_rates(t, **states, **params)
 
                 # --------------
                 # Gillespie step
@@ -298,7 +307,7 @@ class SDEModel:
                 # update states 
                 # -------------
 
-                dstates = self.apply_transitionings(t, tau, transitionings, *y_reshaped, *model_pars)
+                dstates = self.apply_transitionings(t, tau, transitionings, **states, **params)
 
                 return np.array(dstates).flatten(), tau
 
@@ -572,13 +581,13 @@ class ODEModel:
                 for size in self.stratification_size:
                     size_lst.append(size)
                 y_reshaped = y.reshape(tuple(size_lst))
-                state_params = dict(zip(self.state_names, y_reshaped))
+                states = dict(zip(self.state_names, y_reshaped))
             else:
                 # incoming y -> different reshape for 1D vs 2D variables  (2)
                 y_1d, y_2d = np.split(y, [self.split_point])
                 y_1d = y_1d.reshape(((len(self.state_names) - 1), self.stratification_size[0]))
                 y_2d = y_2d.reshape((self.stratification_size[0], self.stratification_size[0]))
-                state_params  = dict(zip(self.state_names, [y_1d,y_2d]))
+                states  = dict(zip(self.state_names, [y_1d,y_2d]))
 
             # --------------------------------------
             # update time-dependent parameter values
@@ -593,7 +602,7 @@ class ODEModel:
                     date = t
                 for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
                     func_params = {key: params[key] for key in self._function_parameters[i]}
-                    params[param] = param_func(date, state_params, pars[param], **func_params)
+                    params[param] = param_func(date, states, pars[param], **func_params)
 
             # -------------------------------------------------------------
             #  throw parameters of TDPFs out of model parameters dictionary
@@ -606,7 +615,7 @@ class ODEModel:
             # -------------------
 
             if not self.state_2d:
-                dstates = self.integrate(t, **state_params, **params)
+                dstates = self.integrate(t, **states, **params)
                 return np.array(dstates).flatten()
             else:
                 dstates = self.integrate(t, *y_1d, y_2d, **params)
