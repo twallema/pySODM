@@ -261,7 +261,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     else:
         start_index = 1
 
-    # Get names of states and parameters that follow after 't' or 't' and 'l'
+    # Get names of states and parameters that follow after 't' 
     N_states = len(state_names)
     integrate_states = keywords[start_index : start_index + N_states]
     if integrate_states != state_names:
@@ -294,21 +294,22 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     # are added to specified_params after the above check
 
     if _function_parameters:
-        extra_params = [item for sublist in _function_parameters for item in sublist]
+        _extra_params = [item for sublist in _function_parameters for item in sublist]
 
         # TODO check that it doesn't duplicate any existing parameter (completed?)
         # Line below removes duplicate arguments in time dependent parameter functions
-        extra_params = OrderedDict((x, True) for x in extra_params).keys()
-        specified_params += extra_params
+        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
+        specified_params += _extra_params
         len_before = len(specified_params)
         # Line below removes duplicate arguments with integrate defenition
         specified_params = OrderedDict((x, True) for x in specified_params).keys()
         len_after = len(specified_params)
         # Line below computes number of integrate arguments used in time dependent parameter functions
         n_duplicates = len_before - len_after
-        _n_function_params = len(extra_params) - n_duplicates
+        _n_function_params = len(_extra_params) - n_duplicates
     else:
         _n_function_params = 0
+        _extra_params = []
 
     # Validate the params
     if set(parameters.keys()) != set(specified_params):
@@ -389,7 +390,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
                 "The return value of the integrate function does not have the correct length."
             )
     
-    return initial_states, parameters, _n_function_params
+    return initial_states, parameters, _n_function_params, list(_extra_params)
 
 def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameters_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):
@@ -458,21 +459,22 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # are added to specified_params after the above check
 
     if _function_parameters:
-        extra_params = [item for sublist in _function_parameters for item in sublist]
+        _extra_params = [item for sublist in _function_parameters for item in sublist]
 
         # TODO check that it doesn't duplicate any existing parameter (completed?)
         # Line below removes duplicate arguments in time dependent parameter functions
-        extra_params = OrderedDict((x, True) for x in extra_params).keys()
-        specified_params += extra_params
+        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
+        specified_params += _extra_params
         len_before = len(specified_params)
         # Line below removes duplicate arguments with integrate defenition
         specified_params = OrderedDict((x, True) for x in specified_params).keys()
         len_after = len(specified_params)
         # Line below computes number of integrate arguments used in time dependent parameter functions
         n_duplicates = len_before - len_after
-        _n_function_params = len(extra_params) - n_duplicates
+        _n_function_params = len(_extra_params) - n_duplicates
     else:
         _n_function_params = 0
+        _extra_params = []
 
     # Validate the params
     if set(parameters.keys()) != set(specified_params):
@@ -538,21 +540,22 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # are added to specified_params after the above check
 
     if _function_parameters:
-        extra_params = [item for sublist in _function_parameters for item in sublist]
+        _extra_params = [item for sublist in _function_parameters for item in sublist]
 
         # TODO check that it doesn't duplicate any existing parameter (completed?)
         # Line below removes duplicate arguments in time dependent parameter functions
-        extra_params = OrderedDict((x, True) for x in extra_params).keys()
-        specified_params += extra_params
+        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
+        specified_params += _extra_params
         len_before = len(specified_params)
         # Line below removes duplicate arguments with integrate defenition
         specified_params = OrderedDict((x, True) for x in specified_params).keys()
         len_after = len(specified_params)
         # Line below computes number of integrate arguments used in time dependent parameter functions
         n_duplicates = len_before - len_after
-        _n_function_params = len(extra_params) - n_duplicates
+        _n_function_params = len(_extra_params) - n_duplicates
     else:
         _n_function_params = 0
+        _extra_params = []
 
     # Validate the params
     if set(parameters.keys()) != set(specified_params):
@@ -687,4 +690,4 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
     # Reset initial states
     initial_states={k: v[:] for k, v in initial_states_copy.items()}
 
-    return initial_states, parameters, _n_function_params
+    return initial_states, parameters, _n_function_params, list(_extra_params)

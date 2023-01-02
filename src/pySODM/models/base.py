@@ -62,9 +62,9 @@ class SDEModel:
             self._function_parameters = []
         
         # Validate the model
-        self.initial_states, self.parameters, self._n_function_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
-                                                                                            self.compute_rates, self.apply_transitionings)
+        self.initial_states, self.parameters, self._n_function_params, self._extra_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
+                                                                                                              self.parameter_names, self.parameter_stratified_names, self._function_parameters,
+                                                                                                              self.compute_rates, self.apply_transitionings)
 
     # Overwrite integrate class
     @staticmethod
@@ -528,9 +528,9 @@ class ODEModel:
             self._function_parameters = []
 
         # Validate the model
-        self.initial_states, self.parameters, self._n_function_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
-                                                                                            self._create_fun, self.integrate, self.state_2d)
+        self.initial_states, self.parameters, self._n_function_params, self._extra_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
+                                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
+                                                                                                            self._create_fun, self.integrate, self.state_2d)
 
         # Experimental: added to use 2D states for the Economic IO model
         if self.state_2d:
@@ -564,7 +564,7 @@ class ODEModel:
                 y_1d, y_2d = np.split(y, [self.split_point])
                 y_1d = y_1d.reshape(((len(self.state_names) - 1), self.stratification_size[0]))
                 y_2d = y_2d.reshape((self.stratification_size[0], self.stratification_size[0]))
-                state_params = state_params = dict(zip(self.state_names, [y_1d,y_2d]))
+                state_params  = dict(zip(self.state_names, [y_1d,y_2d]))
 
             # --------------------------------------
             # update time-dependent parameter values
@@ -581,21 +581,18 @@ class ODEModel:
                     func_params = {key: params[key] for key in self._function_parameters[i]}
                     params[param] = param_func(date, state_params, pars[param], **func_params)
 
-            # ----------------------------------
-            # construct list of model parameters
-            # ----------------------------------
-
-            if self._n_function_params > 0:
-                model_pars = list(params.values())[:-self._n_function_params]
-            else:
-                model_pars = list(params.values())
+            # -------------------------------------------------------------
+            #  throw parameters of TDPFs out of model parameters dictionary
+            # -------------------------------------------------------------
+            
+            params = {k:v for k,v in params.items() if k not in self._extra_params}
 
             # -------------------
             # perform integration
             # -------------------
 
             if not self.state_2d:
-                dstates = self.integrate(t, *y_reshaped, *model_pars)
+                dstates = self.integrate(t, **state_params, **params)
                 return np.array(dstates).flatten()
             else:
                 dstates = self.integrate(t, *y_1d, y_2d, *model_pars)
@@ -614,7 +611,8 @@ class ODEModel:
             for state in self.state_2d:
                 self.initial_states[state] = self.initial_states[state].flatten()
 
-        # Initial conditions must be one long list of values
+        # Scipy can only take flattened list of states
+        # TODO: rearrange y0 in order of self.state_names --> ALREADY DONE IN INITIALIZATION!
         y0 = list(itertools.chain(*self.initial_states.values()))
         while np.array(y0).ndim > 1:
             y0 = list(itertools.chain(*y0))
