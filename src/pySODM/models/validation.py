@@ -252,26 +252,15 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     """
 
     # Validate Model class definition (the integrate function)
+    # First argument should always be 't'
     sig = inspect.signature(integrate_func)
     keywords = list(sig.parameters.keys())
     if keywords[0] != "t":
         raise ValueError(
             "The first argument of the integrate function should always be 't'"
         )
-    else:
-        start_index = 1
-
-    # Get names of states and parameters that follow after 't' 
-    N_states = len(state_names)
-    integrate_states = keywords[start_index : start_index + N_states]
-    if integrate_states != state_names:
-        raise ValueError(
-            "The states in the 'integrate' function definition do not match "
-            "the state_names: {0} vs {1}".format(integrate_states, state_names)
-        )
-    integrate_params = keywords[start_index + N_states :]
+    # Add parameters and stratified parameters to one list: specified_params
     specified_params = parameter_names.copy()
-
     if parameters_stratified_names:
         if not isinstance(parameters_stratified_names[0], list):
             if len(parameters_stratified_names) == 1:
@@ -282,22 +271,26 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
         else:
             for stratified_names in parameters_stratified_names:
                 specified_params += stratified_names
-
-    if integrate_params != specified_params:
+    # Check if all the states and parameters are present
+    if set(specified_params + state_names) != set(keywords[1:]):
+        # Extract redundant and missing parameters
+        redundant_all = set(keywords[1:]).difference(set(specified_params + state_names))
+        missing_all = set(specified_params + state_names).difference(set(keywords[1:]))
+        # Let's split the missing variables in parameters/states for extra clarity
+        for state_name in state_names:
+            missing_states = [name for name in missing_all if name in state_names]
+        for parameter_name in parameter_names:
+            missing_parameters = [name for name in missing_all if name in parameter_names]
         raise ValueError(
-            "The parameters in the 'integrate' function definition do not match "
-            "the parameter_names + parameters_stratified_names + stratification: "
-            "{0} vs {1}".format(integrate_params, specified_params)
+            "The provided state names and parameters don't match the parameters and states of the integrate function. "
+            "Missing parameters: {0}. Missing states: {1}. "
+            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
         )
-
     # additional parameters from time-dependent parameter functions
     # are added to specified_params after the above check
-
     if _function_parameters:
         _extra_params = [item for sublist in _function_parameters for item in sublist]
-
-        # TODO check that it doesn't duplicate any existing parameter (completed?)
-        # Line below removes duplicate arguments in time dependent parameter functions
+        # Remove duplicate arguments in time dependent parameter functions
         _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
         specified_params += _extra_params
         len_before = len(specified_params)
@@ -389,7 +382,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             raise ValueError(
                 "The return value of the integrate function does not have the correct length."
             )
-    
+
     return initial_states, parameters, _n_function_params, list(_extra_params)
 
 def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
