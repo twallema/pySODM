@@ -269,10 +269,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
 
     2) Validation of the actual initialization with initial values for the
     states and parameter values.
-    TODO: For now, we require that those are passed in the exact same
-    order, but this requirement could in principle be relaxed, if we ensure
-    to pass the states and parameters as keyword arguments and not as
-    positional arguments to the `integrate` function.
+
     """
 
     # Validate Model class definition (the integrate function)
@@ -284,18 +281,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
             "The first argument of the integrate function should always be 't'"
         )
     # Add parameters and stratified parameters to one list: specified_params
-    # specified_params = parameter_names.copy()
-    # if parameter_stratified_names:
-    #     if not isinstance(parameter_stratified_names[0], list):
-    #         if len(parameter_stratified_names) == 1:
-    #             specified_params += parameter_stratified_names
-    #         else:
-    #             for stratified_names in parameter_stratified_names:
-    #                 specified_params += [stratified_names,]
-    #     else:
-    #         for stratified_names in parameter_stratified_names:
-    #             specified_params += stratified_names
-
     specified_params = merge_parameter_names_parameter_stratified_names(parameter_names, parameter_stratified_names)
     # Check if all the states and parameters are present
     if set(specified_params + state_names) != set(keywords[1:]):
@@ -318,12 +303,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
         _extra_params = [item for sublist in _function_parameters for item in sublist]
         # Remove duplicate arguments in time dependent parameter functions
         _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
-        # Check if TDPF has a parameter already specified in the model
-        #if list(set(_extra_params) & set(specified_params)):
-        #    raise ValueError(
-        #        f"The parameters {list(set(_extra_params) & set(specified_params))} are used both in a time-dependent parameter function and in the integrate function. "
-        #    )
-        #else:
         specified_params += _extra_params
         len_before = len(specified_params)
         # Line below removes duplicate arguments with integrate defenition
