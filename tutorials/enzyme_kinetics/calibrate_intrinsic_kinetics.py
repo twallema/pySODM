@@ -102,9 +102,9 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 100
+    n_mcmc = 1500
     print_n = 100
-    discard = 100
+    discard = 500
     samples_path='sampler_output/'
     fig_path='sampler_output/'
     identifier = 'username'
@@ -145,22 +145,25 @@ if __name__ == '__main__':
         param_dict['K_eq'] = samples_dict['K_eq'][idx]
         return param_dict
 
+    N=1000
     # Loop over datasets
     for i,df in enumerate(data):
         # Update initial condition
         model.initial_states.update(initial_states[i])
         # Simulate model
-        out = model.sim(3000, N=N, draw_function=draw_fcn, samples=samples_dict)
+        out = model.sim(1600, N=N, draw_function=draw_fcn, samples=samples_dict)
         # Add 5% observational noise
         out = add_gaussian_noise(out, 0.05, relative=True)
         # Visualize
         fig,ax=plt.subplots(figsize=(12,4))
         #ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
-        ax.errorbar(df.index, df, yerr=np.squeeze(log_likelihood_fnc_args[i]), capsize=5,color='black', linestyle='', marker='^')
-        for i in range(N):
+        ax.errorbar(df.index, df, yerr=np.squeeze(log_likelihood_fnc_args[i]), capsize=10,color='black', linestyle='', marker='^', label='Data')
+        #for i in range(N):
             #ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.03, linewidth=0.2)
-            ax.plot(out['time'], out['Es'].isel(draws=i), color='black', alpha=0.05, linewidth=0.2)
-        #ax.legend(['data', 'D-glucose', 'Glucose laurate'])
+            #ax.plot(out['time'], out['Es'].isel(draws=i), color='black', alpha=0.05, linewidth=0.2)
+        ax.plot(out['time'], out['Es'].mean(dim='draws'), color='black', linestyle='--', label='Model mean')
+        ax.fill_between(out['time'], out['Es'].quantile(dim='draws', q=0.025), out['Es'].quantile(dim='draws', q=0.975), color='black', alpha=0.10, label='Model 95% CI')
+        ax.legend()
         ax.grid(False)
         ax.set_ylabel('Glucose Laurate (mM)')
         ax.set_xlabel('time (min)')
