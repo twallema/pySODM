@@ -77,7 +77,7 @@ epsilon = 0.39 + 1.74/(dt/dp+1.140)**2 # Packed bed porosity (-)
 A = (dt/2)**2*math.pi # Reactor cross-sectional area (m2)
 U = Q/A
 u = U/epsilon # Fluid velocity (m/s)
-Re = dp*U*rho_F/mu    # Reynolds number (-)
+Re = dp*U*rho_F/mu/(1-epsilon)    # Reynolds number (-)
 a = 6*(1-epsilon)/dp # Catalyst surface area (m-1)
 kL = (0.7*D_AB + (dp*U)/(0.18+0.008*Re**0.59)) # Mass transfer coefficient through boundary layer (m/s)
 D_ax = ((1.09/100)*(D_AB/dp)**(2/3)*(U)**(1/3)) # Axial dispersion coefficient (m2/s)
@@ -123,17 +123,21 @@ out = model.sim(end_sim, N=N, draw_function=draw_fcn, samples=samples_dict)
 # Add 5% observational noise
 out = add_gaussian_noise(out, 0.05, relative=True)
 # Visualize 
-fig,ax=plt.subplots()
+fig,ax=plt.subplots(figsize=(6,2.5))
 # Data
 y_error = [reactor_cutting['mean'] - reactor_cutting['lower'], reactor_cutting['upper'] - reactor_cutting['mean']]
-ax.errorbar(reactor_cutting.index, reactor_cutting['mean'], yerr=y_error, capsize=5,
-            color='black', linestyle='', marker='^')
+ax.errorbar(reactor_cutting.index, reactor_cutting['mean'], yerr=y_error, capsize=10,
+            color='black', linestyle='', marker='^', label='Data')
 # Model prediction
-for i in range(N):
-    ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).isel(draws=i), alpha=0.10, color='black')
+#for i in range(N):
+#    ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).isel(draws=i), alpha=0.10, color='black')
+ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).mean(dim='draws'), color='black', linestyle='--', label='Model mean')
+ax.fill_between(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).quantile(dim='draws', q=0.025), out['C_F'].sel(species='Es').isel(time=-1).quantile(dim='draws', q=0.975), color='black', alpha=0.10, label='Model 95% CI')
+
 ax.set_xlabel('Reactor length (m)')
 ax.set_ylabel('Ester concentration (mM)')
-
+ax.legend()
+plt.tight_layout()
 plt.show()
 plt.close()
 
@@ -160,7 +164,7 @@ l = 0.6 # m
 
 # Loop over flowrates
 out=[]
-Q = np.linspace(start=0.05, stop=0.6, num=30)/60*10**-6  # Flow rate (m³/s)
+Q = np.linspace(start=0.05, stop=0.6, num=20)/60*10**-6  # Flow rate (m³/s)
 for q in Q:
     print(f'Computing flowrate: {q} m3/s')
     # Update derived variables
@@ -187,16 +191,18 @@ for output in out:
     upper_outlet.append(float(output['C_F'].sel(species='Es').isel(time=-1).isel(x=-1).quantile(dim='draws', q=0.975).values))
 
 # Visualize results
-fig,ax=plt.subplots()
+fig,ax=plt.subplots(figsize=(6,2.6))
 # Data
 y_error = [vary_flowrate['mean'] - vary_flowrate['lower'], vary_flowrate['upper'] - vary_flowrate['mean']]
-ax.errorbar(vary_flowrate.index, vary_flowrate['mean'], yerr=y_error, capsize=5,color='black', linestyle='', marker='^')
+ax.errorbar(vary_flowrate.index, vary_flowrate['mean'], yerr=y_error, capsize=5,color='black', linestyle='', marker='^', label='Data')
 # Model prediction: outlet concentration
-ax.plot(Q*60*10**6, mean_outlet, color='black', linestyle='--')
-ax.fill_between(Q*60*10**6, lower_outlet, upper_outlet, color='black', alpha=0.10)
+ax.plot(Q*60*10**6, mean_outlet, color='black', linestyle='--', label='Model mean')
+ax.fill_between(Q*60*10**6, lower_outlet, upper_outlet, color='black', alpha=0.10, label='Model 95% CI' )
 # Decorations
 ax.set_xlabel('Flow rate (mL/min)')
 ax.set_ylabel('Outlet ester concentration (mM)')
 ax.set_ylim([-0.5,20])
+ax.legend()
+plt.tight_layout()
 plt.show()
 plt.close()

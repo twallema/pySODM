@@ -155,7 +155,7 @@ if __name__ == '__main__':
         # Add 5% observational noise
         out = add_gaussian_noise(out, 0.05, relative=True)
         # Visualize
-        fig,ax=plt.subplots(figsize=(12,4))
+        fig,ax=plt.subplots(figsize=(6,2.5))
         #ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
         ax.errorbar(df.index, df, yerr=np.squeeze(log_likelihood_fnc_args[i]), capsize=10,color='black', linestyle='', marker='^', label='Data')
         #for i in range(N):
