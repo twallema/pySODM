@@ -1,4 +1,4 @@
-## Modeling and Simulation Workflow
+## Modeling and Calibration Workflow
 
 In this tutorial, we'll set up a simple SIR disease model and calibrate its basic reproduction number to a synthetically generated dataset. We'll then asses what happens if the pathogen's infectivity is lowered by means of preventive measures. By using a simple model, we can focus on the general workflow and on the most important functions of `pySODM`, which will be similar in the more research-driven [enzyme kinetics](enzyme_kinetics.md) and [Influenza tutorials](influenza_1718.md) available on this documentation website.
 
@@ -83,15 +83,15 @@ or schematically,
 
 <img src="./_static/figs/workflow/flowchart_SIR.png" width="500" />
 
-The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the `ODEModel` or `SDEModel` class from  `~/src/models/base.by`. Then, the user must define his/her own class which must contain (minimally),
+The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the `ODEModel` class from  `~/src/models/base.by`. Then, the user must define his/her own class which must contain (minimally),
 - A list containing the state names `state_names`,
 - A list containing the parameter names `parameter_names`,
 - An `integrate()` function where the differentials of the model are computed,
 
 and take the `ODEModel` class as its input. Checkout the documentation of the ODEModel class [here](models.md). There are some important formatting requirements to the integrate function, which are verified when the model is initialized,
 1. The integrate function must have the timestep `t` as its first input
-2. The timestep `t` is first followed by the states, then the parameters in the correct order
-3. The integrate function must return a differential for every model state
+2. The model states and parameters must also be given as input, their order does not make a difference
+3. The integrate function must return a differential for every model state, arranged in the same order as the state names defined in `state_names`
 4. The integrate function must be a static method (include `@staticmethod`)
 
 ```
@@ -150,29 +150,6 @@ plt.close()
 ```
 
 ![SIR_date](/_static/figs/workflow/SIR_date.png)
-
-The `sim()` method can also be run with timesteps as coordinates of the time axis (int/float). By convention, the name of the time axis in the `xarray` output is equal to `date` when using dates and `time` when using timesteps.
-```
-# Simulate from t=0 until t=121
-out = model.sim([0, 121])
-
-# Is equivalent to:
-out = model.sim(121)
-
-# But now the time axis is named 'time'
-fig,ax=plt.subplots(figsize=(12,4))
-ax.plot(out['time'], out['S'], color='green', label='Susceptible')
-ax.plot(out['time'], out['I'], color='red', label='Infectious')
-ax.plot(out['time'], out['R'], color='black', label='Removed')
-ax.xaxis.set_major_locator(plt.MaxNLocator(3))
-ax.legend()
-plt.show()
-plt.close()
-```
-
-![SIR_time](/_static/figs/workflow/SIR_time.png)
-
-The user can acces the integration methods and relative tolerance of `scipy.solve_ivp()` by supplying the `method` and `rtol` arguments to the [`sim()` function](models.md). The user can determine the output timestep frequency by changing the optional `output_timestep` argument.
 
 ### Calibrating the model
 

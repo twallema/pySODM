@@ -57,7 +57,7 @@ initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 220
 ##############
 
 alpha = 0.03 # Overdispersion of data
-N = 50 # Repeated simulations
+N = 10 # Repeated simulations
 start_calibration = start_date 
 end_calibration = pd.Timestamp('2018-03-01')
 identifier = 'twallema_2017-03-01'
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     # Variables
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
-    n_pso = 50
+    n_pso = 20
     multiplier_pso = 20
     # Define dataset
     data=[df_influenza[start_calibration:end_calibration], ]
