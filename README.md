@@ -55,7 +55,8 @@ The following features will be implemented in future versions of pySODM,
 
 - Version 0.1 (2022-12-23, PR #14)
     - Version 0.1.1 (2023-01-09, PR #20)
-    > Start of semantic versions: Major.Minor.Patch
+        > Start of semantic versions: Major.Minor.Patch
 - Version 0.0 (2022-11-14)
-    - Minimal working version without documentation website. 
+    - First pySODM version. Obtained by splitting the generic from the ad-hoc parts from UGentBiomath/COVID19-Model. Without documentation website. 
 - Pre-development (2020-05-01 - 2022-11-24)
+    - Code developped to model the spread of SARS-CoV-2 in Belgium (UGentBiomath/COVID19-Model).
