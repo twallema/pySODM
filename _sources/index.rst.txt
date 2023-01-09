@@ -12,6 +12,7 @@ Welcome to pySODM's documentation
 
    Introduction <introduction.md>
    Installation <installation.md>
+   Quickstart <quickstart.md>
 
 .. toctree::
    :caption: Tutorials
