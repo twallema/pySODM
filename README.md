@@ -53,6 +53,9 @@ The following features will be implemented in future versions of pySODM,
 
 ### Versions
 
-- version 0.1 (2022-12-23) 
-- version 0.0 (2022-11-14)
+- Version 0.1 (2022-12-23, PR #14)
+    - Version 0.1.1 (2023-01-09, PR #20)
+    > Start of semantic versions: Major.Minor.Patch
+- Version 0.0 (2022-11-14)
+    - Minimal working version without documentation website. 
 - Pre-development (2020-05-01 - 2022-11-24)
