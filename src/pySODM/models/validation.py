@@ -158,10 +158,63 @@ def validate_time_dependent_parameters(parameter_names, parameter_stratified_nam
 
     return extra_params
 
-def validate_initial_states(values, name, object_name, stratification_size, coordinates, state_2d):
+def validate_initial_states(state_names, initial_states, stratification_size, coordinates, state_2d):
+    """
+    A function to check the types and sizes of the model's initial states provided by the user.
+    Automatically assumes non-specified states are equal to zero.
 
+    Parameters
+    ----------
+
+    state_names: list
+        Contains model state names (type: str)
+    
+    initial_states: dict
+        Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
+
+    stratification_size: list
+        Contains the number of coordinates of every stratification
+    
+    coordinates: dict
+        Keys: stratification name, Values: coordinates.
+
+    state_2d: list
+        Contains the names of 2-dimensional states. Ad-hoc, will be replaced with a generalization.
+    
+    Returns
+    -------
+    
+    initial_states: dict
+        Dictionary containing the model's validated initial states.
+        Types/Size checked, redundant initial states checked, states sorted according to `state_names`.
+    """
+
+    for state in state_names:
+        if state in initial_states:
+            # if present, verify the length
+            initial_states[state] = check_initial_states_size(
+                                        initial_states[state], state, "initial state", stratification_size, coordinates, state_2d
+                                        )
+        else:
+            # Fill with zeros
+            initial_states[state] = np.zeros(stratification_size)
+
+    # validate the states (using `set` to ignore order)
+    if set(initial_states.keys()) != set(state_names):
+        raise ValueError(
+            f"The specified initial states don't exactly match the predefined states. Redundant states: {set(initial_states.keys()).difference(set(state_names))}"
+        )
+
+    # sort the initial states to match the state_names
+    initial_states = {state: initial_states[state] for state in state_names}
+
+    return initial_states
+
+def check_initial_states_size(values, name, object_name, stratification_size, coordinates, state_2d):
+    """A function checking the size of an initial state
+    """
     # If the model doesn't have stratifications, initial states can be defined as: np.array([int/float]), [int/float], int or float
-    # However these still need to converted to a np.array
+    # However these still need to converted to a np.array internally
     if stratification_size == [1]:
         if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64,np.ndarray)):
             raise TypeError(
@@ -172,6 +225,7 @@ def validate_initial_states(values, name, object_name, stratification_size, coor
                 values = np.asarray([values,])
         values = np.asarray(values)
 
+        # 2d states will be replaced with a generalization soon
         if state_2d:
             if name in state_2d:
                 if list(values.shape) != [stratification_size[0],stratification_size[0]]:
@@ -356,24 +410,11 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
                     )
                 i = i + 1
 
-    # the size of the initial states + fill in defaults
-    for state in state_names:
-        if state in initial_states:
-            # if present, check that the length is correct
-            initial_states[state] = validate_initial_states(
-                                        initial_states[state], state, "initial state", stratification_size, coordinates, state_2d
-                                        )
-        else:
-            # otherwise add default of 0
-            initial_states[state] = np.zeros(stratification_size)
+    # Size/type of the initial states
+    # Redundant states
+    # Fill in unspecified states with zeros
+    initial_states = validate_initial_states(state_names, initial_states, stratification_size, coordinates, state_2d)
 
-    # validate the states (using `set` to ignore order)
-    if set(initial_states.keys()) != set(state_names):
-        raise ValueError(
-            "The specified initial states don't exactly match the predefined states"
-        )
-    # sort the initial states to match the state_names
-    initial_states = {state: initial_states[state] for state in state_names}
 
     # Call integrate function with initial values to check if the function returns all states
     fun = _create_fun(None)
@@ -584,27 +625,11 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
                     )
                 i = i + 1
 
-    # the size of the initial states + fill in defaults
-    for state in state_names:
-        if state in initial_states:
-            # if present, check that the length is correct
-            initial_states[state] = validate_initial_states(
-                                        initial_states[state], state, "initial state", stratification_size, coordinates, None
-                                    )
-        else:
-            # otherwise add default of 0
-            initial_states[state] = np.zeros(stratification_size)
+    # Size/type of the initial states
+    # Redundant states
+    # Fill in unspecified states with zeros
+    initial_states = validate_initial_states(state_names, initial_states, stratification_size, coordinates, None)
 
-    # validate the states (using `set` to ignore order)
-    if set(initial_states.keys()) != set(state_names):
-        raise ValueError(
-            "The specified initial states don't exactly match the predefined states. "
-            "Redundant states: {0}".format(
-            set(initial_states.keys()).difference(set(state_names)))
-        )
-
-    # sort the initial states to match the state_names
-    initial_states = {state: initial_states[state] for state in state_names}
 
     #########################################################################
     # Validate the 'compute_rates' and 'apply_transitionings' by calling it #
