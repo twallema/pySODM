@@ -2,6 +2,7 @@ import inspect
 import itertools
 import pandas as pd
 import numpy as np
+import xarray as xr
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
 from pySODM.optimization.utils import _thetas_to_thetas_dict
@@ -555,6 +556,25 @@ class log_posterior_probability():
         ## Compare data and model stratifications ##
         ############################################
 
+        # Create a fake model output
+
+        # Loop over states we'd like to match
+
+            # If aggregation function:
+
+                ## Validate aggregation function
+
+                ## Apply the transitioning function to the fake output
+
+                ## Recreate the model.coordinates dictionary based on the fake output
+
+                ## Check if coordinates in data and model match
+            
+            # Else:
+
+                ## Check if coordinates in data and model match
+
+
         # Create a "fake" model output using xarray
         # Expand coordinates with the time index
         coords=model.coordinates.copy()
@@ -566,16 +586,11 @@ class log_posterior_probability():
             data[var] = xarr
         out = xr.Dataset(data)
 
-        # If aggregation function:
-
-            ## Apply the transitioning function to it
-
-            ## Check if coordinates in data and model match
-        
-        # Else:
-        
-            ## Check if coordinates in data and model match
-
+        # Recreate the model.coordinates attribute using this fake dataset
+        coord=[]
+        for dim in out[list(out.keys())[0]].dims:
+            coord.append(out.coords[dim].values)
+        coordinates = dict(zip(out.dims, coord))
 
         self.coordinates_data_also_in_model=[]
         for i, data_index_diff in enumerate(self.additional_axes_data):
