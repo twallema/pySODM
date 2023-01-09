@@ -57,11 +57,16 @@ merge.name = 'CASES'
 for age_group in merge.index.get_level_values('AGE').unique():
     interpol = merge.loc[slice(None),age_group].interpolate(method='linear').values
     merge.loc[slice(None),age_group] = interpol
-    merge.loc[slice(None),age_group] = merge.loc[slice(None),age_group].values*N.loc[age_group]/100000
+
+# Per 100K inhabitants
+absolute = merge.copy()
+for age_group in absolute.index.get_level_values('AGE').unique():    
+    absolute.loc[slice(None),age_group] = absolute.loc[slice(None),age_group].values*N.loc[age_group]/100000
 
 #################
 ## Save result ##
 #################
 
 # Write to a new .csv file
-merge.to_csv(os.path.join(abs_dir,'data/interim/data_influenza_1718_format.csv'))
+merge.to_csv(os.path.join(abs_dir,'data/interim/data_influenza_1718_format_100K.csv'))
+absolute.to_csv(os.path.join(abs_dir,'data/interim/data_influenza_1718_format.csv'))

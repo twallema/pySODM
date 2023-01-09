@@ -75,16 +75,18 @@ class SDE_influenza_model(SDEModel):
 class make_contact_matrix_function():
 
     # Initialize class with contact matrices
-    def __init__(self, N_work, N_school, N_except_workschool):
-        self.N_work = N_work
-        self.N_school = N_school
-        self.N_except_workschool = N_except_workschool
-    
+    def __init__(self, N, N_holiday):
+        self.N = N
+        self.N_holiday = N_holiday
+
     # Define a call function to return the right contact matrix
     @lru_cache()
-    def __call__(self, t, work=1, school=1):
-        return self.N_except_workschool + work*self.N_work + school*self.N_school
-    
+    def __call__(self, t, holiday=False):
+        if not holiday:
+            return self.N
+        else:
+            return self.N_holiday
+
     # Define a pySODM compatible wrapper with the social policies
     def contact_function(self, t, states, param, ramp_time):
 
@@ -94,18 +96,18 @@ class make_contact_matrix_function():
             return self.__call__(t)
         # Christmass holiday
         elif pd.Timestamp('2017-12-20')+delay < t <= pd.Timestamp('2018-01-05')+delay:
-            return self.__call__(t, work=0.60, school=0)
+            return self.__call__(t, holiday=True).copy()
         # Christmass holiday --> Winter holiday
-        elif pd.Timestamp('2017-01-05')+delay < t <= pd.Timestamp('2018-02-09')+delay:
+        elif pd.Timestamp('2018-01-05')+delay < t <= pd.Timestamp('2018-02-10')+delay:
             return self.__call__(t)
         # Winter holiday
-        elif pd.Timestamp('2018-02-09')+delay < t <= pd.Timestamp('2018-02-16')+delay:
-            return self.__call__(t, work=0.90, school=0)
+        elif pd.Timestamp('2018-02-10')+delay < t <= pd.Timestamp('2018-02-18')+delay:
+            return self.__call__(t, holiday=True)
         # Winter holiday --> Easter holiday
-        elif pd.Timestamp('2018-02-16')+delay < t <= pd.Timestamp('2018-03-28')+delay:
+        elif pd.Timestamp('2018-02-18')+delay < t <= pd.Timestamp('2018-03-28')+delay:
             return self.__call__(t)
         # Easter holiday
         elif pd.Timestamp('2018-03-28')+delay < t <= pd.Timestamp('2018-04-16')+delay:
-            return self.__call__(t, work=0.60, school=0)
+            return self.__call__(t, holiday=True)
         else:
             return self.__call__(t)
