@@ -238,13 +238,142 @@ def log_prior_weibull(x,weibull_params):
     return gamma.logpdf(x, k, shape=lam, loc=0 )    
 
 #############################################
-## Computing the log posterior probability ##
+## Validation of log posterior probability ##
 #############################################
 
-def validate_initial_states(initial_states, model_states,):
-    """ A fuction to validate the initial states given to the log_posterior probability
+def validate_dataset(data):
+    """
+    Validates a dataset:
+        - Correct datatype?
+        - No Nan's?
+        - Is the index level 'date'/'time present? (obligated)
+    Extracts and returns the additional stratifications in dataset besides the time axis.
+
+    Parameters
+    ----------
+
+    data: list
+        List containing the datasets
+    
+    Returns
+    -------
+
+    additional_axes_data: list
+        Contains the index levels beside 'date'/'time' present in the dataset
+
+    time_index: str
+        'date': datetime-like time index. 'time': float-like time index.
     """
 
+    additional_axes_data=[] 
+    time_index=[]
+    for idx, df in enumerate(data):
+        # Is dataset either a pd.Series or a pd.Dataframe?
+        if not isinstance(df, (pd.Series,pd.DataFrame)):
+            raise TypeError(
+                f"{idx}th dataset is of type {type(df)}. expected pd.Series or pd.DataFrame"
+            )
+        # If it is a pd.DataFrame, does it have one column?
+        if isinstance(df, pd.DataFrame):
+            if len(df.columns) != 1:
+                raise ValueError(
+                    f"{idx}th dataset is a pd.DataFrame with {len(df.columns)} columns. expected one column."
+                )
+            else:
+                # Convert to a series for ease
+                data[idx] = df.squeeze()
+        # Does data contain NaN values anywhere?
+        if np.isnan(df).values.any():
+            raise ValueError(
+                f"{idx}th dataset contains nans"
+                )
+        # Does data have 'date' or 'time' as index level? (required)
+        if (('date' not in df.index.names) & ('time' not in df.index.names)):
+            raise ValueError(
+                f"Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
+                )
+        elif (('date' in df.index.names) & ('time' not in df.index.names)):
+            time_index.append('date')
+            additional_axes_data.append([name for name in df.index.names if name != 'date'])
+        elif (('date' not in df.index.names) & ('time' in df.index.names)):
+            time_index.append('time')
+            additional_axes_data.append([name for name in df.index.names if name != 'time'])
+        else:
+            raise ValueError(
+                f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
+                )
+        # Are all time index levels equal to 'date' or 'time'?
+        if all(index == 'date' for index in time_index):
+            time_index='date'
+        elif all(index == 'time' for index in time_index):
+            time_index='time'
+        else:
+            raise ValueError(
+                "Some datasets have 'time' as time index, other have 'date as time index. pySODM does not allow mixing."
+            )
+    return time_index, additional_axes_data
+
+
+def validate_calibrated_parameters(parameters_function, parameters_model):
+    """
+   Validates the parameters the user wants to calibrate. Parameters must: 1) exist, 2) have one value, or, have multiple values (list or np.ndarray).
+   Construct a dictionary containing the parameter names as key and their size as values. 
+   
+   Parameters
+   ----------
+
+    parameters_function: list
+        Contains the names parameters the user wants to calibrate (type: str)
+
+    parameters_model: dict
+        Model parameters dictionary.
+
+    Returns
+    -------
+
+    parameters_sizes: dict
+        Dictionary containing the size of every model parameter.
+
+    idx_par_multiple_entries: list
+        Contains indices of 1D parameters
+    """
+
+    idx_par_with_multiple_entries=[]
+    for i,param_name in enumerate(parameters_function):
+        # Check if the parameter exists
+        if param_name not in parameters_model:
+            raise Exception(
+                f"'{param_name}' is not a valid model parameter!"
+            )
+        # Check the datatype: only int, float, list of int/float, 1D np.array
+        if isinstance(parameters_model[param_name], bool):
+            raise TypeError(
+                    f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                )
+        elif ((not isinstance(parameters_model[param_name], int)) & (not isinstance(parameters_model[param_name], float))):
+            if isinstance(parameters_model[param_name], np.ndarray):
+                if parameters_model[param_name].ndim != 1:
+                    raise NotImplementedError(
+                        f"Only 1D numpy arrays can be calibrated using pySDOM. Parameter '{param_name}' is a {parameters_model[param_name].ndim}-dimensional np.ndarray!"
+                    )
+                else:
+                    idx_par_with_multiple_entries.append(i)
+            elif isinstance(parameters_model[param_name], list):
+                if not all([isinstance(item, (int,float)) for item in parameters_model[param_name]]):
+                    raise TypeError(
+                        f"Model parameter '{param_name}' of type list must only contain int or float!"
+                    )
+                else:
+                    idx_par_with_multiple_entries.append(i)
+            else:
+                raise TypeError(
+                    f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                )
+    return idx_par_with_multiple_entries
+
+#############################################
+## Computing the log posterior probability ##
+#############################################
 
 class log_posterior_probability():
     """ Computation of log posterior probability
@@ -255,9 +384,9 @@ class log_posterior_probability():
     def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
                  weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
 
-        #######################
-        ## Construct weights ##
-        #######################
+        ############################################################################################################
+        ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
+        ############################################################################################################
 
         if not weights:
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):
@@ -283,93 +412,21 @@ class log_posterior_probability():
                     )
         self.initial_states = initial_states
 
-        ####################
-        ## Checks on data ##
-        ####################
-        
-        # TODO: data as xarray.Dataset
+        ###########################
+        ## Validate the datasets ##
+        ###########################
 
-        self.additional_axes_data=[] 
-        for idx, df in enumerate(data):
-            # Is dataset either a pd.Series or a pd.Dataframe?
-            if not isinstance(df, (pd.Series,pd.DataFrame)):
-                raise TypeError(
-                    f"{idx}th dataset is of type {type(df)}. expected pd.Series or pd.DataFrame"
-                )
-            # If it is a pd.DataFrame, does it have one column?
-            if isinstance(df, pd.DataFrame):
-                if len(df.columns) != 1:
-                    raise ValueError(
-                        f"{idx}th dataset is a pd.DataFrame with {len(df.columns)} columns. expected one column."
-                    )
-                else:
-                    # Convert to a series for ease
-                    data[idx] = df.squeeze()
-            # Does data contain NaN values anywhere?
-            if np.isnan(df).values.any():
-                raise ValueError(
-                    f"{idx}th dataset contains nans"
-                    )
-            # Does data have 'date' or 'time' as index level? (required)
-            if (('date' not in df.index.names) & ('time' not in df.index.names)):
-                raise ValueError(
-                    f"Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
-                    )
-            elif (('date' in df.index.names) & ('time' not in df.index.names)):
-                self.time_index = 'date'
-                self.additional_axes_data.append([name for name in df.index.names if name != 'date'])
-            elif (('date' not in df.index.names) & ('time' in df.index.names)):
-                self.time_index = 'time'
-                self.additional_axes_data.append([name for name in df.index.names if name != 'time'])
-            else:
-                raise ValueError(
-                    f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
-                    )
-
+        # Get additional axes beside time axis in dataset.
+        self.time_index, self.additional_axes_data = validate_dataset(data)
         # Extract start- and enddate of simulations
-        index_min=[]
-        index_max=[]
-        for idx, df in enumerate(data):
-            index_min.append(df.index.get_level_values(self.time_index).unique().min())
-            index_max.append(df.index.get_level_values(self.time_index).unique().max())
-        self.start_sim = min(index_min)
-        self.end_sim = max(index_max)
+        self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
+        self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data])
 
         ########################################
-        ## Checks on parameters to calibrated ##
+        ## Validate the calibrated parameters ##
         ########################################
 
-        idx_par_with_multiple_entries=[]
-        for i,param_name in enumerate(parameter_names):
-            # Check if the parameter exists
-            if param_name not in model.parameters:
-                raise Exception(
-                    f"'{param_name}' is not a valid model parameter!"
-                )
-            # Check the datatype: only int, float, list of int/float, 1D np.array
-            if isinstance(model.parameters[param_name], bool):
-                raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
-                    )
-            elif ((not isinstance(model.parameters[param_name], int)) & (not isinstance(model.parameters[param_name], float))):
-                if isinstance(model.parameters[param_name], np.ndarray):
-                    if model.parameters[param_name].ndim != 1:
-                        raise NotImplementedError(
-                            f"Only 1D numpy arrays can be calibrated using pySDOM. Parameter '{param_name}' is a {model.parameters[param_name].ndim}-dimensional np.ndarray!"
-                        )
-                    else:
-                        idx_par_with_multiple_entries.append(i)
-                elif isinstance(model.parameters[param_name], list):
-                    if not all([isinstance(item, (int,float)) for item in model.parameters[param_name]]):
-                        raise TypeError(
-                            f"Model parameter '{param_name}' of type list must only contain int or float!"
-                        )
-                    else:
-                        idx_par_with_multiple_entries.append(i)
-                else:
-                    raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
-                    )
+        idx_par_with_multiple_entries = validate_calibrated_parameters(parameter_names, model.parameters)
 
         #######################################
         ## Construct bounds, pars and labels ##
