@@ -555,6 +555,28 @@ class log_posterior_probability():
         ## Compare data and model stratifications ##
         ############################################
 
+        # Create a "fake" model output using xarray
+        # Expand coordinates with the time index
+        coords=model.coordinates.copy()
+        coords.update({self.time_index: [0,]})
+        # Generate an xarray dataset
+        data = {}
+        for var, arr in model.initial_states.items():
+            xarr = xr.DataArray(arr[..., None], coords=coords, dims=coords.keys())
+            data[var] = xarr
+        out = xr.Dataset(data)
+
+        # If aggregation function:
+
+            ## Apply the transitioning function to it
+
+            ## Check if coordinates in data and model match
+        
+        # Else:
+        
+            ## Check if coordinates in data and model match
+
+
         self.coordinates_data_also_in_model=[]
         for i, data_index_diff in enumerate(self.additional_axes_data):
             tmp1=[]
