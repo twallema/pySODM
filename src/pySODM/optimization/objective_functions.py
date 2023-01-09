@@ -1,4 +1,5 @@
 import inspect
+import itertools
 import pandas as pd
 import numpy as np
 from scipy.stats import norm, weibull_min, triang, gamma
@@ -316,11 +317,11 @@ def validate_dataset(data):
 
 def validate_calibrated_parameters(parameters_function, parameters_model):
     """
-   Validates the parameters the user wants to calibrate. Parameters must: 1) exist, 2) have one value, or, have multiple values (list or np.ndarray).
-   Construct a dictionary containing the parameter names as key and their size as values. 
+    Validates the parameters the user wants to calibrate. Parameters must: 1) Be valid model parameters, 2) Have one value, or, have multiple values (list or np.ndarray).
+    Construct a dictionary containing the parameter names as key and their sizes (type: tuple) as values. 
    
-   Parameters
-   ----------
+    Parameters
+    ----------
 
     parameters_function: list
         Contains the names parameters the user wants to calibrate (type: str)
@@ -332,44 +333,132 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
     -------
 
     parameters_sizes: dict
-        Dictionary containing the size of every model parameter.
+        Dictionary containing the size (=number of entries) of every model parameter.
 
-    idx_par_multiple_entries: list
-        Contains indices of 1D parameters
+    parameters_shapes: dict
+        Dictionary containing the shape of every model parameter.    
     """
 
-    idx_par_with_multiple_entries=[]
-    for i,param_name in enumerate(parameters_function):
+    parameters_sizes = []
+    parameters_shapes = []
+    for param_name in parameters_function:
         # Check if the parameter exists
         if param_name not in parameters_model:
             raise Exception(
-                f"'{param_name}' is not a valid model parameter!"
+                f"To be calibrated model parameter '{param_name}' is not a valid model parameter!"
             )
-        # Check the datatype: only int, float, list of int/float, 1D np.array
+        # Check the datatype: only int, float, list of int/float, np.array
         if isinstance(parameters_model[param_name], bool):
             raise TypeError(
                     f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
                 )
-        elif ((not isinstance(parameters_model[param_name], int)) & (not isinstance(parameters_model[param_name], float))):
-            if isinstance(parameters_model[param_name], np.ndarray):
-                if parameters_model[param_name].ndim != 1:
-                    raise NotImplementedError(
-                        f"Only 1D numpy arrays can be calibrated using pySDOM. Parameter '{param_name}' is a {parameters_model[param_name].ndim}-dimensional np.ndarray!"
-                    )
-                else:
-                    idx_par_with_multiple_entries.append(i)
-            elif isinstance(parameters_model[param_name], list):
-                if not all([isinstance(item, (int,float)) for item in parameters_model[param_name]]):
-                    raise TypeError(
-                        f"Model parameter '{param_name}' of type list must only contain int or float!"
-                    )
-                else:
-                    idx_par_with_multiple_entries.append(i)
-            else:
+        elif isinstance(parameters_model[param_name], (int,float)):
+            parameters_shapes.append((1,))
+            parameters_sizes.append(1)
+        elif isinstance(parameters_model[param_name], np.ndarray):
+            parameters_shapes.append(parameters_model[param_name].shape)
+            parameters_sizes.append(parameters_model[param_name].size)
+        elif isinstance(parameters_model[param_name], list):
+            if not all([isinstance(item, (int,float)) for item in parameters_model[param_name]]):
                 raise TypeError(
-                    f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                    f"To be calibrated model parameter '{param_name}' of type list must only contain int or float!"
                 )
-    return idx_par_with_multiple_entries
+            else:
+                parameters_shapes.append(np.array(parameters_model[param_name]).shape)
+                parameters_shapes.append(np.array(parameters_model[param_name]).size)
+        else:
+            raise TypeError(
+                    f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                    )
+
+    return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
+
+def expand_parameter_names(parameter_shapes):
+    """A function to expand the names of parameters with multiple entries
+    """
+    expanded_names = []
+    for i, name in enumerate(parameter_shapes.keys()):
+        if parameter_shapes[name] == (1,):
+            expanded_names.append(name)
+        else:
+            for index in itertools.product(*[list(range(i)) for i in itertools.chain(parameter_shapes[name])]):
+                n = name + '_'
+                for val in index:
+                    n += str(val)+','
+                n=n[:-1]
+                expanded_names.append(n)
+    return expanded_names
+
+def expand_bounds(parameter_sizes, bounds):
+    """A function to expand the bounds of parameters with multiple entries
+    """
+    expanded_bounds = []
+    for i, name in enumerate(parameter_sizes.keys()):
+        if parameter_sizes[name] == 1:
+            expanded_bounds.append(bounds[i])
+        else:
+            for _ in range(parameter_sizes[name]):
+                expanded_bounds.append(bounds[i])
+    return expanded_bounds
+
+def expand_labels(parameter_shapes, labels):
+    """A function to expand the labels of parameters with multiple entries
+    """
+    expanded_labels = []
+    for i, name in enumerate(parameter_shapes.keys()):
+        if parameter_shapes[name] == (1,):
+            expanded_labels.append(labels[i])
+        else:
+            for index in itertools.product(*[list(range(i)) for i in itertools.chain(parameter_shapes[name])]):
+                n = labels[i] + '_{'
+                for val in index:
+                    n += str(val)+','
+                n=n[:-1]
+                n+='}'
+                expanded_labels.append(n)
+    return expanded_labels
+
+def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, expanded_bounds):
+    """ 
+    Validation of the log prior probability function and its arguments.
+    Expansion for parameters with multiple entries.
+    """
+
+    if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
+        # Setup uniform priors
+        expanded_log_prior_prob_fnc = len(expanded_bounds)*[log_prior_uniform,]
+        expanded_log_prior_prob_fnc_args = expanded_bounds
+    elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
+        raise Exception(
+            f"Invalid input. Prior probability functions provided but no prior probability function arguments."
+        )
+    elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
+        raise Exception(
+            f"Invalid input. Prior probability function arguments provided but no prior probability functions."
+        )
+    else:
+        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
+            raise ValueError(
+                f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
+            ) 
+        if ((len(log_prior_prob_fnc) != len(parameter_sizes.keys()))&(len(log_prior_prob_fnc) != len(expanded_bounds))):
+            raise Exception(
+                f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters ({len(parameter_sizes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters  ({sum(parameter_sizes.values())})"
+                )
+        if len(log_prior_prob_fnc) != len(expanded_bounds):
+            # Expand
+            expanded_log_prior_prob_fnc = []
+            expanded_log_prior_prob_fnc_args = []
+            for i, name in enumerate(parameter_sizes.keys()):
+                if parameter_sizes[name] == 1:
+                    expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
+                    expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+                else:
+                    for _ in range(parameter_sizes[name]):
+                        expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
+                        expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+
+    return expanded_log_prior_prob_fnc, expanded_log_prior_prob_fnc_args
 
 #############################################
 ## Computing the log posterior probability ##
@@ -426,119 +515,41 @@ class log_posterior_probability():
         ## Validate the calibrated parameters ##
         ########################################
 
-        idx_par_with_multiple_entries = validate_calibrated_parameters(parameter_names, model.parameters)
+        parameter_sizes, parameter_shapes = validate_calibrated_parameters(parameter_names, model.parameters)
 
-        #######################################
-        ## Construct bounds, pars and labels ##
-        #######################################
+        ################################################
+        ## Construct expanded bounds, pars and labels ##
+        ################################################
 
-        # Compute expanded size of bounds
-        expanded_length=0
-        for i, param_name in enumerate(parameter_names):
-            if i in idx_par_with_multiple_entries:
-                expanded_length += len(model.parameters[param_name])
-            else:
-                expanded_length += 1
-
-        # Construct parameters_postprocessing
-        parameter_names_postprocessing = []
-        for i, param_name in enumerate(parameter_names):
-            if i in idx_par_with_multiple_entries:
-                l = len(model.parameters[param_name])
-                for j in range(l):
-                    parameter_names_postprocessing.append(param_name+'_'+str(j))
-            else:
-                parameter_names_postprocessing.append(param_name)
-
+        # Expand parameter names 
+        self.parameter_names_postprocessing = expand_parameter_names(parameter_shapes)
+        # Expand bounds
         if len(bounds) == len(parameter_names):
-            # Expand bounds
-            new_bounds = []
-            for i, param_name in enumerate(parameter_names):
-                if i in idx_par_with_multiple_entries:
-                    l = len(model.parameters[param_name])
-                    for j in range(l):
-                        new_bounds.append(bounds[i])
-                else:
-                    new_bounds.append(bounds[i])
-        elif len(bounds) == expanded_length:
-            new_bounds=bounds
+            self.expanded_bounds = expand_bounds(parameter_sizes, bounds)
+        elif len(bounds) == sum(parameter_sizes.values()):
+            self.expanded_bounds = bounds
         else:
             raise Exception(
                 f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
             )
-
-        # Expand labels if provided
+        # Expand labels
         if labels:
             if len(labels) == len(parameter_names):
-                new_labels=[]
-                for i, param_name in enumerate(parameter_names):
-                    if i in idx_par_with_multiple_entries:
-                        l = len(model.parameters[param_name])
-                        for j in range(l):
-                            new_labels.append(labels[i]+'_'+str(j))
-                    else:
-                        new_labels.append(labels[i])
-                labels=new_labels
-            elif len(labels) == expanded_length:
-                pass
+                self.expanded_labels = expand_labels(parameter_shapes, labels)
+            elif len(labels) == sum(parameter_sizes.values()):
+                self.expanded_labels = labels
             else:
                 raise Exception(
                     f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
                 )
         else:
-            labels = parameter_names_postprocessing
-        
-        # Assign to objective function
-        self.expanded_bounds=new_bounds
-        self.expanded_labels=labels
-        self.parameter_names_postprocessing=parameter_names_postprocessing
+            self.expanded_labels = self.parameter_names_postprocessing
 
         ####################################################################
         ## Input check on number of prior functions + potential expansion ##
         ####################################################################
 
-        if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
-            # Setup uniform priors
-            log_prior_prob_fnc = len(self.expanded_bounds)*[log_prior_uniform,]
-            log_prior_prob_fnc_args = self.expanded_bounds
-        elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
-            raise Exception(
-                f"Invalid input. Prior probability functions provided but no prior probability function arguments."
-            )
-        elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
-            raise Exception(
-                f"Invalid input. Prior probability function arguments provided but no prior probability functions."
-            )
-        else:
-            if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
-                raise ValueError(
-                    f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
-                ) 
-            if ((len(log_prior_prob_fnc) != len(parameter_names))&(len(log_prior_prob_fnc) != len(parameter_names_postprocessing))):
-                raise Exception(
-                    f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
-                    )
-            if len(log_prior_prob_fnc) != len(self.expanded_bounds):
-                # Expand
-                new_log_prior_prob_fnc = []
-                new_log_prior_prob_fnc_args = []
-                for i, param_name in enumerate(parameter_names):
-                    if i in idx_par_with_multiple_entries:
-                        l = len(model.parameters[param_name])
-                        for j in range(l):
-                            new_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
-                            new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
-                    else:
-                        new_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
-                        new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
-                log_prior_prob_fnc = new_log_prior_prob_fnc
-                log_prior_prob_fnc_args = new_log_prior_prob_fnc_args
-            else:
-                pass
-
-        # Assign to class
-        self.log_prior_prob_fnc = log_prior_prob_fnc
-        self.log_prior_prob_fnc_args = log_prior_prob_fnc_args
+        self.log_prior_prob_fnc, self.log_prior_prob_fnc_args = validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, self.expanded_bounds)
 
         ############################################
         ## Compare data and model stratifications ##
