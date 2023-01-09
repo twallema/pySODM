@@ -461,6 +461,87 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
 
     return expanded_log_prior_prob_fnc, expanded_log_prior_prob_fnc_args
 
+def get_coordinates_data_also_in_model(additional_axes_data, model_coordinates, data):
+    """ A function to retrieve, for every dataset, and for every model dimension, the coordinates present in the data and also in the model.
+    
+    Parameters
+    ----------
+
+    additional_axes_data: list
+        Contains the names of the model dimensions besides 'time'/'date' present in the data
+
+    model_coordinates: dict
+        Model output coordinates. Keys: dimensions, values: coordinates.
+
+    data: list
+        Containing pd.Series or pd.Dataframes of data.
+
+    Returns
+    -------
+
+    coordinates_data_also_in_model: list
+        Contains a list for every dataset. Contains a list for every model dimension besides 'date'/'time', containing the coordinates present in the data and also in the model.
+
+    """
+    coordinates_data_also_in_model=[]
+    for i, data_index_diff in enumerate(additional_axes_data):
+        tmp1=[]
+        for data_dim in data_index_diff:
+            tmp2=[]
+            # Model has no stratifications: data can only contain 'date' or 'time'
+            if not model_coordinates:
+                raise Exception(
+                    f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
+                )
+            # Verify the axes in additional_axes_data are valid model dimensions
+            if data_dim not in list(model_coordinates.keys()):
+                raise Exception(
+                    f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
+                )
+            else:
+                # Verify all coordinates in the dataset can be found in the model
+                coords_model = model_coordinates[data_dim]
+                coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
+                for coord in coords_data:
+                    if coord not in coords_model:
+                        raise Exception(
+                            f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
+                            )
+                    else:
+                        tmp2.append(coord)
+            tmp1.append(tmp2)
+        coordinates_data_also_in_model.append(tmp1)
+    return coordinates_data_also_in_model
+
+def get_dimensions_sum_over(additional_axes_data, model_coordinates):
+    """ A function to compute the model dimensions that are not present in the dataset.
+
+    Parameters
+    ----------
+
+    additional_axes_data: list
+        The axes present in the dataset, excluding the time dimensions 'time'/'date'
+    
+    model_coordinates: dict
+        Dictionary of model coordinates. Key: dimension name. Value: corresponding coordinates.
+
+    Returns
+    -------
+    dimensions_sum_over: list
+        Contains a list per provided dataset. Contains the model dimensions not present in the dataset. pySODM will automatically sum over these dimensions.
+    """
+    dimensions_sum_over=[]
+    for i, data_index_diff in enumerate(additional_axes_data):
+        tmp=[]
+        if model_coordinates:
+            for model_strat in list(model_coordinates.keys()):
+                if model_strat not in data_index_diff:
+                    tmp.append(model_strat)
+            dimensions_sum_over.append(tmp)
+        else:
+            dimensions_sum_over.append(tmp)
+    return dimensions_sum_over
+
 #############################################
 ## Computing the log posterior probability ##
 #############################################
@@ -580,59 +661,26 @@ class log_posterior_probability():
         coords=model.coordinates.copy()
         coords.update({self.time_index: [0,]})
         # Generate an xarray dataset
-        data = {}
+        dt = {}
         for var, arr in model.initial_states.items():
-            xarr = xr.DataArray(arr[..., None], coords=coords, dims=coords.keys())
-            data[var] = xarr
-        out = xr.Dataset(data)
+            xarr = xr.DataArray(arr[...,None], coords=coords, dims=coords.keys())
+            dt[var] = xarr
+        out = xr.Dataset(dt)
 
         # Recreate the model.coordinates attribute using this fake dataset
         coord=[]
         for dim in out[list(out.keys())[0]].dims:
-            coord.append(out.coords[dim].values)
-        coordinates = dict(zip(out.dims, coord))
+            if ((dim != 'time') & (dim != 'date')):
+                coord.append(out.coords[dim].values)
+        model_coordinates = dict(zip(out.dims, coord))
 
-        self.coordinates_data_also_in_model=[]
-        for i, data_index_diff in enumerate(self.additional_axes_data):
-            tmp1=[]
-            for data_dim in data_index_diff:
-                tmp2=[]
-                # Model has no stratifications: data can only contain 'date' or 'time'
-                if not model.coordinates:
-                    raise Exception(
-                        f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
-                    )
-                # Verify the axes in additional_axes_data are valid model dimensions
-                if data_dim not in list(model.coordinates.keys()):
-                    raise Exception(
-                        f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
-                    )
-                else:
-                    # Verify all coordinates in the dataset can be found in the model
-                    coords_model = model.coordinates[data_dim]
-                    coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
-                    for coord in coords_data:
-                        if coord not in coords_model:
-                            raise Exception(
-                                f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
-                             )
-                        else:
-                            tmp2.append(coord)
-                tmp1.append(tmp2)
-            self.coordinates_data_also_in_model.append(tmp1)
+        # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
+        self.coordinates_data_also_in_model = get_coordinates_data_also_in_model(self.additional_axes_data, model_coordinates, data)
+        print(self.coordinates_data_also_in_model)
 
         # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-        # Is the difference between the data axes and model axes (excluding time/date)
-        self.aggregate_over=[]
-        for i, data_index_diff in enumerate(self.additional_axes_data):
-            tmp=[]
-            if model.coordinates:
-                for model_strat in list(model.coordinates.keys()):
-                    if model_strat not in data_index_diff:
-                        tmp.append(model_strat)
-                self.aggregate_over.append(tmp)
-            else:
-                self.aggregate_over.append(tmp)
+        self.aggregate_over = get_dimensions_sum_over(self.additional_axes_data, model_coordinates)
+        print(self.aggregate_over)
 
         ########################################
         ## Input checks on log_likelihood_fnc ##
