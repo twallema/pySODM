@@ -461,7 +461,7 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
 
     return expanded_log_prior_prob_fnc, expanded_log_prior_prob_fnc_args
 
-def get_coordinates_data_also_in_model(additional_axes_data, model_coordinates, data):
+def get_coordinates_data_also_in_model(data_index_diff, i, model_coordinates, data):
     """ A function to retrieve, for every dataset, and for every model dimension, the coordinates present in the data and also in the model.
     
     Parameters
@@ -483,35 +483,33 @@ def get_coordinates_data_also_in_model(additional_axes_data, model_coordinates, 
         Contains a list for every dataset. Contains a list for every model dimension besides 'date'/'time', containing the coordinates present in the data and also in the model.
 
     """
-    coordinates_data_also_in_model=[]
-    for i, data_index_diff in enumerate(additional_axes_data):
-        tmp1=[]
-        for data_dim in data_index_diff:
-            tmp2=[]
-            # Model has no stratifications: data can only contain 'date' or 'time'
-            if not model_coordinates:
-                raise Exception(
-                    f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
-                )
-            # Verify the axes in additional_axes_data are valid model dimensions
-            if data_dim not in list(model_coordinates.keys()):
-                raise Exception(
-                    f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
-                )
-            else:
-                # Verify all coordinates in the dataset can be found in the model
-                coords_model = model_coordinates[data_dim]
-                coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
-                for coord in coords_data:
-                    if coord not in coords_model:
-                        raise Exception(
-                            f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
-                            )
-                    else:
-                        tmp2.append(coord)
-            tmp1.append(tmp2)
-        coordinates_data_also_in_model.append(tmp1)
-    return coordinates_data_also_in_model
+
+    tmp1=[]
+    for data_dim in data_index_diff:
+        tmp2=[]
+        # Model has no stratifications: data can only contain 'date' or 'time'
+        if not model_coordinates:
+            raise Exception(
+                f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
+            )
+        # Verify the axes in additional_axes_data are valid model dimensions
+        if data_dim not in list(model_coordinates.keys()):
+            raise Exception(
+                f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
+            )
+        else:
+            # Verify all coordinates in the dataset can be found in the model
+            coords_model = model_coordinates[data_dim]
+            coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
+            for coord in coords_data:
+                if coord not in coords_model:
+                    raise Exception(
+                        f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
+                        )
+                else:
+                    tmp2.append(coord)
+        tmp1.append(tmp2)
+    return tmp1
 
 def get_dimensions_sum_over(additional_axes_data, model_coordinates):
     """ A function to compute the model dimensions that are not present in the dataset.
@@ -530,17 +528,15 @@ def get_dimensions_sum_over(additional_axes_data, model_coordinates):
     dimensions_sum_over: list
         Contains a list per provided dataset. Contains the model dimensions not present in the dataset. pySODM will automatically sum over these dimensions.
     """
-    dimensions_sum_over=[]
-    for i, data_index_diff in enumerate(additional_axes_data):
-        tmp=[]
-        if model_coordinates:
-            for model_strat in list(model_coordinates.keys()):
-                if model_strat not in data_index_diff:
-                    tmp.append(model_strat)
-            dimensions_sum_over.append(tmp)
-        else:
-            dimensions_sum_over.append(tmp)
-    return dimensions_sum_over
+
+    tmp=[]
+    if model_coordinates:
+        for model_strat in list(model_coordinates.keys()):
+            if model_strat not in additional_axes_data:
+                tmp.append(model_strat)
+        return tmp
+    else:
+        return []
 
 #############################################
 ## Computing the log posterior probability ##
@@ -553,7 +549,7 @@ class log_posterior_probability():
     # TODO: fully document docstring
     """
     def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
 
         ############################################################################################################
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
@@ -637,26 +633,27 @@ class log_posterior_probability():
         ## Compare data and model stratifications ##
         ############################################
 
+        # Validate number of aggregation functions
+        if aggregation_function:
+            if isinstance(aggregation_function, list):
+                if ((not len(aggregation_function) == len(data)) & (not len(aggregation_function) == 1)):
+                    raise ValueError(
+                        f"number of aggregation functions must be equal to one or the number of datasets"
+                    )
+                if len(aggregation_function) == 1:
+                    for i in range(len(data)-1):
+                        aggregation_function.append(aggregation_function[0])
+            elif inspect.isfunction(aggregation_function):
+                aggfunc=[]
+                for i in range(len(data)):
+                    aggfunc.append(aggregation_function)
+                aggregation_function = aggfunc
+            else:
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
+
         # Create a fake model output
-
-        # Loop over states we'd like to match
-
-            # If aggregation function:
-
-                ## Validate aggregation function
-
-                ## Apply the transitioning function to the fake output
-
-                ## Recreate the model.coordinates dictionary based on the fake output
-
-                ## Check if coordinates in data and model match
-            
-            # Else:
-
-                ## Check if coordinates in data and model match
-
-
-        # Create a "fake" model output using xarray
         # Expand coordinates with the time index
         coords=model.coordinates.copy()
         coords.update({self.time_index: [0,]})
@@ -667,20 +664,37 @@ class log_posterior_probability():
             dt[var] = xarr
         out = xr.Dataset(dt)
 
-        # Recreate the model.coordinates attribute using this fake dataset
-        coord=[]
-        for dim in out[list(out.keys())[0]].dims:
-            if ((dim != 'time') & (dim != 'date')):
-                coord.append(out.coords[dim].values)
-        model_coordinates = dict(zip(out.dims, coord))
+        # Validate
+        self.coordinates_data_also_in_model=[]
+        self.aggregate_over=[]
+        # Loop over states we'd like to match
+        for i, (state_name, df) in enumerate(zip(states, data)):
 
-        # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
-        self.coordinates_data_also_in_model = get_coordinates_data_also_in_model(self.additional_axes_data, model_coordinates, data)
-        print(self.coordinates_data_also_in_model)
+            if aggregation_function:
+                # Call the aggregation function
+                new_output = aggregation_function[i](out[state_name])
+                # Recreate the model.coordinates attribute using this fake dataset
+                coord=[]
+                for dim in new_output.dims:
+                    if ((dim != 'time') & (dim != 'date')):
+                        coord.append(new_output.coords[dim].values)
+                model_coordinates = dict(zip(out.dims, coord))
+            else:
+                # Recreate the model.coordinates attribute using this fake dataset
+                coord=[]
+                for dim in out[list(out.keys())[0]].dims:
+                    if ((dim != 'time') & (dim != 'date')):
+                        coord.append(out.coords[dim].values)
+                model_coordinates = dict(zip(out.dims, coord))
 
-        # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-        self.aggregate_over = get_dimensions_sum_over(self.additional_axes_data, model_coordinates)
+            # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
+            self.coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(self.additional_axes_data[i], i, model_coordinates, data))
+            
+            # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
+            self.aggregate_over.append(get_dimensions_sum_over(self.additional_axes_data[i], model_coordinates))
+        
         print(self.aggregate_over)
+        print(self.coordinates_data_also_in_model)
 
         ########################################
         ## Input checks on log_likelihood_fnc ##
