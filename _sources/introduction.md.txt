@@ -36,25 +36,3 @@ The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den B
 | Calibrating a dynamic model  | Toolbox to set up log likelihood functions: correct alignment of data and model prediction, calibration of vector parameters, analysis of mean-variance realtionship, etc.    |
 |                              | Nelder-Mead Optimization and Particle Swarm Optimization with multiprocessing support                                           |
 |                              | Pipeline to `emcee` for Bayesian Inference of model parameters                                                                  |
-
-### Roadmap
-
-The following features will be implemented in future versions of pySODM,
-
-- Coupling of ODE Models with different stratifications. The user will be able to define a model, consisting of two submodels with states of different sizes. These two models will share one `integrate` function to make coupling of the differentials possible. Output will be returned in seperate `xarray` Datasets. High priority.
-
-- Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.
-
-- Send model output to a multiindex `pd.DataFrame` and give the user the choice between `xarray` or `pandas`. Will make the code more future-proof. Low priority.
-
-- If more the model has more stratifications than the dataset it is calibrated to, pySODM automatically sums over all model axes not found in the dataset. This could be generalized further by having the user supply an optional `lambda` function, telling pySODM how to integrate over every axis.
-
-- Currently, a *time-dependent parameter function* takes only the parameter to be varied `param` as an input. Perhaps the entire parameter dictionary should be given instead for more flexibility?
-
-- Currently, a parameter can only have one *time-depedent parameter function*. Perhaps a list containing multiple function can be supplied? A workaround is to split the parameter in two parameters and multiply them in the integrate function. Very low priority.
-
-### Versions
-
-- version 0.1 (2022-12-23) 
-- version 0.0 (2022-11-14)
-- Pre-development (2020-05-01 - 2022-11-24)
