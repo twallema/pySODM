@@ -285,7 +285,7 @@ class log_posterior_probability():
         ###########################
 
         # Get additional axes beside time axis in dataset.
-        self.time_index, self.additional_axes_data = validate_dataset(data)
+        data, self.time_index, self.additional_axes_data = validate_dataset(data)
         # Extract start- and enddate of simulations
         self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
         self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data])
@@ -616,10 +616,12 @@ def validate_dataset(data):
     ----------
 
     data: list
-        List containing the datasets (pd.Series, pd.Dataframe, xarray.Dataset)
+        List containing the datasets (pd.Series, pd.Dataframe, xarray.DataArray, xarray.Dataset)
     
     Returns
     -------
+    data: list
+        List containing the datasets. xarray.DataArray have been converted to pd.DataFrame
 
     additional_axes_data: list
         Contains the index levels beside 'date'/'time' present in the dataset
@@ -632,13 +634,14 @@ def validate_dataset(data):
     time_index=[]
     for idx, df in enumerate(data):
         # Is dataset either a pd.Series, pd.Dataframe or xarray.Dataset?
-        if not isinstance(df, (pd.Series,pd.DataFrame,xr.Dataset)):
+        if not isinstance(df, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
             raise TypeError(
-                f"{idx}th dataset is of type {type(df)}. expected pd.Series, pd.DataFrame or xarray.Dataset"
+                f"{idx}th dataset is of type {type(df)}. expected pd.Series, pd.DataFrame or xarray.DataArray, xarray.Dataset"
             )
         # If it is an xarray dataset, convert it to a pd.Dataframe
-        if isinstance(df, xr.Dataset):
-            data[idx] = df.to_dataframe()
+        if isinstance(df, (xr.DataArray, xr.Dataset)):
+            df = df.to_dataframe()
+            data[idx] = df
         # If it is a pd.DataFrame, does it have one column?
         if isinstance(df, pd.DataFrame):
             if len(df.columns) != 1:
@@ -677,7 +680,7 @@ def validate_dataset(data):
         raise ValueError(
             "Some datasets have 'time' as time index, other have 'date as time index. pySODM does not allow mixing."
         )
-    return time_index, additional_axes_data
+    return data, time_index, additional_axes_data
 
 
 def validate_calibrated_parameters(parameters_function, parameters_model):
