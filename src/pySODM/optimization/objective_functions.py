@@ -464,10 +464,12 @@ class log_posterior_probability():
 
         # Unflatten thetas
         thetas_dict = self.thetas_to_dict(thetas, self.parameter_shapes)
+
         # Assign and remove warmup
         if 'warmup' in thetas_dict.keys():
-            simulation_kwargs.update({'warmup': thetas_dict['warmup']})
+            simulation_kwargs.update({'warmup': float(thetas_dict['warmup'])})
             del thetas_dict['warmup']
+
         # Assign model parameters
         self.model.parameters.update(thetas_dict)
 
@@ -477,6 +479,7 @@ class log_posterior_probability():
         if not self.initial_states:
             # Perform simulation only once
             out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+
             # Loop over dataframes
             for idx,df in enumerate(self.data):
                 # Get aggregation function
@@ -622,29 +625,33 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
             raise Exception(
                 f"To be calibrated model parameter '{param_name}' is not a valid model parameter!"
             )
-        # Check the datatype: only int, float, list of int/float, np.array
-        if isinstance(parameters_model[param_name], bool):
-            raise TypeError(
-                    f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
-                )
-        elif isinstance(parameters_model[param_name], (int,float)):
+        elif param_name == 'warmup':
             parameters_shapes.append((1,))
             parameters_sizes.append(1)
-        elif isinstance(parameters_model[param_name], np.ndarray):
-            parameters_shapes.append(parameters_model[param_name].shape)
-            parameters_sizes.append(parameters_model[param_name].size)
-        elif isinstance(parameters_model[param_name], list):
-            if not all([isinstance(item, (int,float)) for item in parameters_model[param_name]]):
-                raise TypeError(
-                    f"To be calibrated model parameter '{param_name}' of type list must only contain int or float!"
-                )
-            else:
-                parameters_shapes.append(np.array(parameters_model[param_name]).shape)
-                parameters_shapes.append(np.array(parameters_model[param_name]).size)
         else:
-            raise TypeError(
-                    f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+            # Check the datatype: only int, float, list of int/float, np.array
+            if isinstance(parameters_model[param_name], bool):
+                raise TypeError(
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
                     )
+            elif isinstance(parameters_model[param_name], (int,float)):
+                parameters_shapes.append((1,))
+                parameters_sizes.append(1)
+            elif isinstance(parameters_model[param_name], np.ndarray):
+                parameters_shapes.append(parameters_model[param_name].shape)
+                parameters_sizes.append(parameters_model[param_name].size)
+            elif isinstance(parameters_model[param_name], list):
+                if not all([isinstance(item, (int,float)) for item in parameters_model[param_name]]):
+                    raise TypeError(
+                        f"To be calibrated model parameter '{param_name}' of type list must only contain int or float!"
+                    )
+                else:
+                    parameters_shapes.append(np.array(parameters_model[param_name]).shape)
+                    parameters_shapes.append(np.array(parameters_model[param_name]).size)
+            else:
+                raise TypeError(
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                        )
 
     return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
 
