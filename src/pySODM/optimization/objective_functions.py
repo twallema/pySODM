@@ -276,7 +276,7 @@ def validate_dataset(data):
                 f"{idx}th dataset is of type {type(df)}. expected pd.Series, pd.DataFrame or xarray.Dataset"
             )
         # If it is an xarray dataset, convert it to a pd.Dataframe
-        if isinstance(xr.Dataset):
+        if isinstance(df, xr.Dataset):
             data[idx] = df.to_dataframe()
         # If it is a pd.DataFrame, does it have one column?
         if isinstance(df, pd.DataFrame):
@@ -655,6 +655,8 @@ class log_posterior_probability():
                 raise ValueError(
                     f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
                 )
+
+        print(aggregation_function)
 
         # Create a fake model output
         # Expand coordinates with the time index
