@@ -294,14 +294,14 @@ class log_posterior_probability():
         ## Validate the calibrated parameters ##
         ########################################
 
-        parameter_sizes, parameter_shapes = validate_calibrated_parameters(parameter_names, model.parameters)
+        parameter_sizes, self.parameter_shapes = validate_calibrated_parameters(parameter_names, model.parameters)
 
         ################################################
         ## Construct expanded bounds, pars and labels ##
         ################################################
 
         # Expand parameter names 
-        self.parameter_names_postprocessing = expand_parameter_names(parameter_shapes)
+        self.parameter_names_postprocessing = expand_parameter_names(self.parameter_shapes)
         # Expand bounds
         if len(bounds) == len(parameter_names):
             self.expanded_bounds = expand_bounds(parameter_sizes, bounds)
@@ -314,7 +314,7 @@ class log_posterior_probability():
         # Expand labels
         if labels:
             if len(labels) == len(parameter_names):
-                self.expanded_labels = expand_labels(parameter_shapes, labels)
+                self.expanded_labels = expand_labels(self.parameter_shapes, labels)
             elif len(labels) == sum(parameter_sizes.values()):
                 self.expanded_labels = labels
             else:
@@ -352,11 +352,6 @@ class log_posterior_probability():
         self.n_log_likelihood_extra_args = validate_log_likelihood_funtion(log_likelihood_fnc)
         self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
                                                                                 self.time_index, log_likelihood_fnc_args, log_likelihood_fnc, self.series_to_ndarray)
-
-        # Find out if 'warmup' needs to be estimated
-        self.warmup_position=None
-        if 'warmup' in parameter_names:
-            self.warmup_position=parameter_names.index('warmup')
 
         # Assign attributes to class
         self.model = model
@@ -432,23 +427,49 @@ class log_posterior_probability():
     
         return total_ll
 
+    @staticmethod
+    def thetas_to_dict(thetas, parameter_shapes):
+        """
+        A function to reconstruct the calibrated parameters given our flat list with estimates of model parameters (thetas)
+
+        Parameters
+        ----------
+
+        thetas: list
+            Estimates of the model parameters (element expanded)
+
+        parameter_shapes: dict
+            Shapes of calibrated parameters. For int/float: (1,). Keys: parameter_names.
+        
+        Returns
+        -------
+
+        thetas_dict: dict
+            Dictionary containing the reconstructed parameters. Keys: parameter_names.
+        """
+
+        restoredArray =[]
+        offset=0
+        for i,s in enumerate(parameter_shapes.values()):
+            n = np.prod(s)
+            restoredArray.append(thetas[offset:(offset+n)].reshape(s))
+            offset+=n
+    
+        return dict(zip(parameter_shapes.keys(), restoredArray))
+
     def __call__(self, thetas, simulation_kwargs={}):
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
-        # Add exception for estimation of warmup
-        if self.warmup_position:
-            simulation_kwargs.update({'warmup': thetas[self.warmup_position]})
-            # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = _thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
-        else:
-            # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = _thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
-
-        # Assign thetas for model parameters to the model object
-        for param,value in thetas_dict.items():
-            self.model.parameters.update({param : value})
+        # Unflatten thetas
+        thetas_dict = self.thetas_to_dict(thetas, self.parameter_shapes)
+        # Assign and remove warmup
+        if 'warmup' in thetas_dict.keys():
+            simulation_kwargs.update({'warmup': thetas_dict['warmup']})
+            del thetas_dict['warmup']
+        # Assign model parameters
+        self.model.parameters.update(thetas_dict)
 
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
@@ -571,7 +592,8 @@ def validate_dataset(data):
 def validate_calibrated_parameters(parameters_function, parameters_model):
     """
     Validates the parameters the user wants to calibrate. Parameters must: 1) Be valid model parameters, 2) Have one value, or, have multiple values (list or np.ndarray).
-    Construct a dictionary containing the parameter names as key and their sizes (type: tuple) as values. 
+    Construct a dictionary containing the parameter names as key and their sizes (type: tuple) as values.
+    An exception is coded for 'warmup' (= number of days between data and simulation start)
    
     Parameters
     ----------
@@ -596,7 +618,7 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
     parameters_shapes = []
     for param_name in parameters_function:
         # Check if the parameter exists
-        if param_name not in parameters_model:
+        if ((param_name not in parameters_model)&(param_name!='warmup')):
             raise Exception(
                 f"To be calibrated model parameter '{param_name}' is not a valid model parameter!"
             )
@@ -635,10 +657,11 @@ def expand_parameter_names(parameter_shapes):
             expanded_names.append(name)
         else:
             for index in itertools.product(*[list(range(i)) for i in itertools.chain(parameter_shapes[name])]):
-                n = name + '_'
+                n = name + '_{'
                 for val in index:
                     n += str(val)+','
                 n=n[:-1]
+                n+='}'
                 expanded_names.append(n)
     return expanded_names
 
