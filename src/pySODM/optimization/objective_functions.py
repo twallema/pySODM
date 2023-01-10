@@ -255,7 +255,7 @@ def validate_dataset(data):
     ----------
 
     data: list
-        List containing the datasets
+        List containing the datasets (pd.Series, pd.Dataframe, xarray.Dataset)
     
     Returns
     -------
@@ -270,11 +270,14 @@ def validate_dataset(data):
     additional_axes_data=[] 
     time_index=[]
     for idx, df in enumerate(data):
-        # Is dataset either a pd.Series or a pd.Dataframe?
-        if not isinstance(df, (pd.Series,pd.DataFrame)):
+        # Is dataset either a pd.Series, pd.Dataframe or xarray.Dataset?
+        if not isinstance(df, (pd.Series,pd.DataFrame,xr.Dataset)):
             raise TypeError(
-                f"{idx}th dataset is of type {type(df)}. expected pd.Series or pd.DataFrame"
+                f"{idx}th dataset is of type {type(df)}. expected pd.Series, pd.DataFrame or xarray.Dataset"
             )
+        # If it is an xarray dataset, convert it to a pd.Dataframe
+        if isinstance(xr.Dataset):
+            data[idx] = df.to_dataframe()
         # If it is a pd.DataFrame, does it have one column?
         if isinstance(df, pd.DataFrame):
             if len(df.columns) != 1:
