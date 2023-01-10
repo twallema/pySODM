@@ -336,41 +336,14 @@ class log_posterior_probability():
 
         if aggregation_function:
             aggregation_function = validate_aggregation_function(aggregation_function, len(data))
+        self.aggregation_function = aggregation_function
 
         ############################################
         ## Compare data and model stratifications ##
         ############################################
 
         out = create_fake_xarray_output(model.coordinates, model.initial_states, self.time_index)
-
-        # Validate
-        self.coordinates_data_also_in_model=[]
-        self.aggregate_over=[]
-        # Loop over states we'd like to match
-        for i, (state_name, df) in enumerate(zip(states, data)):
-
-            if aggregation_function:
-                # Call the aggregation function
-                new_output = aggregation_function[i](out[state_name])
-                # Recreate the model.coordinates attribute using this fake dataset
-                coord=[]
-                for dim in new_output.dims:
-                    if ((dim != 'time') & (dim != 'date')):
-                        coord.append(new_output.coords[dim].values)
-                model_coordinates = dict(zip(out.dims, coord))
-            else:
-                # Recreate the model.coordinates attribute using this fake dataset
-                coord=[]
-                for dim in out[list(out.keys())[0]].dims:
-                    if ((dim != 'time') & (dim != 'date')):
-                        coord.append(out.coords[dim].values)
-                model_coordinates = dict(zip(out.dims, coord))
-
-            # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
-            self.coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(self.additional_axes_data[i], i, model_coordinates, data))
-            
-            # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-            self.aggregate_over.append(get_dimensions_sum_over(self.additional_axes_data[i], model_coordinates))
+        self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
 
         ########################################
         ## Input checks on log_likelihood_fnc ##
@@ -527,15 +500,19 @@ class log_posterior_probability():
             shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
             return df.to_numpy().reshape(shape)
 
-    def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args, time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model):
+    def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args, time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model, aggregation_function):
         """
         Matches the model output of the desired states to the datasets provided by the user and then computes the log likelihood using the user-specified function.
         """
 
         total_ll=0
 
+        # Apply aggregation function
+        if aggregation_function:
+            out_copy = aggregation_function(out[states])
+        else:
+            out_copy = out[states]
         # Reduce dimensions on the model prediction
-        out_copy = out[states]
         for dimension in out.dims:
             if dimension in aggregate_over:
                 out_copy = out_copy.sum(dim=dimension)
@@ -596,10 +573,15 @@ class log_posterior_probability():
             out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
             # Loop over dataframes
             for idx,df in enumerate(self.data):
+                # Get aggregation function
+                if self.aggregation_function:
+                    aggfunc = self.aggregation_function[idx]
+                else:
+                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx])
+                                                  self.coordinates_data_also_in_model[idx], aggfunc)
         else:
             # Loop over dataframes
             for idx,df in enumerate(self.data):
@@ -607,12 +589,16 @@ class log_posterior_probability():
                 self.model.initial_states.update(self.initial_states[idx])
                 # Perform simulation
                 out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+                # Get aggregation function
+                if self.aggregation_function:
+                    aggfunc = self.aggregation_function[idx]
+                else:
+                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx])
+                                                  self.coordinates_data_also_in_model[idx], aggfunc)
         return lp
-
 
 #############################################
 ## Validation of log posterior probability ##
@@ -1001,3 +987,64 @@ def create_fake_xarray_output(model_coordinates, initial_states, time_index):
             dt[var] = xarr
         out = xr.Dataset(dt)
     return out
+
+
+def compare_data_model_coordinates(output, data, state_names, aggregation_function, additional_axes_data)
+    """
+    A function to check if data and model dimensions/coordinates can be aligned correctly (subject to possible aggregation functions introduced by the user).
+
+    Parameters
+    ----------
+    output: xarray.Dataset
+        Simulation output. Generated using `create_fake_xarray_output()`
+    
+    data: list
+        List containing the datasets
+
+    state_names: list
+        Contains the names (type: str) of the model states to match with each dataset in `data`
+
+    aggregation_function: list
+        List of length len(data). Contains: None (no aggregation) or aggregation functions.
+    
+    additional_axes_data: list
+        Axes in dataset, excluding the 'time'/'date' axes.
+
+    Returns
+    -------
+    coordinates_data_also_in_model: list
+        List of length len(data). Contains, per dataset, the coordinates in the data that are also coordinates of the model.
+
+    aggregate_over: list
+        List of length len(data). Contains, per dataset, the remaining model dimensions not present in the dataset. These are then automatically summed over while calculating the log likelihood.
+    """
+
+    # Validate
+    coordinates_data_also_in_model=[]
+    aggregate_over=[]
+    # Loop over states we'd like to match
+    for i, (state_name, df) in enumerate(zip(state_names, data)):
+        if aggregation_function:
+            # Call the aggregation function
+            new_output = aggregation_function[i](output[state_name])
+            # Recreate the 'model.coordinates' attribute using this fake dataset
+            coord=[]
+            for dim in new_output.dims:
+                if ((dim != 'time') & (dim != 'date')):
+                    coord.append(new_output.coords[dim].values)
+            model_coordinates = dict(zip(output.dims, coord))
+        else:
+            # Recreate the 'model.coordinates' attribute using this fake dataset
+            coord=[]
+            for dim in output.dims:
+                if ((dim != 'time') & (dim != 'date')):
+                    coord.append(out.coords[dim].values)
+            model_coordinates = dict(zip(output.dims, coord))
+
+        # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
+        coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(additional_axes_data[i], i, model_coordinates, data))
+        
+        # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
+        aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], model_coordinates))
+    
+    return coordinates_data_also_in_model, aggregate_over
