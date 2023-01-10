@@ -166,6 +166,52 @@ def test_xarray_datasets():
 
 test_xarray_datasets()
 
+class SIR_nd_beta(ODEModel):
+
+    # state variables and parameters
+    state_names = ['S', 'I', 'R']
+    parameter_names = ['beta', 'gamma']
+
+    @staticmethod
+    def integrate(t, S, I, R, beta, gamma):
+        """Basic SIR model"""
+        beta = beta[0,0,0]
+        N = S + I + R
+        dS = -beta*I*S/N
+        dI = beta*I*S/N - gamma*I
+        dR = gamma*I
+        return dS, dI, dR
+
+def test_calibration_nd_parameter():
+    """ Test the calibration of an n-dimensional parameter
+    """
+    # Define parameters and initial states
+    parameters = {"beta": 0.1*np.ones([2,2,2]), "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR_nd_beta(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    # PSO
+    theta = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    # Nelder-Mead
+    theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
+                        processes=1, max_iter=20)[0]
+
+test_calibration_nd_parameter()
+
 def break_stuff_wo_stratification():
 
     # Define parameters and initial states
