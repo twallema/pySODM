@@ -307,15 +307,15 @@ def validate_dataset(data):
             raise ValueError(
                 f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
                 )
-        # Are all time index levels equal to 'date' or 'time'?
-        if all(index == 'date' for index in time_index):
-            time_index='date'
-        elif all(index == 'time' for index in time_index):
-            time_index='time'
-        else:
-            raise ValueError(
-                "Some datasets have 'time' as time index, other have 'date as time index. pySODM does not allow mixing."
-            )
+    # Are all time index levels equal to 'date' or 'time'?
+    if all(index == 'date' for index in time_index):
+        time_index='date'
+    elif all(index == 'time' for index in time_index):
+        time_index='time'
+    else:
+        raise ValueError(
+            "Some datasets have 'time' as time index, other have 'date as time index. pySODM does not allow mixing."
+        )
     return time_index, additional_axes_data
 
 
@@ -656,18 +656,28 @@ class log_posterior_probability():
                     f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
                 )
 
-        print(aggregation_function)
-
         # Create a fake model output
-        # Expand coordinates with the time index
-        coords=model.coordinates.copy()
-        coords.update({self.time_index: [0,]})
-        # Generate an xarray dataset
-        dt = {}
-        for var, arr in model.initial_states.items():
-            xarr = xr.DataArray(arr[...,None], coords=coords, dims=coords.keys())
-            dt[var] = xarr
-        out = xr.Dataset(dt)
+        if model.coordinates:
+            # Expand existing coordinates with the time index
+            coords=model.coordinates.copy()
+            coords.update({self.time_index: [0,]})
+            dims=coords.keys()
+            # Generate dataset
+            dt = {}
+            for var, arr in model.initial_states.items():
+                xarr = xr.DataArray(arr[...,None], coords=coords, dims=dims)
+                dt[var] = xarr
+            out = xr.Dataset(dt)
+        else:
+            # Coordinates are time index
+            coords={self.time_index: [0,]}
+            dims= [self.time_index, ]
+            # Generate dataset
+            dt = {}
+            for var, arr in model.initial_states.items():
+                xarr = xr.DataArray(arr, coords=coords, dims=dims)
+                dt[var] = xarr
+            out = xr.Dataset(dt)
 
         # Validate
         self.coordinates_data_also_in_model=[]
