@@ -198,7 +198,7 @@ def break_stuff_wo_stratification():
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(Exception, match="expected pd.Series or pd.DataFrame"):
+    with pytest.raises(Exception, match="expected pd.Series, pd.DataFrame"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
