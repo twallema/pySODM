@@ -989,7 +989,7 @@ def create_fake_xarray_output(model_coordinates, initial_states, time_index):
     return out
 
 
-def compare_data_model_coordinates(output, data, state_names, aggregation_function, additional_axes_data)
+def compare_data_model_coordinates(output, data, state_names, aggregation_function, additional_axes_data):
     """
     A function to check if data and model dimensions/coordinates can be aligned correctly (subject to possible aggregation functions introduced by the user).
 
@@ -1038,7 +1038,7 @@ def compare_data_model_coordinates(output, data, state_names, aggregation_functi
             coord=[]
             for dim in output.dims:
                 if ((dim != 'time') & (dim != 'date')):
-                    coord.append(out.coords[dim].values)
+                    coord.append(output.coords[dim].values)
             model_coordinates = dict(zip(output.dims, coord))
 
         # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
