@@ -142,6 +142,30 @@ def test_correct_approach_wo_stratification():
         plt.show()
         plt.close()
 
+def test_xarray_datasets():
+    """ Test the use of an xarray.DataArray as dataset
+    """
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum().to_xarray(),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+
+test_xarray_datasets()
+
 def break_stuff_wo_stratification():
 
     # Define parameters and initial states
@@ -351,6 +375,8 @@ def test_correct_approach_with_one_stratification_0():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
+test_correct_approach_with_one_stratification_0()
+
 def break_stuff_with_one_stratification():
 
     # Axes in data not present in model
@@ -498,6 +524,7 @@ def test_correct_approach_with_two_stratifications():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
+test_correct_approach_with_two_stratifications()
 
 def break_log_likelihood_functions_with_two_stratifications():
 
