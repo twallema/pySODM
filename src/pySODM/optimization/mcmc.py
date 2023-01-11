@@ -77,14 +77,8 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             os.makedirs(directory)
     # Determine current date
     run_date = str(datetime.date.today())
-    # By default, put the calibrated model parameters in the settings dictionary so we can retrieve their sizes later
-    tmp={}
-    for par_name in objective_function.parameter_names:
-        if isinstance(objective_function.model.parameters[par_name], np.ndarray):
-            tmp.update({par_name: list(objective_function.model.parameters[par_name])})
-        else:
-            tmp.update({par_name: objective_function.model.parameters[par_name]})
-    settings_dict.update({'calibrated_parameters': tmp})
+    # By default, put the calibrated model parameters shapes in the settings dictionary so we can retrieve their sizes later
+    settings_dict.update({'calibrated_parameters_shapes': objective_function.parameter_shapes})
     # Save setings dictionary to samples_path
     with open(samples_path+'/'+str(identifier)+'_SETTINGS_'+run_date+'.json', 'w') as file:
         json.dump(settings_dict, file)
@@ -145,24 +139,6 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             if converged:
                 break
             old_tau = tau
-
-            #################################
-            # LEGACY: WRITE SAMPLES TO .NPY #
-            #################################
-
-            # Write samples to dictionary every print_n steps
-            #if sampler.iteration % print_n:
-            #    continue
-
-            #if not progress:
-            #    print(f"Saving samples as .npy file for iteration {sampler.iteration}/{max_n}.")
-            #    sys.stdout.flush()
-                
-            #flat_samples = sampler.get_chain(flat=True)
-            #with open(samples_path+'/'+str(identifier)+'_SAMPLES_'+run_date+'.npy', 'wb') as f:
-            #    np.save(f,flat_samples)
-            #    f.close()
-            #    gc.collect()
 
     return sampler
 
@@ -275,10 +251,10 @@ def emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run
     flat_samples = sampler.get_chain(discard=discard,thin=thin,flat=True)
     samples_dict = {}
     count=0
-    for i,(name,value) in enumerate(settings['calibrated_parameters'].items()):
-        if isinstance(value,list):
+    for i,(name,value) in enumerate(settings['calibrated_parameters_shapes'].items()):
+        if value != [1]:
             vals=[]
-            for j in range(len(value)):
+            for j in range(np.prod(value)):
                 vals.append(list(flat_samples[:, i+j]))
             count += len(value)-1
             samples_dict[name] = vals
@@ -286,7 +262,7 @@ def emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run
             samples_dict[name] = list(flat_samples[:,i+count])
     
     # Remove calibrated parameters from the settings
-    del settings['calibrated_parameters']
+    del settings['calibrated_parameters_shapes']
     # Append settings to samples dictionary
     samples_dict.update(settings)
     # Remove settings .json

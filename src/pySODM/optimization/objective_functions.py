@@ -1,6 +1,8 @@
 import inspect
+import itertools
 import pandas as pd
 import numpy as np
+import xarray as xr
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
 from pySODM.optimization.utils import _thetas_to_thetas_dict
@@ -248,11 +250,11 @@ class log_posterior_probability():
     # TODO: fully document docstring
     """
     def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None):
+                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
 
-        #######################
-        ## Construct weights ##
-        #######################
+        ############################################################################################################
+        ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
+        ############################################################################################################
 
         if not weights:
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):
@@ -262,422 +264,94 @@ class log_posterior_probability():
             else:
                 weights = len(data)*[1,]
 
-        ##################################
-        ## Construct initial conditions ##
-        ##################################
-        #####################################################################################################
-        ## Check provided number of datasets, states, weights, log_likelihood functions and initial states ##
-        #####################################################################################################
-        
         if not initial_states:
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args]):
                 raise ValueError(
                     "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), and weights ({4}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights))
                     )
         else:
-            # Validate intial conditions provided
-            for i,initial_states_dict in enumerate(initial_states):
-                for state in model.state_names:
-                    if state in initial_states_dict:
-                        # if present, check that the length is correct
-                        initial_states_dict[state] = validate_initial_states(initial_states_dict[state], state, "initial state", model.stratification_size, model.coordinates, None)
-                    else:
-                        # otherwise add default of 0
-                        initial_states_dict[state] = np.zeros(model.stratification_size)
-
-                # check if the states match with model states
-                if set(initial_states_dict.keys()) != set(model.state_names):
-                    raise ValueError(
-                        "The initial states in position {0} don't exactly match the model's predefined states. "
-                        "Redundant states: {1}".format(
-                        i,set(initial_states_dict.keys()).difference(set(model.state_names)))
-                    )
-
-                # sort the initial states to match the state_names
-                initial_states_dict = {state: initial_states_dict[state] for state in model.state_names}
-
-                # Assign 
-                initial_states[i] = initial_states_dict
-
+            # Validate initial states
+            for i, initial_states_dict in enumerate(initial_states):
+                initial_states[i] = validate_initial_states(model.state_names, initial_states_dict, model.stratification_size, model.coordinates, None)
+            # Check 
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
                 raise ValueError(
                     "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), the extra arguments of the log likelihood function ({3}), weights ({4}) and initial states ({5}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args), len(weights), len(initial_states))
                     )
-
         self.initial_states = initial_states
 
-        ####################
-        ## Checks on data ##
-        ####################
+        ###########################
+        ## Validate the datasets ##
+        ###########################
 
-        self.additional_axes_data=[] 
-        for idx, df in enumerate(data):
-            # Is dataset either a pd.Series or a pd.Dataframe?
-            if not isinstance(df, (pd.Series,pd.DataFrame)):
-                raise TypeError(
-                    f"{idx}th dataset is of type {type(df)}. expected pd.Series or pd.DataFrame"
-                )
-            # If it is a pd.DataFrame, does it have one column?
-            if isinstance(df, pd.DataFrame):
-                if len(df.columns) != 1:
-                    raise ValueError(
-                        f"{idx}th dataset is a pd.DataFrame with {len(df.columns)} columns. expected one column."
-                    )
-                else:
-                    # Convert to a series for ease
-                    data[idx] = df.squeeze()
-            # Does data contain NaN values anywhere?
-            if np.isnan(df).values.any():
-                raise ValueError(
-                    f"{idx}th dataset contains nans"
-                    )
-            # Does data have 'date' or 'time' as index level? (required)
-            if (('date' not in df.index.names) & ('time' not in df.index.names)):
-                raise ValueError(
-                    f"Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
-                    )
-            elif (('date' in df.index.names) & ('time' not in df.index.names)):
-                self.time_index = 'date'
-                self.additional_axes_data.append([name for name in df.index.names if name != 'date'])
-            elif (('date' not in df.index.names) & ('time' in df.index.names)):
-                self.time_index = 'time'
-                self.additional_axes_data.append([name for name in df.index.names if name != 'time'])
-            else:
-                raise ValueError(
-                    f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
-                    )
-
+        # Get additional axes beside time axis in dataset.
+        data, self.time_index, self.additional_axes_data = validate_dataset(data)
         # Extract start- and enddate of simulations
-        index_min=[]
-        index_max=[]
-        for idx, df in enumerate(data):
-            index_min.append(df.index.get_level_values(self.time_index).unique().min())
-            index_max.append(df.index.get_level_values(self.time_index).unique().max())
-        self.start_sim = min(index_min)
-        self.end_sim = max(index_max)
+        self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
+        self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data])
 
         ########################################
-        ## Checks on parameters to calibrated ##
+        ## Validate the calibrated parameters ##
         ########################################
 
-        idx_par_with_multiple_entries=[]
-        for i,param_name in enumerate(parameter_names):
-            # Check if the parameter exists
-            if param_name not in model.parameters:
-                raise Exception(
-                    f"'{param_name}' is not a valid model parameter!"
-                )
-            # Check the datatype: only int, float, list of int/float, 1D np.array
-            if isinstance(model.parameters[param_name], bool):
-                raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
-                    )
-            elif ((not isinstance(model.parameters[param_name], int)) & (not isinstance(model.parameters[param_name], float))):
-                if isinstance(model.parameters[param_name], np.ndarray):
-                    if model.parameters[param_name].ndim != 1:
-                        raise NotImplementedError(
-                            f"Only 1D numpy arrays can be calibrated using pySDOM. Parameter '{param_name}' is a {model.parameters[param_name].ndim}-dimensional np.ndarray!"
-                        )
-                    else:
-                        idx_par_with_multiple_entries.append(i)
-                elif isinstance(model.parameters[param_name], list):
-                    if not all([isinstance(item, (int,float)) for item in model.parameters[param_name]]):
-                        raise TypeError(
-                            f"Model parameter '{param_name}' of type list must only contain int or float!"
-                        )
-                    else:
-                        idx_par_with_multiple_entries.append(i)
-                else:
-                    raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
-                    )
+        parameter_sizes, self.parameter_shapes = validate_calibrated_parameters(parameter_names, model.parameters)
 
-        #######################################
-        ## Construct bounds, pars and labels ##
-        #######################################
+        ################################################
+        ## Construct expanded bounds, pars and labels ##
+        ################################################
 
-        # Compute expanded size of bounds
-        expanded_length=0
-        for i, param_name in enumerate(parameter_names):
-            if i in idx_par_with_multiple_entries:
-                expanded_length += len(model.parameters[param_name])
-            else:
-                expanded_length += 1
-
-        # Construct parameters_postprocessing
-        parameter_names_postprocessing = []
-        for i, param_name in enumerate(parameter_names):
-            if i in idx_par_with_multiple_entries:
-                l = len(model.parameters[param_name])
-                for j in range(l):
-                    parameter_names_postprocessing.append(param_name+'_'+str(j))
-            else:
-                parameter_names_postprocessing.append(param_name)
-
+        # Expand parameter names 
+        self.parameter_names_postprocessing = expand_parameter_names(self.parameter_shapes)
+        # Expand bounds
         if len(bounds) == len(parameter_names):
-            # Expand bounds
-            new_bounds = []
-            for i, param_name in enumerate(parameter_names):
-                if i in idx_par_with_multiple_entries:
-                    l = len(model.parameters[param_name])
-                    for j in range(l):
-                        new_bounds.append(bounds[i])
-                else:
-                    new_bounds.append(bounds[i])
-        elif len(bounds) == expanded_length:
-            new_bounds=bounds
+            self.expanded_bounds = expand_bounds(parameter_sizes, bounds)
+        elif len(bounds) == sum(parameter_sizes.values()):
+            self.expanded_bounds = bounds
         else:
             raise Exception(
                 f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
             )
-
-        # Expand labels if provided
+        # Expand labels
         if labels:
             if len(labels) == len(parameter_names):
-                new_labels=[]
-                for i, param_name in enumerate(parameter_names):
-                    if i in idx_par_with_multiple_entries:
-                        l = len(model.parameters[param_name])
-                        for j in range(l):
-                            new_labels.append(labels[i]+'_'+str(j))
-                    else:
-                        new_labels.append(labels[i])
-                labels=new_labels
-            elif len(labels) == expanded_length:
-                pass
+                self.expanded_labels = expand_labels(self.parameter_shapes, labels)
+            elif len(labels) == sum(parameter_sizes.values()):
+                self.expanded_labels = labels
             else:
                 raise Exception(
                     f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
                 )
         else:
-            labels = parameter_names_postprocessing
-        
-        # Assign to objective function
-        self.expanded_bounds=new_bounds
-        self.expanded_labels=labels
-        self.parameter_names_postprocessing=parameter_names_postprocessing
+            self.expanded_labels = self.parameter_names_postprocessing
 
         ####################################################################
         ## Input check on number of prior functions + potential expansion ##
         ####################################################################
 
-        if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
-            # Setup uniform priors
-            log_prior_prob_fnc = len(self.expanded_bounds)*[log_prior_uniform,]
-            log_prior_prob_fnc_args = self.expanded_bounds
-        elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
-            raise Exception(
-                f"Invalid input. Prior probability functions provided but no prior probability function arguments."
-            )
-        elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
-            raise Exception(
-                f"Invalid input. Prior probability function arguments provided but no prior probability functions."
-            )
-        else:
-            if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
-                raise ValueError(
-                    f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
-                ) 
-            if ((len(log_prior_prob_fnc) != len(parameter_names))&(len(log_prior_prob_fnc) != len(parameter_names_postprocessing))):
-                raise Exception(
-                    f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
-                    )
-            if len(log_prior_prob_fnc) != len(self.expanded_bounds):
-                # Expand
-                new_log_prior_prob_fnc = []
-                new_log_prior_prob_fnc_args = []
-                for i, param_name in enumerate(parameter_names):
-                    if i in idx_par_with_multiple_entries:
-                        l = len(model.parameters[param_name])
-                        for j in range(l):
-                            new_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
-                            new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
-                    else:
-                        new_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
-                        new_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
-                log_prior_prob_fnc = new_log_prior_prob_fnc
-                log_prior_prob_fnc_args = new_log_prior_prob_fnc_args
-            else:
-                pass
+        self.log_prior_prob_fnc, self.log_prior_prob_fnc_args = validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, self.expanded_bounds)
 
-        # Assign to class
-        self.log_prior_prob_fnc = log_prior_prob_fnc
-        self.log_prior_prob_fnc_args = log_prior_prob_fnc_args
+        ######################################################
+        ## Check number of aggregation functions and expand ##
+        ######################################################
+
+        if aggregation_function:
+            aggregation_function = validate_aggregation_function(aggregation_function, len(data))
+        self.aggregation_function = aggregation_function
 
         ############################################
         ## Compare data and model stratifications ##
         ############################################
 
-        self.coordinates_data_also_in_model=[]
-        for i, data_index_diff in enumerate(self.additional_axes_data):
-            tmp1=[]
-            for data_dim in data_index_diff:
-                tmp2=[]
-                # Model has no stratifications: data can only contain 'date' or 'time'
-                if not model.coordinates:
-                    raise Exception(
-                        f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
-                    )
-                # Verify the axes in additional_axes_data are valid model dimensions
-                if data_dim not in list(model.coordinates.keys()):
-                    raise Exception(
-                        f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
-                    )
-                else:
-                    # Verify all coordinates in the dataset can be found in the model
-                    coords_model = model.coordinates[data_dim]
-                    coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
-                    for coord in coords_data:
-                        if coord not in coords_model:
-                            raise Exception(
-                                f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
-                             )
-                        else:
-                            tmp2.append(coord)
-                tmp1.append(tmp2)
-            self.coordinates_data_also_in_model.append(tmp1)
-
-        # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-        # Is the difference between the data axes and model axes (excluding time/date)
-        self.aggregate_over=[]
-        for i, data_index_diff in enumerate(self.additional_axes_data):
-            tmp=[]
-            if model.coordinates:
-                for model_strat in list(model.coordinates.keys()):
-                    if model_strat not in data_index_diff:
-                        tmp.append(model_strat)
-                self.aggregate_over.append(tmp)
-            else:
-                self.aggregate_over.append(tmp)
+        out = create_fake_xarray_output(model.coordinates, model.initial_states, self.time_index)
+        self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
 
         ########################################
         ## Input checks on log_likelihood_fnc ##
         ########################################
 
-        # Check that log_likelihood_fnc always has ymodel as the first argument and ydata as the second argument
-        # Find out how many additional arguments are needed for the log_likelihood_fnc (f.i. sigma for gaussian model, alpha for negative binomial)
-        n_log_likelihood_extra_args=[]
-        for idx,fnc in enumerate(log_likelihood_fnc):
-            sig = inspect.signature(fnc)
-            keywords = list(sig.parameters.keys())
-            if keywords[0] != 'ymodel':
-                raise ValueError(
-                "The first parameter of log_likelihood function in position {0} is not equal to 'ymodel' but {1}".format(idx, keywords[0])
-            )
-            if keywords[1] != 'ydata':
-                raise ValueError(
-                "The second parameter of log_likelihood function in position {0} is not equal to 'ydata' but {1}".format(idx, keywords[1])
-            )
-            extra_args = len([arg for arg in keywords if ((arg != 'ymodel')&(arg != 'ydata'))])
-            n_log_likelihood_extra_args.append(extra_args)
-        self.n_log_likelihood_extra_args = n_log_likelihood_extra_args
-
-        # Support for more than one extra argument of the log likelihood function is not available
-        for i in range(len(n_log_likelihood_extra_args)):
-            if n_log_likelihood_extra_args[i] > 1:
-                raise ValueError(
-                    "Support for log likelihood functions with more than one additional argument is not implemented. Raised for log likelihood function {0}".format(log_likelihood_fnc[i])
-                    )
-
-        # Input checks on the additional arguments of the log likelihood functions
-        for idx, df in enumerate(data):
-            if n_log_likelihood_extra_args[idx] == 0:
-                if ((isinstance(log_likelihood_fnc_args[idx], int)) | (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], np.ndarray))):
-                    raise ValueError(
-                        "the likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided an {2}.".format(log_likelihood_fnc[idx], idx, type(log_likelihood_fnc_args[idx]))
-                        )
-                elif log_likelihood_fnc_args[idx]:
-                    raise ValueError(
-                        "the likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided a non-empty list.".format(log_likelihood_fnc[idx], idx)
-                        )
-            else:
-                if not self.additional_axes_data[idx]:
-                    # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, but ll_gaussian can also take an error for every datapoint (= weighted least-squares)
-                    # Thus, its additional argument must be a np.array of the same dimensions as the data
-                    if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray,pd.Series)):
-                        raise ValueError(
-                            f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
-                            "accepted types are int, float, np.ndarray and pd.Series"
-                        )
-                    else:
-                        if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
-                            if log_likelihood_fnc_args[idx].shape != df.values.shape:
-                                raise ValueError(
-                                    f"the shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
-                                )
-                            else:
-                                log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
-                        if isinstance(log_likelihood_fnc_args[idx], pd.Series):
-                            if not log_likelihood_fnc_args[idx].index.equals(df.index):
-                                raise ValueError(
-                                    f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
-                                )
-                            else:
-                                log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx].values,axis=1)
-
-                elif len(self.additional_axes_data[idx]) == 1:
-                    if not isinstance(log_likelihood_fnc_args[idx],(list,np.ndarray,pd.Series)):
-                        raise TypeError(
-                             f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
-                             "accepted types are list, np.ndarray or pd.Series "
-                        )
-                    else:
-                        # list
-                        if isinstance(log_likelihood_fnc_args[idx], list):
-                            if not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
-                                raise ValueError(
-                                    f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
-                                    )
-                        # np.ndarray
-                        if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
-                            if log_likelihood_fnc_args[idx].ndim != 1:
-                                raise ValueError(
-                                    f"np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must be 1 dimensional"
-                                )
-                            elif not len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
-                                raise ValueError(
-                                    f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{self.additional_axes_data[idx][0]}' ({len(df.index.get_level_values(self.additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
-                                )
-                        # pd.Series
-                        if isinstance(log_likelihood_fnc_args[idx], pd.Series):
-                            if not log_likelihood_fnc_args[idx].index.equals(df.index):
-                                raise ValueError(
-                                    f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
-                                )
-                            else:
-                                # Make sure time index is in first position
-                                log_likelihood_fnc_args[idx] = self.series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([self.time_index,]+self.additional_axes_data[idx]))                 
-                else:
-                    # Compute desired shape in case of one parameter per stratfication
-                    desired_shape=[]
-                    for lst in self.coordinates_data_also_in_model[idx]:
-                        desired_shape.append(len(lst))
-                    # Input checks
-                    if not isinstance(log_likelihood_fnc_args[idx], (np.ndarray, pd.Series)):
-                        raise TypeError(
-                            f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
-                            "accepted types are np.ndarray and pd.Series"
-                        )
-                    else:
-                        if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
-                            shape = list(log_likelihood_fnc_args[idx].shape)
-                            if shape != desired_shape:
-                                raise ValueError(
-                                    f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}. You provided {shape}"
-                                )
-                        if isinstance(log_likelihood_fnc_args[idx], pd.Series):
-                            if not log_likelihood_fnc_args[idx].index.equals(df.index):
-                                raise ValueError(
-                                    f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
-                                )
-                            else:
-                                # Make sure time index is in first position
-                                log_likelihood_fnc_args[idx] = self.series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([self.time_index,]+self.additional_axes_data[idx]))
-
-        # Find out if 'warmup' needs to be estimated
-        self.warmup_position=None
-        if 'warmup' in parameter_names:
-            self.warmup_position=parameter_names.index('warmup')
+        self.n_log_likelihood_extra_args = validate_log_likelihood_funtion(log_likelihood_fnc)
+        self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
+                                                                                self.time_index, log_likelihood_fnc_args, log_likelihood_fnc, self.series_to_ndarray)
 
         # Assign attributes to class
         self.model = model
@@ -685,7 +359,6 @@ class log_posterior_probability():
         self.states = states
         self.parameter_names = parameter_names
         self.log_likelihood_fnc = log_likelihood_fnc
-        self.log_likelihood_fnc_args = log_likelihood_fnc_args
         self.weights = weights
 
     @staticmethod
@@ -705,15 +378,21 @@ class log_posterior_probability():
             shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
             return df.to_numpy().reshape(shape)
 
-    def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args, time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model):
+    def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args,
+                                time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model,
+                                aggregation_function):
         """
         Matches the model output of the desired states to the datasets provided by the user and then computes the log likelihood using the user-specified function.
         """
 
         total_ll=0
 
+        # Apply aggregation function
+        if aggregation_function:
+            out_copy = aggregation_function(out[states])
+        else:
+            out_copy = out[states]
         # Reduce dimensions on the model prediction
-        out_copy = out[states]
         for dimension in out.dims:
             if dimension in aggregate_over:
                 out_copy = out_copy.sum(dim=dimension)
@@ -748,23 +427,51 @@ class log_posterior_probability():
     
         return total_ll
 
+    @staticmethod
+    def thetas_to_dict(thetas, parameter_shapes):
+        """
+        A function to reconstruct the calibrated parameters given our flat list with estimates of model parameters (thetas)
+
+        Parameters
+        ----------
+
+        thetas: list
+            Estimates of the model parameters (element expanded)
+
+        parameter_shapes: dict
+            Shapes of calibrated parameters. For int/float: (1,). Keys: parameter_names.
+        
+        Returns
+        -------
+
+        thetas_dict: dict
+            Dictionary containing the reconstructed parameters. Keys: parameter_names.
+        """
+
+        restoredArray =[]
+        offset=0
+        for i,s in enumerate(parameter_shapes.values()):
+            n = np.prod(s)
+            restoredArray.append(thetas[offset:(offset+n)].reshape(s))
+            offset+=n
+    
+        return dict(zip(parameter_shapes.keys(), restoredArray))
+
     def __call__(self, thetas, simulation_kwargs={}):
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
-        # Add exception for estimation of warmup
-        if self.warmup_position:
-            simulation_kwargs.update({'warmup': thetas[self.warmup_position]})
-            # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = _thetas_to_thetas_dict([x for (i,x) in enumerate(thetas) if i != self.warmup_position], [x for x in self.parameter_names if x != "warmup"], self.model.parameters)
-        else:
-            # Convert thetas for model parameters to a dictionary with key-value pairs
-            thetas_dict, n = _thetas_to_thetas_dict(thetas, self.parameter_names, self.model.parameters)
+        # Unflatten thetas
+        thetas_dict = self.thetas_to_dict(thetas, self.parameter_shapes)
 
-        # Assign thetas for model parameters to the model object
-        for param,value in thetas_dict.items():
-            self.model.parameters.update({param : value})
+        # Assign and remove warmup
+        if 'warmup' in thetas_dict.keys():
+            simulation_kwargs.update({'warmup': float(thetas_dict['warmup'])})
+            del thetas_dict['warmup']
+
+        # Assign model parameters
+        self.model.parameters.update(thetas_dict)
 
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
@@ -772,12 +479,18 @@ class log_posterior_probability():
         if not self.initial_states:
             # Perform simulation only once
             out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+
             # Loop over dataframes
             for idx,df in enumerate(self.data):
+                # Get aggregation function
+                if self.aggregation_function:
+                    aggfunc = self.aggregation_function[idx]
+                else:
+                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx])
+                                                  self.coordinates_data_also_in_model[idx], aggfunc)
         else:
             # Loop over dataframes
             for idx,df in enumerate(self.data):
@@ -785,8 +498,612 @@ class log_posterior_probability():
                 self.model.initial_states.update(self.initial_states[idx])
                 # Perform simulation
                 out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+                # Get aggregation function
+                if self.aggregation_function:
+                    aggfunc = self.aggregation_function[idx]
+                else:
+                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx])
+                                                  self.coordinates_data_also_in_model[idx], aggfunc)
         return lp
+
+#############################################
+## Validation of log posterior probability ##
+#############################################
+
+def validate_dataset(data):
+    """
+    Validates a dataset:
+        - Correct datatype?
+        - No Nan's?
+        - Is the index level 'date'/'time present? (obligated)
+    Extracts and returns the additional stratifications in dataset besides the time axis.
+
+    Parameters
+    ----------
+
+    data: list
+        List containing the datasets (pd.Series, pd.Dataframe, xarray.DataArray, xarray.Dataset)
+    
+    Returns
+    -------
+    data: list
+        List containing the datasets. xarray.DataArray have been converted to pd.DataFrame
+
+    additional_axes_data: list
+        Contains the index levels beside 'date'/'time' present in the dataset
+
+    time_index: str
+        'date': datetime-like time index. 'time': float-like time index.
+    """
+
+    additional_axes_data=[] 
+    time_index=[]
+    for idx, df in enumerate(data):
+        # Is dataset either a pd.Series, pd.Dataframe or xarray.Dataset?
+        if not isinstance(df, (pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset)):
+            raise TypeError(
+                f"{idx}th dataset is of type {type(df)}. expected pd.Series, pd.DataFrame or xarray.DataArray, xarray.Dataset"
+            )
+        # If it is an xarray dataset, convert it to a pd.Dataframe
+        if isinstance(df, (xr.DataArray, xr.Dataset)):
+            df = df.to_dataframe()
+            data[idx] = df
+        # If it is a pd.DataFrame, does it have one column?
+        if isinstance(df, pd.DataFrame):
+            if len(df.columns) != 1:
+                raise ValueError(
+                    f"{idx}th dataset is a pd.DataFrame with {len(df.columns)} columns. expected one column."
+                )
+            else:
+                # Convert to a series for ease
+                data[idx] = df.squeeze()
+        # Does data contain NaN values anywhere?
+        if np.isnan(df).values.any():
+            raise ValueError(
+                f"{idx}th dataset contains nans"
+                )
+        # Does data have 'date' or 'time' as index level? (required)
+        if (('date' not in df.index.names) & ('time' not in df.index.names)):
+            raise ValueError(
+                f"Index of {idx}th dataset does not have 'date' or 'time' as index level (index levels: {df.index.names})."
+                )
+        elif (('date' in df.index.names) & ('time' not in df.index.names)):
+            time_index.append('date')
+            additional_axes_data.append([name for name in df.index.names if name != 'date'])
+        elif (('date' not in df.index.names) & ('time' in df.index.names)):
+            time_index.append('time')
+            additional_axes_data.append([name for name in df.index.names if name != 'time'])
+        else:
+            raise ValueError(
+                f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
+                )
+    # Are all time index levels equal to 'date' or 'time'?
+    if all(index == 'date' for index in time_index):
+        time_index='date'
+    elif all(index == 'time' for index in time_index):
+        time_index='time'
+    else:
+        raise ValueError(
+            "Some datasets have 'time' as time index, other have 'date as time index. pySODM does not allow mixing."
+        )
+    return data, time_index, additional_axes_data
+
+
+def validate_calibrated_parameters(parameters_function, parameters_model):
+    """
+    Validates the parameters the user wants to calibrate. Parameters must: 1) Be valid model parameters, 2) Have one value, or, have multiple values (list or np.ndarray).
+    Construct a dictionary containing the parameter names as key and their sizes (type: tuple) as values.
+    An exception is coded for 'warmup' (= number of days between data and simulation start)
+   
+    Parameters
+    ----------
+
+    parameters_function: list
+        Contains the names parameters the user wants to calibrate (type: str)
+
+    parameters_model: dict
+        Model parameters dictionary.
+
+    Returns
+    -------
+
+    parameters_sizes: dict
+        Dictionary containing the size (=number of entries) of every model parameter.
+
+    parameters_shapes: dict
+        Dictionary containing the shape of every model parameter.    
+    """
+
+    parameters_sizes = []
+    parameters_shapes = []
+    for param_name in parameters_function:
+        # Check if the parameter exists
+        if ((param_name not in parameters_model)&(param_name!='warmup')):
+            raise Exception(
+                f"To be calibrated model parameter '{param_name}' is not a valid model parameter!"
+            )
+        elif param_name == 'warmup':
+            parameters_shapes.append((1,))
+            parameters_sizes.append(1)
+        else:
+            # Check the datatype: only int, float, list of int/float, np.array
+            if isinstance(parameters_model[param_name], bool):
+                raise TypeError(
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                    )
+            elif isinstance(parameters_model[param_name], (int,float)):
+                parameters_shapes.append((1,))
+                parameters_sizes.append(1)
+            elif isinstance(parameters_model[param_name], np.ndarray):
+                parameters_shapes.append(parameters_model[param_name].shape)
+                parameters_sizes.append(parameters_model[param_name].size)
+            elif isinstance(parameters_model[param_name], list):
+                if not all([isinstance(item, (int,float)) for item in parameters_model[param_name]]):
+                    raise TypeError(
+                        f"To be calibrated model parameter '{param_name}' of type list must only contain int or float!"
+                    )
+                else:
+                    parameters_shapes.append(np.array(parameters_model[param_name]).shape)
+                    parameters_shapes.append(np.array(parameters_model[param_name]).size)
+            else:
+                raise TypeError(
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                        )
+
+    return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
+
+def expand_parameter_names(parameter_shapes):
+    """A function to expand the names of parameters with multiple entries
+    """
+    expanded_names = []
+    for i, name in enumerate(parameter_shapes.keys()):
+        if parameter_shapes[name] == (1,):
+            expanded_names.append(name)
+        else:
+            for index in itertools.product(*[list(range(i)) for i in itertools.chain(parameter_shapes[name])]):
+                n = name + '_{'
+                for val in index:
+                    n += str(val)+','
+                n=n[:-1]
+                n+='}'
+                expanded_names.append(n)
+    return expanded_names
+
+def expand_bounds(parameter_sizes, bounds):
+    """A function to expand the bounds of parameters with multiple entries
+    """
+    expanded_bounds = []
+    for i, name in enumerate(parameter_sizes.keys()):
+        if parameter_sizes[name] == 1:
+            expanded_bounds.append(bounds[i])
+        else:
+            for _ in range(parameter_sizes[name]):
+                expanded_bounds.append(bounds[i])
+    return expanded_bounds
+
+def expand_labels(parameter_shapes, labels):
+    """A function to expand the labels of parameters with multiple entries
+    """
+    expanded_labels = []
+    for i, name in enumerate(parameter_shapes.keys()):
+        if parameter_shapes[name] == (1,):
+            expanded_labels.append(labels[i])
+        else:
+            for index in itertools.product(*[list(range(i)) for i in itertools.chain(parameter_shapes[name])]):
+                n = labels[i] + '_{'
+                for val in index:
+                    n += str(val)+','
+                n=n[:-1]
+                n+='}'
+                expanded_labels.append(n)
+    return expanded_labels
+
+def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, expanded_bounds):
+    """ 
+    Validation of the log prior probability function and its arguments.
+    Expansion for parameters with multiple entries.
+    """
+
+    if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
+        # Setup uniform priors
+        expanded_log_prior_prob_fnc = len(expanded_bounds)*[log_prior_uniform,]
+        expanded_log_prior_prob_fnc_args = expanded_bounds
+    elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
+        raise Exception(
+            f"Invalid input. Prior probability functions provided but no prior probability function arguments."
+        )
+    elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
+        raise Exception(
+            f"Invalid input. Prior probability function arguments provided but no prior probability functions."
+        )
+    else:
+        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
+            raise ValueError(
+                f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
+            ) 
+        if ((len(log_prior_prob_fnc) != len(parameter_sizes.keys()))&(len(log_prior_prob_fnc) != len(expanded_bounds))):
+            raise Exception(
+                f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters ({len(parameter_sizes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters  ({sum(parameter_sizes.values())})"
+                )
+        if len(log_prior_prob_fnc) != len(expanded_bounds):
+            # Expand
+            expanded_log_prior_prob_fnc = []
+            expanded_log_prior_prob_fnc_args = []
+            for i, name in enumerate(parameter_sizes.keys()):
+                if parameter_sizes[name] == 1:
+                    expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
+                    expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+                else:
+                    for _ in range(parameter_sizes[name]):
+                        expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
+                        expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+
+    return expanded_log_prior_prob_fnc, expanded_log_prior_prob_fnc_args
+
+def get_coordinates_data_also_in_model(data_index_diff, i, model_coordinates, data):
+    """ A function to retrieve, for every dataset, and for every model dimension, the coordinates present in the data and also in the model.
+    
+    Parameters
+    ----------
+
+    additional_axes_data: list
+        Contains the names of the model dimensions besides 'time'/'date' present in the data
+
+    model_coordinates: dict
+        Model output coordinates. Keys: dimensions, values: coordinates.
+
+    data: list
+        Containing pd.Series or pd.Dataframes of data.
+
+    Returns
+    -------
+
+    coordinates_data_also_in_model: list
+        Contains a list for every dataset. Contains a list for every model dimension besides 'date'/'time', containing the coordinates present in the data and also in the model.
+
+    """
+
+    tmp1=[]
+    for data_dim in data_index_diff:
+        tmp2=[]
+        # Model has no stratifications: data can only contain 'date' or 'time'
+        if not model_coordinates:
+            raise Exception(
+                f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
+            )
+        # Verify the axes in additional_axes_data are valid model dimensions
+        if data_dim not in list(model_coordinates.keys()):
+            raise Exception(
+                f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
+            )
+        else:
+            # Verify all coordinates in the dataset can be found in the model
+            coords_model = model_coordinates[data_dim]
+            coords_data = list(data[i].index.get_level_values(data_dim).unique().values)
+            for coord in coords_data:
+                if coord not in coords_model:
+                    raise Exception(
+                        f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
+                        )
+                else:
+                    tmp2.append(coord)
+        tmp1.append(tmp2)
+    return tmp1
+
+def get_dimensions_sum_over(additional_axes_data, model_coordinates):
+    """ A function to compute the model dimensions that are not present in the dataset.
+
+    Parameters
+    ----------
+
+    additional_axes_data: list
+        The axes present in the dataset, excluding the time dimensions 'time'/'date'
+    
+    model_coordinates: dict
+        Dictionary of model coordinates. Key: dimension name. Value: corresponding coordinates.
+
+    Returns
+    -------
+    dimensions_sum_over: list
+        Contains a list per provided dataset. Contains the model dimensions not present in the dataset. pySODM will automatically sum over these dimensions.
+    """
+
+    tmp=[]
+    if model_coordinates:
+        for model_strat in list(model_coordinates.keys()):
+            if model_strat not in additional_axes_data:
+                tmp.append(model_strat)
+        return tmp
+    else:
+        return []
+
+def validate_aggregation_function(aggregation_function, n_datasets):
+    """ A function to validate the number of aggregation functions provided by the user
+        Valid options are: a function, a list containing one function (both applied to all datasets) or one function per dataset.
+    
+    Parameters
+    ----------
+    aggregation_function: callable function or list
+        An aggregation functions receives as input an xarray.DataArray, obtained by extracting the model output at the state the user wishes to calibrate.
+        Like so: input_to_aggregation_function = simulation_output[state_name]
+        The aggregation function performs some operation on this data (f.i. aggregating over certain age groups or spatial levels) and returns an xarray.DataArray.
+        NO INPUT CHECKS ARE PERFORMED ON AGGREGATION FUNCTIONS
+    
+    n_datasets: int
+        Number of datasets
+
+    Returns
+    -------
+    aggregation_function: list
+        An expanded list of aggregation functions containing one aggregation function per dataset.
+
+    """
+    if isinstance(aggregation_function, list):
+        if ((not len(aggregation_function) == n_datasets) & (not len(aggregation_function) == 1)):
+            raise ValueError(
+                f"number of aggregation functions must be equal to one or the number of datasets"
+            )
+        if len(aggregation_function) == 1:
+            for i in range(n_datasets-1):
+                aggregation_function.append(aggregation_function[0])
+    elif inspect.isfunction(aggregation_function):
+        aggfunc=[]
+        for i in range(n_datasets):
+            aggfunc.append(aggregation_function)
+        aggregation_function = aggfunc
+    else:
+        raise ValueError(
+            f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+        )
+    return aggregation_function
+
+def create_fake_xarray_output(model_coordinates, initial_states, time_index):
+    """ 
+    A function to "replicate" the xarray.Dataset output of a simulation
+    Made to omit the need to call the sim function in the initialization of the log_posterior_probability
+
+    Parameters
+    ----------
+    model_coordinates: None or dict
+        Dictionary of model coordinates
+
+    initial_states: dict
+        Dictionary of initial model states
+    
+    time_index: str
+        'date' or 'time'
+        Could be ommitted if we wanted.
+
+    Returns
+    -------
+    out: xarray.Dataset
+        Model "output" 
+    """
+    # Create a fake model output
+    if model_coordinates:
+        # Expand existing coordinates with the time index
+        coords=model_coordinates.copy()
+        coords.update({time_index: [0,]})
+        dims=coords.keys()
+        # Generate dataset
+        dt = {}
+        for var, arr in initial_states.items():
+            xarr = xr.DataArray(arr[...,None], coords=coords, dims=dims)
+            dt[var] = xarr
+        out = xr.Dataset(dt)
+    else:
+        # Coordinates are time index
+        coords={time_index: [0,]}
+        dims= [time_index, ]
+        # Generate dataset
+        dt = {}
+        for var, arr in initial_states.items():
+            xarr = xr.DataArray(arr, coords=coords, dims=dims)
+            dt[var] = xarr
+        out = xr.Dataset(dt)
+    return out
+
+
+def compare_data_model_coordinates(output, data, state_names, aggregation_function, additional_axes_data):
+    """
+    A function to check if data and model dimensions/coordinates can be aligned correctly (subject to possible aggregation functions introduced by the user).
+
+    Parameters
+    ----------
+    output: xarray.Dataset
+        Simulation output. Generated using `create_fake_xarray_output()`
+    
+    data: list
+        List containing the datasets
+
+    state_names: list
+        Contains the names (type: str) of the model states to match with each dataset in `data`
+
+    aggregation_function: list
+        List of length len(data). Contains: None (no aggregation) or aggregation functions.
+    
+    additional_axes_data: list
+        Axes in dataset, excluding the 'time'/'date' axes.
+
+    Returns
+    -------
+    coordinates_data_also_in_model: list
+        List of length len(data). Contains, per dataset, the coordinates in the data that are also coordinates of the model.
+
+    aggregate_over: list
+        List of length len(data). Contains, per dataset, the remaining model dimensions not present in the dataset. These are then automatically summed over while calculating the log likelihood.
+    """
+
+    # Validate
+    coordinates_data_also_in_model=[]
+    aggregate_over=[]
+    # Loop over states we'd like to match
+    for i, (state_name, df) in enumerate(zip(state_names, data)):
+        if aggregation_function:
+            # Call the aggregation function
+            new_output = aggregation_function[i](output[state_name])
+            # Recreate the 'model.coordinates' attribute using this fake dataset
+            coord=[]
+            for dim in new_output.dims:
+                if ((dim != 'time') & (dim != 'date')):
+                    coord.append(new_output.coords[dim].values)
+            model_coordinates = dict(zip(output.dims, coord))
+        else:
+            # Recreate the 'model.coordinates' attribute using this fake dataset
+            coord=[]
+            for dim in output.dims:
+                if ((dim != 'time') & (dim != 'date')):
+                    coord.append(output.coords[dim].values)
+            model_coordinates = dict(zip(output.dims, coord))
+
+        # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
+        coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(additional_axes_data[i], i, model_coordinates, data))
+        
+        # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
+        aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], model_coordinates))
+    
+    return coordinates_data_also_in_model, aggregate_over
+
+def validate_log_likelihood_funtion(log_likelihood_function):
+    """
+    A function to validate the log likelihood function's arguments and return the number of extra arguments of the log likelihood function.
+
+    Parameters
+    ----------
+    log_likelihood_function: callable function
+        The log likelihood function. F.i. Gaussian, Poisson, etc.
+
+    Returns
+    -------
+    n_log_likelihood_extra_args: int
+        Number of "extra arguments" of the log likelihood function
+    """
+
+    # Check that log_likelihood_fnc always has ymodel as the first argument and ydata as the second argument
+    # Find out how many additional arguments are needed for the log_likelihood_fnc (f.i. sigma for gaussian model, alpha for negative binomial)
+    n_log_likelihood_extra_args=[]
+    for idx,fnc in enumerate(log_likelihood_function):
+        sig = inspect.signature(fnc)
+        keywords = list(sig.parameters.keys())
+        if keywords[0] != 'ymodel':
+            raise ValueError(
+            "The first parameter of log_likelihood function in position {0} is not equal to 'ymodel' but {1}".format(idx, keywords[0])
+        )
+        if keywords[1] != 'ydata':
+            raise ValueError(
+            "The second parameter of log_likelihood function in position {0} is not equal to 'ydata' but {1}".format(idx, keywords[1])
+        )
+        extra_args = len([arg for arg in keywords if ((arg != 'ymodel')&(arg != 'ydata'))])
+        n_log_likelihood_extra_args.append(extra_args)
+
+    # Support for more than one extra argument of the log likelihood function is not available
+    for i in range(len(n_log_likelihood_extra_args)):
+        if n_log_likelihood_extra_args[i] > 1:
+            raise ValueError(
+                "Support for log likelihood functions with more than one additional argument is not implemented. Raised for log likelihood function {0}".format(log_likelihood_function[i])
+                )
+    return n_log_likelihood_extra_args
+
+
+def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_args, additional_axes_data, coordinates_data_also_in_model, time_index, log_likelihood_fnc_args,
+                                                log_likelihood_fnc, series_to_ndarray):
+
+    # Input checks on the additional arguments of the log likelihood functions
+    for idx, df in enumerate(data):
+        if n_log_likelihood_extra_args[idx] == 0:
+            if ((isinstance(log_likelihood_fnc_args[idx], int)) | (isinstance(log_likelihood_fnc_args[idx], float)) | (isinstance(log_likelihood_fnc_args[idx], np.ndarray))):
+                raise ValueError(
+                    "the likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided an {2}.".format(log_likelihood_fnc[idx], idx, type(log_likelihood_fnc_args[idx]))
+                    )
+            elif log_likelihood_fnc_args[idx]:
+                raise ValueError(
+                    "the likelihood function {0} used for the {1}th dataset has no extra arguments. Expected an empty list as argument. You have provided a non-empty list.".format(log_likelihood_fnc[idx], idx)
+                    )
+        else:
+            if not additional_axes_data[idx]:
+                # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, but ll_gaussian can also take an error for every datapoint (= weighted least-squares)
+                # Thus, its additional argument must be a np.array of the same dimensions as the data
+                if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray,pd.Series)):
+                    raise ValueError(
+                        f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
+                        "accepted types are int, float, np.ndarray and pd.Series"
+                    )
+                else:
+                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                        if log_likelihood_fnc_args[idx].shape != df.values.shape:
+                            raise ValueError(
+                                f"the shape of the np.ndarray with the arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for the {idx}th dataset ({log_likelihood_fnc_args[idx].shape}) don't match the number of datapoints ({df.values.shape})"
+                            )
+                        else:
+                            log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx], axis=1)
+                    if isinstance(log_likelihood_fnc_args[idx], pd.Series):
+                        if not log_likelihood_fnc_args[idx].index.equals(df.index):
+                            raise ValueError(
+                                f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
+                            )
+                        else:
+                            log_likelihood_fnc_args[idx] = np.expand_dims(log_likelihood_fnc_args[idx].values,axis=1)
+
+            elif len(additional_axes_data[idx]) == 1:
+                if not isinstance(log_likelihood_fnc_args[idx],(list,np.ndarray,pd.Series)):
+                    raise TypeError(
+                            f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
+                            "accepted types are list, np.ndarray or pd.Series "
+                    )
+                else:
+                    # list
+                    if isinstance(log_likelihood_fnc_args[idx], list):
+                        if not len(df.index.get_level_values(additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
+                            raise ValueError(
+                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the stratification axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                )
+                    # np.ndarray
+                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                        if log_likelihood_fnc_args[idx].ndim != 1:
+                            raise ValueError(
+                                f"np.ndarray containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must be 1 dimensional"
+                            )
+                        elif not len(df.index.get_level_values(additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
+                            raise ValueError(
+                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                            )
+                    # pd.Series
+                    if isinstance(log_likelihood_fnc_args[idx], pd.Series):
+                        if not log_likelihood_fnc_args[idx].index.equals(df.index):
+                            raise ValueError(
+                                f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
+                            )
+                        else:
+                            # Make sure time index is in first position
+                            log_likelihood_fnc_args[idx] = series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx]))                 
+            else:
+                # Compute desired shape in case of one parameter per stratfication
+                desired_shape=[]
+                for lst in coordinates_data_also_in_model[idx]:
+                    desired_shape.append(len(lst))
+                # Input checks
+                if not isinstance(log_likelihood_fnc_args[idx], (np.ndarray, pd.Series)):
+                    raise TypeError(
+                        f"arguments of the {idx}th dataset log likelihood function '{log_likelihood_fnc[idx]}' cannot be of type {type(log_likelihood_fnc_args[idx])}."
+                        "accepted types are np.ndarray and pd.Series"
+                    )
+                else:
+                    if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
+                        shape = list(log_likelihood_fnc_args[idx].shape)
+                        if shape != desired_shape:
+                            raise ValueError(
+                                f"Shape of np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' for dataset {idx} must equal {desired_shape}. You provided {shape}"
+                            )
+                    if isinstance(log_likelihood_fnc_args[idx], pd.Series):
+                        if not log_likelihood_fnc_args[idx].index.equals(df.index):
+                            raise ValueError(
+                                f"index of pd.Series containing arguments of the {idx}th log likelihood function must match the index of the {idx}th dataset"
+                            )
+                        else:
+                            # Make sure time index is in first position
+                            log_likelihood_fnc_args[idx] = series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx]))
+    
+    return log_likelihood_fnc_args

@@ -43,20 +43,19 @@ The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den B
 
 The following features will be implemented in future versions of pySODM,
 
-- Coupling of ODE Models with different stratifications. The user will be able to define a model, consisting of two submodels with states of different sizes. These two models will share one `integrate` function to make coupling of the differentials possible. Output will be returned in seperate `xarray` Datasets. High priority.
-
-- Parameter with a double stratification and the calibration of n-dimensional parameters by flattening. Low priority.
-
-- Send model output to a multiindex `pd.DataFrame` and give the user the choice between `xarray` or `pandas`. Will make the code more future-proof. Low priority.
-
-- If more the model has more stratifications than the dataset it is calibrated to, pySODM automatically sums over all model axes not found in the dataset. This could be generalized further by having the user supply an optional `lambda` function, telling pySODM how to integrate over every axis.
+- Currently, pySODM's biggest limitation is that all states must have the same size. However, `xarray.Dataset` allows data variables to have a different number of dimensions. The user will be able to define in his function class, for each state name, the stratifications it has. This feature will greatly enhance pySODM's applicability and open the rich world of coupled models/submodels. High priority.
 
 ### Versions
 
 - Version 0.1 (2022-12-23, PR #14)
+    > Application pySODM to three use cases. Documentation website. Unit tests for ODEModel, SDEModel and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
         > Start of semantic versions: Major.Minor.Patch
+    - Version 0.1.2 (2023-01-11, PR #23)
+        > Calibration of 1D model parameters generalized to n-dimensions.
+        > Added 'aggregation functions' to the `log_posterior_probability` class to perform custom aggregations of model output before matching with data.
+        > `xarray.DataArray`/`xarray.Dataset` can be used as datasets during calibration. Internally converted to `pd.DataFrame`.
 - Version 0.0 (2022-11-14)
-    - First pySODM version. Obtained by splitting the generic from the ad-hoc parts from UGentBiomath/COVID19-Model. Without documentation website. 
+    - First pySODM version. Obtained by splitting the generally applicable parts from the ad-hoc parts in UGentBiomath/COVID19-Model. Without documentation website. 
 - Pre-development (2020-05-01 - 2022-11-24)
     - Code developped to model the spread of SARS-CoV-2 in Belgium (UGentBiomath/COVID19-Model).

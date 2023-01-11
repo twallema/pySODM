@@ -142,6 +142,76 @@ def test_correct_approach_wo_stratification():
         plt.show()
         plt.close()
 
+def test_xarray_datasets():
+    """ Test the use of an xarray.DataArray as dataset
+    """
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum().to_xarray(),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+
+test_xarray_datasets()
+
+class SIR_nd_beta(ODEModel):
+
+    # state variables and parameters
+    state_names = ['S', 'I', 'R']
+    parameter_names = ['beta', 'gamma']
+
+    @staticmethod
+    def integrate(t, S, I, R, beta, gamma):
+        """Basic SIR model"""
+        beta = beta[0,0,0]
+        N = S + I + R
+        dS = -beta*I*S/N
+        dI = beta*I*S/N - gamma*I
+        dR = gamma*I
+        return dS, dI, dR
+
+def test_calibration_nd_parameter():
+    """ Test the calibration of an n-dimensional parameter
+    """
+    # Define parameters and initial states
+    parameters = {"beta": 0.1*np.ones([2,2,2]), "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR_nd_beta(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    # PSO
+    theta = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    # Nelder-Mead
+    theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
+                        processes=1, max_iter=20)[0]
+
+test_calibration_nd_parameter()
+
 def break_stuff_wo_stratification():
 
     # Define parameters and initial states
@@ -198,7 +268,7 @@ def break_stuff_wo_stratification():
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(Exception, match="expected pd.Series or pd.DataFrame"):
+    with pytest.raises(Exception, match="expected pd.Series, pd.DataFrame"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
@@ -351,6 +421,8 @@ def test_correct_approach_with_one_stratification_0():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
+test_correct_approach_with_one_stratification_0()
+
 def break_stuff_with_one_stratification():
 
     # Axes in data not present in model
@@ -498,6 +570,40 @@ def test_correct_approach_with_two_stratifications():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
+test_correct_approach_with_two_stratifications()
+
+def test_aggregation_function():
+    # Setup model
+    parameters = {"gamma": 0.2, "beta": np.array([0.1, 0.1])}
+    initial_states = {"S": [[500_000 - 1, 500_000 - 1, 500_000 - 1],[500_000 - 1, 500_000 - 1, 500_000 - 1]], "I": [[1,1,1],[1,1,1]]}
+    coordinates = {'age_groups': ['0-20','20-120'], 'spatial_units': [0,1,2]}
+    model = SIRdoublestratified(initial_states, parameters, coordinates=coordinates)
+    # Variables that don't really change
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha*np.ones([2]),]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Define dataset with a coordinate not in the model
+    data=[df.groupby(by=['time','age_groups']).sum(),]
+    # Define an aggregation function
+    def aggregation_function(output):
+        return output.sum(dim='spatial_units')
+    # Correct use
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=aggregation_function)
+    # Correct use
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=[aggregation_function,])
+    # Misuse
+    with pytest.raises(ValueError, match="number of aggregation functions must be equal to one or"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
+
+test_aggregation_function()
 
 def break_log_likelihood_functions_with_two_stratifications():
 
