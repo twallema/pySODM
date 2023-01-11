@@ -4,7 +4,7 @@
 
 ### Log posterior probability
 
-***class* log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, labels=None)**
+***class* log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)**
 
 **Parameters:**
 
@@ -19,6 +19,7 @@
 * **log_prior_prob_fnc** (list) - optional - Contains a prior probability function for every calibrated parameter. Defaults to a uniform prior using the provided bounds.
 * **log_prior_prob_fnc_args** (list) - optional - Contains the arguments of the provided prior probability functions.
 * **initial_states** (list) - optional - Contains a dictionary of initial states for every dataset. 
+* **aggregation_function** (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an `xarray.DataArray`, resulting from selecting the simulation output at the state we wish to match to the dataset (`model_output_xarray_Dataset['state_name']`), as its input. The output of the function must also be an `xarray.DataArray`. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a high spatial resolutioni. However, data is only available on a lower level of spatial resolution. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument `aggregation_function`are: 1) one callable function --> applied to every dataset. 2) A list containing one callable function --> applied to every dataset. 3) A list containing a callable function for every dataset --> every dataset has its own aggregation function.
 * **labels** (list) - optional - Contains a custom label for the calibrated parameters. Defaults to the names provided in `parameter_names`.
 
 **Methods:**
@@ -26,11 +27,11 @@
 * **__call__(thetas, simulation_kwargs={})**
 
     **Parameters:**
-    * **thetas** (list/np.ndarray) - List or 1D np.array containing the estimated parameter values.
-    * **simulation_kwargs** (dict) - Arguments to be passed to the model's [sim()](models.md) function when evaluating the posterior probability.
+    * **thetas** (list/np.ndarray) - A flattened list containing the estimated parameter values.
+    * **simulation_kwargs** (dict) - Optional arguments to be passed to the model's [sim()](models.md) function when evaluating the posterior probability.
 
     **Returns:**
-    * **lp** (float) - Log posterior probability.
+    * **lp** (float) - Logarithm of the posterior probability.
 
 ### Log likelihood
 
