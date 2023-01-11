@@ -54,8 +54,13 @@ The following features will be implemented in future versions of pySODM,
 ### Versions
 
 - Version 0.1 (2022-12-23, PR #14)
+    > Documentation website. Application pySODM to three use cases. Unit tests for ODEModel, SDEModel and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
         > Start of semantic versions: Major.Minor.Patch
+    - Version 0.1.2 (2023-01-11, PR #22)
+        > Calibration of 1D model parameters generalized to n-dimensions.
+        > `xarray.DataArray`/`xarray.Dataset` can be used as datasets during calibration. Internally converted to `pd.DataFrame`.
+        > Input checks on `log_posterior_probability` were 'cleaned up'.
 - Version 0.0 (2022-11-14)
     - First pySODM version. Obtained by splitting the generic from the ad-hoc parts from UGentBiomath/COVID19-Model. Without documentation website. 
 - Pre-development (2020-05-01 - 2022-11-24)
