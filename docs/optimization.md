@@ -9,7 +9,7 @@
 **Parameters:**
 
 * **model** (object) - An initialized ODEModel or SDEModel.
-* **parameter_names** (list) - Names of model parameters (type: str) to calibrate.
+* **parameter_names** (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
 * **bounds** (list) - Lower and upper bound of calibrated parameters provided as tuples. `[(lb_1, ub_1), ..., (lb_n, ub_n)]` 
 * **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use `[dataset,]`. Must contain a time index named `time` or `date`. Additional axes must be implemented using a `pd.Multiindex` and must bear the names/contain the coordinates of a valid model stratification.
 * **states** (list) - Names of the model states (type: str) the respective datasets should be matched to.
