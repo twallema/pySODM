@@ -158,7 +158,7 @@ def validate_time_dependent_parameters(parameter_names, parameter_stratified_nam
 
     return extra_params
 
-def validate_initial_states(state_names, initial_states, stratification_size, coordinates, state_2d):
+def validate_initial_states(state_names, initial_states, stratification_size, coordinates):
     """
     A function to check the types and sizes of the model's initial states provided by the user.
     Automatically assumes non-specified states are equal to zero.
@@ -178,9 +178,6 @@ def validate_initial_states(state_names, initial_states, stratification_size, co
     coordinates: dict
         Keys: stratification name, Values: coordinates.
 
-    state_2d: list
-        Contains the names of 2-dimensional states. Ad-hoc, will be replaced with a generalization.
-    
     Returns
     -------
     
@@ -193,7 +190,7 @@ def validate_initial_states(state_names, initial_states, stratification_size, co
         if state in initial_states:
             # if present, verify the length
             initial_states[state] = check_initial_states_size(
-                                        initial_states[state], state, "initial state", stratification_size, coordinates, state_2d
+                                        initial_states[state], state, "initial state", stratification_size, coordinates
                                         )
         else:
             # Fill with zeros
@@ -210,7 +207,7 @@ def validate_initial_states(state_names, initial_states, stratification_size, co
 
     return initial_states
 
-def check_initial_states_size(values, name, object_name, stratification_size, coordinates, state_2d):
+def check_initial_states_size(values, name, object_name, stratification_size, coordinates):
     """A function checking the size of an initial state
     """
     # If the model doesn't have stratifications, initial states can be defined as: np.array([int/float]), [int/float], int or float
@@ -225,46 +222,27 @@ def check_initial_states_size(values, name, object_name, stratification_size, co
                 values = np.asarray([values,])
         values = np.asarray(values)
 
-        # 2d states will be replaced with a generalization soon
-        if state_2d:
-            if name in state_2d:
-                if list(values.shape) != [stratification_size[0],stratification_size[0]]:
-                    raise ValueError(
-                        "{obj} {name} was defined as a two-dimensional state "
-                        "but has size {size}, instead of {desired_size}"
-                        .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
-                        )
-        else:
-            if list(values.shape) != stratification_size:
-                raise ValueError(
-                    "The abscence of model coordinates indicate a desired "
-                    "model states size of {strat_size}, but {obj} '{name}' "
-                    "has length {val}".format(
-                        strat_size=stratification_size,
-                        obj=object_name, name=name, val=list(values.shape)
-                    )
+        if list(values.shape) != stratification_size:
+            raise ValueError(
+                "The abscence of model coordinates indicate a desired "
+                "model states size of {strat_size}, but {obj} '{name}' "
+                "has length {val}".format(
+                    strat_size=stratification_size,
+                    obj=object_name, name=name, val=list(values.shape)
                 )
+            )
 
     else:
         values = np.asarray(values)
-        if state_2d:
-            if name in state_2d:
-                if list(values.shape) != [stratification_size[0],stratification_size[0]]:
-                    raise ValueError(
-                        "{obj} {name} was defined as a two-dimensional state "
-                        "but has size {size}, instead of {desired_size}"
-                        .format(obj=object_name,name=name,size=list(values.shape),desired_size=[stratification_size[0],stratification_size[0]])
-                        )
-        else:
-            if list(values.shape) != stratification_size:
-                raise ValueError(
-                    "The coordinates provided for the stratifications '{strat}' indicate a "
-                    "model states size of {strat_size}, but {obj} '{name}' "
-                    "has length {val}".format(
-                        strat=list(coordinates.keys()), strat_size=stratification_size,
-                        obj=object_name, name=name, val=list(values.shape)
-                    )
+        if list(values.shape) != stratification_size:
+            raise ValueError(
+                "The coordinates provided for the stratifications '{strat}' indicate a "
+                "model states size of {strat_size}, but {obj} '{name}' "
+                "has length {val}".format(
+                    strat=list(coordinates.keys()), strat_size=stratification_size,
+                    obj=object_name, name=name, val=list(values.shape)
                 )
+            )
 
     return values
 
@@ -312,7 +290,7 @@ def merge_parameter_names_parameter_stratified_names(parameter_names, parameter_
     return merged_params
 
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
-                        parameter_stratified_names, _function_parameters, _create_fun, integrate_func, state_2d=None):
+                        parameter_stratified_names, _function_parameters, _create_fun, integrate_func):
     """
     This does some basic validation of the model + initialization:
 
@@ -413,7 +391,7 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     # Size/type of the initial states
     # Redundant states
     # Fill in unspecified states with zeros
-    initial_states = validate_initial_states(state_names, initial_states, stratification_size, coordinates, state_2d)
+    initial_states = validate_initial_states(state_names, initial_states, stratification_size, coordinates)
 
 
     # Call integrate function with initial values to check if the function returns all states

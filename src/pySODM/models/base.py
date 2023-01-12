@@ -519,7 +519,7 @@ class ODEModel:
     parameter_names = None
     parameter_stratified_names = None
     stratification_names = None
-    state_2d = None
+    state_stratifications = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
@@ -538,8 +538,6 @@ class ODEModel:
             check_duplicates(self.parameter_names, 'parameter_names')
         if self.stratification_names:
             check_duplicates(self.stratification_names, 'stratification_names')
-        if self.state_2d:
-            check_duplicates(self.state_2d, 'state_2d')
 
         # Validate and compute the stratification sizes
         self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
@@ -553,11 +551,7 @@ class ODEModel:
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params, self._extra_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
                                                                                                             self.parameter_names, self.parameter_stratified_names, self._function_parameters,
-                                                                                                            self._create_fun, self.integrate, self.state_2d)
-
-        # Experimental: added to use 2D states for the Economic IO model
-        if self.state_2d:
-            self.split_point = (len(self.state_names) - 1) * self.stratification_size[0]
+                                                                                                            self._create_fun, self.integrate)
 
     # Overwrite integrate class
     @staticmethod
@@ -575,19 +569,11 @@ class ODEModel:
             # Flatten y and construct dictionary of states and their values
             # -------------------------------------------------------------
 
-            if not self.state_2d:
-                # for the moment assume sequence of parameters, vars,... is correct
-                size_lst=[len(self.state_names)]
-                for size in self.stratification_size:
-                    size_lst.append(size)
-                y_reshaped = y.reshape(tuple(size_lst))
-                states = dict(zip(self.state_names, y_reshaped))
-            else:
-                # incoming y -> different reshape for 1D vs 2D variables  (2)
-                y_1d, y_2d = np.split(y, [self.split_point])
-                y_1d = y_1d.reshape(((len(self.state_names) - 1), self.stratification_size[0]))
-                y_2d = y_2d.reshape((self.stratification_size[0], self.stratification_size[0]))
-                states  = dict(zip(self.state_names, [y_1d,y_2d]))
+            size_lst=[len(self.state_names)]
+            for size in self.stratification_size:
+                size_lst.append(size)
+            y_reshaped = y.reshape(tuple(size_lst))
+            states = dict(zip(self.state_names, y_reshaped))
 
             # --------------------------------------
             # update time-dependent parameter values
@@ -614,12 +600,8 @@ class ODEModel:
             # perform integration
             # -------------------
 
-            if not self.state_2d:
-                dstates = self.integrate(t, **states, **params)
-                return np.array(dstates).flatten()
-            else:
-                dstates = self.integrate(t, *y_1d, y_2d, **params)
-                return np.concatenate([np.array(state).flatten() for state in dstates])
+            dstates = self.integrate(t, **states, **params)
+            return np.array(dstates).flatten()
 
         return func
 
@@ -630,12 +612,7 @@ class ODEModel:
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
 
-        if self.state_2d:
-            for state in self.state_2d:
-                self.initial_states[state] = self.initial_states[state].flatten()
-
         # Scipy can only take flattened list of states
-        # TODO: rearrange y0 in order of self.state_names --> ALREADY DONE IN INITIALIZATION!
         y0 = list(itertools.chain(*self.initial_states.values()))
         while np.array(y0).ndim > 1:
             y0 = list(itertools.chain(*y0))
@@ -777,27 +754,12 @@ class ODEModel:
                 size_lst.append(size)
         size_lst.append(len(output["t"]))
 
-        if not self.state_2d:
-            y_reshaped = output["y"].reshape(tuple(size_lst))
-            zip_star = zip(self.state_names, y_reshaped)
-        else:
-            # assuming only 1 2D variable!
-            size_lst[0] = size_lst[0]-1
-            y_1d, y_2d = np.split(output["y"], [self.split_point])
-            y_1d_reshaped = y_1d.reshape(tuple(size_lst))
-            y_2d_reshaped = y_2d.reshape(self.stratification_size[0], self.stratification_size[0],len(output["t"]))
-            zip_star=zip(self.state_names[:-1],y_1d_reshaped)
+        y_reshaped = output["y"].reshape(tuple(size_lst))
+        zip_star = zip(self.state_names, y_reshaped)
 
         data = {}
         for var, arr in zip_star:
             xarr = xarray.DataArray(arr, coords=coords, dims=dims)
             data[var] = xarr
-        
-        if self.state_2d:
-            if actual_start_date is not None:
-                xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[list(self.coordinates.keys())[0],list(self.coordinates.keys())[0],'date'])
-            else:
-                xarr = xarray.DataArray(y_2d_reshaped,coords=coords,dims=[list(self.coordinates.keys())[0],list(self.coordinates.keys())[0],'time'])
-            data[self.state_names[-1]] = xarr
 
         return xarray.Dataset(data)
