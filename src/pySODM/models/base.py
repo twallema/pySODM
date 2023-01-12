@@ -12,7 +12,7 @@ import numba as nb
 import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
-from pySODM.models.utils import int_to_date
+from pySODM.models.utils import int_to_date, list_to_dict
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, \
                                         validate_time_dependent_parameters, validate_integrate, validate_SDEModel, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
                                             validate_initial_states, validate_integrate_signature, validate_provided_parameters, validate_parameter_stratified_sizes
@@ -587,15 +587,11 @@ class ODEModel:
         def func(t, y, pars={}):
             """As used by scipy -> flattend in, flattend out"""
 
-            # -------------------------------------------------------------
-            # Flatten y and construct dictionary of states and their values
-            # -------------------------------------------------------------
+            # ------------------------------------------------
+            # Deflatten y and reconstruct dictionary of states 
+            # ------------------------------------------------
 
-            size_lst=[len(self.state_names)]
-            for size in self.stratification_size:
-                size_lst.append(size)
-            y_reshaped = y.reshape(tuple(size_lst))
-            states = dict(zip(self.state_names, y_reshaped))
+            states = list_to_dict(y, self.state_shapes)
 
             # --------------------------------------
             # update time-dependent parameter values
@@ -623,7 +619,16 @@ class ODEModel:
             # -------------------
 
             dstates = self.integrate(t, **states, **params)
-            return np.array(dstates).flatten()
+
+            # -------
+            # Flatten
+            # -------
+
+            out=[]
+            for d in dstates:
+                out.extend(list(np.ravel(d)))
+
+            return out
 
         return func
 
