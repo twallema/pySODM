@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
+from pySODM.models.utils import list_to_dict
 from pySODM.optimization.utils import _thetas_to_thetas_dict
 from pySODM.models.validation import validate_initial_states
 
@@ -427,43 +428,13 @@ class log_posterior_probability():
     
         return total_ll
 
-    @staticmethod
-    def thetas_to_dict(thetas, parameter_shapes):
-        """
-        A function to reconstruct the calibrated parameters given our flat list with estimates of model parameters (thetas)
-
-        Parameters
-        ----------
-
-        thetas: list
-            Estimates of the model parameters (element expanded)
-
-        parameter_shapes: dict
-            Shapes of calibrated parameters. For int/float: (1,). Keys: parameter_names.
-        
-        Returns
-        -------
-
-        thetas_dict: dict
-            Dictionary containing the reconstructed parameters. Keys: parameter_names.
-        """
-
-        restoredArray =[]
-        offset=0
-        for i,s in enumerate(parameter_shapes.values()):
-            n = np.prod(s)
-            restoredArray.append(thetas[offset:(offset+n)].reshape(s))
-            offset+=n
-    
-        return dict(zip(parameter_shapes.keys(), restoredArray))
-
     def __call__(self, thetas, simulation_kwargs={}):
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
         # Unflatten thetas
-        thetas_dict = self.thetas_to_dict(thetas, self.parameter_shapes)
+        thetas_dict = list_to_dict(thetas, self.parameter_shapes)
 
         # Assign and remove warmup
         if 'warmup' in thetas_dict.keys():
