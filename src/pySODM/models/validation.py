@@ -426,7 +426,7 @@ def validate_parameter_stratified_sizes(parameter_stratified_names, stratificati
         else:
             for param in parameter_stratified_names:
                 parameters[param] = check_stratpar_size(
-                                        parameters[param], param, "stratified parameter",stratification_names,len(coordinates[stratification_names])
+                                        parameters[param], param, "stratified parameter",stratification_names[0],len(coordinates[stratification_names[0]])
                                         )
     else:
         # Number of sublists equal to number of dimensions?

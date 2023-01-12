@@ -573,8 +573,6 @@ class ODEModel:
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
         validate_integrate(self.initial_states, self.parameters, self._create_fun, self.state_shapes)
 
-        sys.exit()
-
     # Overwrite integrate class
     @staticmethod
     def integrate():
@@ -759,34 +757,42 @@ class ODEModel:
         """
         Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
         """
-
-        if self.coordinates:
-            dims = list(self.coordinates.keys()).copy()
-        else:
-            dims = []
         
-        if actual_start_date is not None:
-            dims.append('date')
-            coords = {"date": actual_start_date + pd.to_timedelta(output["t"], unit='D')}
-        else:
-            dims.append('time')
-            coords = {"time": output["t"]}
+        # Convert scipy's output to a dictionary of states with the correct sizes
+        state_shapes={}
+        for k,v in self.state_shapes.items():
+            v=list(v)
+            v.append(len(output["t"]))
+            state_shapes.update({k: tuple(v)})
+        output_flat = np.ravel(output["y"])
+        data_variables = list_to_dict(output_flat, state_shapes)
 
-        if self.coordinates:
-            coords.update(self.coordinates)
+        # Append the time dimension
+        state_dimensions={}
+        for k,v in self.state_dimensions.items():
+            if actual_start_date is not None:
+                v.append('date')
+                state_dimensions.update({k: v})
+            else:
+                v.append('time')
+                state_dimensions.update({k: v})
 
-        size_lst = [len(self.state_names)]
-        if self.coordinates:
-            for size in self.stratification_size:
-                size_lst.append(size)
-        size_lst.append(len(output["t"]))
+        # Append the time coordinates
+        state_coordinates={}
+        for k,v in self.state_coordinates.items():
+            if actual_start_date is not None:
+                v.append(actual_start_date + pd.to_timedelta(output["t"], unit='D'))
+                state_coordinates.update({k: v})
+            else:
+                v.append(output["t"])
+                state_coordinates.update({k: v})
 
-        y_reshaped = output["y"].reshape(tuple(size_lst))
-        zip_star = zip(self.state_names, y_reshaped)
-
+        # Build the xarray dataset
         data = {}
-        for var, arr in zip_star:
-            xarr = xarray.DataArray(arr, coords=coords, dims=dims)
+        for var, arr in data_variables.items():
+            if len(state_dimensions[var]) == 1:
+                arr = np.ravel(arr)
+            xarr = xarray.DataArray(arr, dims=state_dimensions[var], coords=state_coordinates[var])
             data[var] = xarr
 
         return xarray.Dataset(data)

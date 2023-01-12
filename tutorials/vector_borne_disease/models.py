@@ -12,7 +12,6 @@ class SIR_SI(ODEModel):
     stratification_names = ['age_group']
     state_stratifications = [['age_group'],['age_group'],['age_group'],[],[]]
 
-
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, gamma):
 
@@ -23,7 +22,7 @@ class SIR_SI(ODEModel):
         dI = alpha*(I_v/N_v)*S - 1/gamma*I
         dR = 1/gamma*I
         # Calculate mosquito differentials
-        dS_v = -np.sum(alpha*(I_v/N_v)*S)
-        dI_v = np.sum(alpha*(I_v/N_v)*S)
+        dS_v = -np.sum(alpha*(I_v/N_v)*S_v)
+        dI_v = np.sum(alpha*(I_v/N_v)*S_v)
 
         return dS, dI, dR, dS_v, dI_v
