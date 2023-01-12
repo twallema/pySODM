@@ -97,7 +97,7 @@ def validate_stratifications(stratification_names, coordinates):
         else:
             if set(stratification_names) != set(coordinates.keys()):
                 raise ValueError(
-                    "Stratification names do not match coordinates dictionary keys.\n"
+                    "`stratification_names` do not match coordinates dictionary keys.\n"
                     "Missing stratification names: {0}. Redundant coordinates: {1}".format(set(stratification_names).difference(set(coordinates.keys())), set(coordinates.keys()).difference(set(stratification_names)))
                 )
             else:
@@ -351,7 +351,7 @@ def validate_integrate_signature(integrate_func, parameter_names_merged, state_n
             "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
         )
 
-    all_params = parameter_names_merged
+    all_params = parameter_names_merged.copy()
     # additional parameters from time-dependent parameter functions
     # are added to specified_params after the above check
     if _function_parameters:
@@ -393,7 +393,7 @@ def validate_provided_parameters(all_params, parameters):
     
     return parameters
 
-def check_stratpar_size(values, name, object_name,i,stratification_names,desired_size):
+def check_stratpar_size(values, name, object_name,stratification_names,desired_size):
     values = np.asarray(values)
     if values.ndim != 1:
         raise ValueError(
@@ -411,68 +411,59 @@ def check_stratpar_size(values, name, object_name,i,stratification_names,desired
                 obj=object_name, name=name, val=len(values)
             )
         )
+    return values
 
 def validate_parameter_stratified_sizes(parameter_stratified_names, stratification_names, coordinates, parameters):
     """Check if the sizes of the stratified parameters are correct"""
 
-    if parameter_stratified_names:
-        i = 0
-        if not isinstance(parameter_stratified_names[0], list):
-            if len(list(coordinates.keys())) > 1:
-                raise ValueError(
-                    f"The model has more than one dimension ({len(list(coordinates.keys()))}). I cannot deduce the dimension of your statified parameter from the provided `parameter_stratified_names`: {parameter_stratified_names}. "
-                    f"Make sure `parameter_stratified_names` is a list, containing {len(list(coordinates.keys()))} (no. dimensions) sublists. Each sublist corresponds to a stratification in `stratification_names`. "
-                    "Place your stratified parameter in the correct sublist so I know what model stratification to match it with. If a stratification has no stratified parameter, provide an empty list."
-                )
-            else:
-                for param in parameter_stratified_names:
-                    check_stratpar_size(
-                            parameters[param], param, "stratified parameter",i,stratification_names,len(coordinates[stratification_names])
-                        )
-                i = i + 1
+    if not isinstance(parameter_stratified_names[0], list):
+        if len(list(coordinates.keys())) > 1:
+            raise ValueError(
+                f"The model has more than one dimension ({len(list(coordinates.keys()))}). I cannot deduce the dimension of your statified parameter from the provided `parameter_stratified_names`: {parameter_stratified_names}. "
+                f"Make sure `parameter_stratified_names` is a list, containing {len(list(coordinates.keys()))} (no. dimensions) sublists. Each sublist corresponds to a stratification in `stratification_names`. "
+                "Place your stratified parameter in the correct sublist so I know what model stratification to match it with. If a stratification has no stratified parameter, provide an empty list."
+            )
         else:
-            for j,stratified_names in enumerate(parameter_stratified_names):
-                for param in stratified_names:
-                    check_stratpar_size(
-                        parameters[param], param, "stratified parameter",i,stratification_names[j],len(coordinates[stratification_names[j]])
-                    )
-                i = i + 1
+            for param in parameter_stratified_names:
+                parameters[param] = check_stratpar_size(
+                                        parameters[param], param, "stratified parameter",stratification_names,len(coordinates[stratification_names])
+                                        )
+    else:
+        # Number of sublists equal to number of dimensions?
+        if len(parameter_stratified_names) != len(list(coordinates.keys())):
+            raise ValueError(
+                f"The number of sublists in `parameter_stratified_names` ({len(parameter_stratified_names)}) must be equal to the number of coordinates ({len(list(coordinates.keys()))})"
+            )
+        for j,stratified_names in enumerate(parameter_stratified_names):
+            for param in stratified_names:
+                parameters[param] = check_stratpar_size(
+                                        parameters[param], param, "stratified parameter",stratification_names[j],len(coordinates[stratification_names[j]])
+                                        )
+    return parameters
 
-def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
-                        parameter_stratified_names, _function_parameters, _create_fun, integrate_func):
+def validate_integrate(initial_states, parameters, _create_fun, state_shapes):
+    """ Call _create_fun to check if the integrate function (1) works, (2) the differentials have the correct shape
     """
-    This does some basic validation of the model + initialization:
 
-    1) Validation of the integrate function to ensure it matches with
-    the specified `state_names`, `parameter_names`, etc.
-    This is actually a validation of the model class itself, but it is
-    easier to do this only on initialization of a model instance.
-
-    2) Validation of the actual initialization with initial values for the
-    states and parameter values.
-
-    """
-
-    # Call integrate function with initial values to check if the function returns all states
     fun = _create_fun(None)
     y0 = list(itertools.chain(*initial_states.values()))
     while np.array(y0).ndim > 1:
         y0 = list(itertools.chain(*y0))
-    check = True
+    
+    result = fun(1, np.array(y0), parameters)
     try:
-        result = fun(pd.Timestamp('2020-09-01'), np.array(y0), parameters)
+        result = fun(1, np.array(y0), parameters)
     except:
-        try:
-            result = fun(1, np.array(y0), parameters)
-        except:
-            check = False
-    if check:
-        if len(result) != len(y0):
-            raise ValueError(
-                "The return value of the integrate function does not have the correct length."
-            )
+        raise ValueError(
+            "An error was encountered while calling your integrate function."
+        )
 
-    return initial_states, parameters, _n_function_params, list(_extra_params)
+    if len(result) != len(y0):
+        raise ValueError(
+            "The total length of the differentials returned by your `integrate()` function do not appear to have the correct length. "
+            "Verify the differentials are in the same order as `state_names`. Verify every differential has the same size as the state it corresponds to. "
+            f"State shapes: {state_shapes}"
+        )
 
 def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameter_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):

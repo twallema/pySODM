@@ -14,7 +14,7 @@ from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, \
-                                        validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
+                                        validate_time_dependent_parameters, validate_integrate, validate_SDEModel, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
                                             validate_initial_states, validate_integrate_signature, validate_provided_parameters, validate_parameter_stratified_sizes
 
 class SDEModel:
@@ -532,12 +532,12 @@ class ODEModel:
         self.time_dependent_parameters = time_dependent_parameters
 
         # Merge parameter_names and parameter_stratified_names
-        parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
+        self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
         check_duplicates(self.state_names, 'state_names')
         check_duplicates(self.parameter_names, 'parameter_names')
-        check_duplicates(parameter_names_merged, 'parameter_names + parameter_stratified_names')
+        check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
         if self.stratification_names:
             check_duplicates(self.stratification_names, 'stratification_names')
 
@@ -561,23 +561,19 @@ class ODEModel:
             self._function_parameters = []
 
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_signature(self.integrate, parameter_names_merged, self.state_names, self._function_parameters)
+        all_params, self._extra_params = validate_integrate_signature(self.integrate, self.parameter_names_merged, self.state_names, self._function_parameters)
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
         if self.parameter_stratified_names:
-            validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, parameters)
+            parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, parameters)
 
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters)
 
+        # Call the integrate function, check if it works and check the sizes of the differentials in the output
+        validate_integrate(self.initial_states, self.parameters, self._create_fun, self.state_shapes)
+
         sys.exit()
-
-        # Test the integrate function
-
-        # Validate the model
-        self.initial_states, self.parameters, self._n_function_params, self._extra_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                                              self.parameter_names, self.parameter_stratified_names, self._function_parameters,
-                                                                                                              self._create_fun, self.integrate)
 
     # Overwrite integrate class
     @staticmethod
