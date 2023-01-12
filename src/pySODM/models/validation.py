@@ -302,25 +302,6 @@ def check_initial_states_shape(values, desired_shape, name, object_name):
 
     return values
 
-def validate_stratified_parameters(values, name, object_name,i,stratification_size,coordinates):
-    values = np.asarray(values)
-    if values.ndim != 1:
-        raise ValueError(
-            "A {obj} value should be a 1D array, but {obj} '{name}' is"
-            "{val}-dimensional".format(
-                obj=object_name, name=name, val=values.ndim
-            )
-        )
-    if len(values) != stratification_size[i]:
-        raise ValueError(
-            "The coordinates provided for stratification '{strat}' indicates a "
-            "stratification size of {strat_size}, but {obj} '{name}' "
-            "has length {val}".format(
-                strat=list(coordinates.keys())[i], strat_size=stratification_size[i],
-                obj=object_name, name=name, val=len(values)
-            )
-        )
-
 def check_duplicates(lst, name):
     """A function raising an error if lst contains duplicates"""
     seen = set()
@@ -412,6 +393,51 @@ def validate_provided_parameters(all_params, parameters):
     
     return parameters
 
+def check_stratpar_size(values, name, object_name,i,stratification_names,desired_size):
+    values = np.asarray(values)
+    if values.ndim != 1:
+        raise ValueError(
+            "A {obj} value should be a 1D array, but {obj} '{name}' is"
+            "{val}-dimensional".format(
+                obj=object_name, name=name, val=values.ndim
+            )
+        )
+    if len(values) != desired_size:
+        raise ValueError(
+            "The coordinates provided for stratification '{stratification_names}' indicates a "
+            "stratification size of {desired_size}, but {obj} '{name}' "
+            "has length {val}".format(
+                stratification_names=stratification_names, desired_size=desired_size,
+                obj=object_name, name=name, val=len(values)
+            )
+        )
+
+def validate_parameter_stratified_sizes(parameter_stratified_names, stratification_names, coordinates, parameters):
+    """Check if the sizes of the stratified parameters are correct"""
+
+    if parameter_stratified_names:
+        i = 0
+        if not isinstance(parameter_stratified_names[0], list):
+            if len(list(coordinates.keys())) > 1:
+                raise ValueError(
+                    f"The model has more than one dimension ({len(list(coordinates.keys()))}). I cannot deduce the dimension of your statified parameter from the provided `parameter_stratified_names`: {parameter_stratified_names}. "
+                    f"Make sure `parameter_stratified_names` is a list, containing {len(list(coordinates.keys()))} (no. dimensions) sublists. Each sublist corresponds to a stratification in `stratification_names`. "
+                    "Place your stratified parameter in the correct sublist so I know what model stratification to match it with. If a stratification has no stratified parameter, provide an empty list."
+                )
+            else:
+                for param in parameter_stratified_names:
+                    check_stratpar_size(
+                            parameters[param], param, "stratified parameter",i,stratification_names,len(coordinates[stratification_names])
+                        )
+                i = i + 1
+        else:
+            for j,stratified_names in enumerate(parameter_stratified_names):
+                for param in stratified_names:
+                    check_stratpar_size(
+                        parameters[param], param, "stratified parameter",i,stratification_names[j],len(coordinates[stratification_names[j]])
+                    )
+                i = i + 1
+
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameter_stratified_names, _function_parameters, _create_fun, integrate_func):
     """
@@ -426,30 +452,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     states and parameter values.
 
     """
-
-    # the size of the stratified parameters
-    if parameter_stratified_names:
-        i = 0
-        if not isinstance(parameter_stratified_names[0], list):
-            if len(parameter_stratified_names) == 1:
-                for param in parameter_stratified_names:
-                    validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
-                        )
-                i = i + 1
-            else:
-                for param in parameter_stratified_names:
-                    validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
-                        )
-                i = i + 1
-        else:
-            for stratified_names in parameter_stratified_names:
-                for param in stratified_names:
-                    validate_stratified_parameters(
-                        parameters[param], param, "stratified parameter",i,stratification_size,coordinates
-                    )
-                i = i + 1
 
     # Call integrate function with initial values to check if the function returns all states
     fun = _create_fun(None)

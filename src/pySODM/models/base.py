@@ -15,7 +15,7 @@ from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, \
                                         validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
-                                            validate_initial_states, validate_integrate_signature, validate_provided_parameters
+                                            validate_initial_states, validate_integrate_signature, validate_provided_parameters, validate_parameter_stratified_sizes
 
 class SDEModel:
     """
@@ -563,12 +563,14 @@ class ODEModel:
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
         all_params, self._extra_params = validate_integrate_signature(self.integrate, parameter_names_merged, self.state_names, self._function_parameters)
 
+        # Validate the size of the stratified parameters (Perhaps move this way up front?)
+        if self.parameter_stratified_names:
+            validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, parameters)
+
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters)
 
         sys.exit()
-
-        # Validate the size of the stratified parameters
 
         # Test the integrate function
 
