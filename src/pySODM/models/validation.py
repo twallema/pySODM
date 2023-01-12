@@ -134,23 +134,27 @@ def validate_state_stratifications(state_stratifications, coordinates, state_nam
                 f"The stratification names of model state '{state_name}', specified in position {i} of `state_stratifications` contains invalid coordinate names. Redundant names: {set(state_stratifications[i]).difference(set(coordinates.keys()))}"
         )
 
-def build_state_sizes(coordinates, state_names, state_stratifications):
-    """A function returning a dictionary containing, for every model state, the correct shape.
+def build_state_sizes_dimensions(coordinates, state_names, state_stratifications):
+    """A function returning three dictionaries: A dictionary containing, for every model state: 1) Its shape, 2) its dimensions, 3) its coordinates.
     """
 
     if not state_stratifications:
         if not coordinates:
-            return dict(zip(state_names, len(state_names)*[(1,),] ))
+            return dict(zip(state_names, len(state_names)*[(1,),] )), dict(zip(state_names, len(state_names)*[[],] )), dict(zip(state_names, len(state_names)*[[],] ))
         else:
             shape=[]
+            dimension=[]
+            coordinate=[]
             for key,value in coordinates.items():
                 try:
                     shape.append(len(value))
+                    dimension.append(key)
+                    coordinate.append(value)
                 except:
                     raise ValueError(
                             f"Unable to deduce stratification length from '{value}' of coordinate '{key}'"
                         )
-            return dict(zip(state_names, len(state_names)*[tuple(shape),] ))
+            return dict(zip(state_names, len(state_names)*[tuple(shape),] )), dict(zip(state_names, len(state_names)*[dimension,])), dict(zip(state_names, len(state_names)*[coordinate,]))
     else:
         if not coordinates:
             raise ValueError(
@@ -158,22 +162,26 @@ def build_state_sizes(coordinates, state_names, state_stratifications):
             )
         else:
             shapes=[]
+            coords=[]
             for i,state_name in enumerate(state_names):
                 stratifications = state_stratifications[i]
                 if not stratifications:
                     shapes.append( (1,) )
+                    coords.append( [] )
                 else:
                     shape=[]
+                    coord=[]
                     for stratification in stratifications:
                         try:
                             shape.append(len(coordinates[stratification]))
+                            coord.append(coordinates[stratification])
                         except:
                             raise ValueError(
                                  f"Unable to deduce stratification length from '{coordinates[stratification]}' of coordinate '{stratification}'"
                             )
                     shapes.append(tuple(shape))
-            return dict(zip(state_names, shapes))
-
+                    coords.append(coord)
+            return dict(zip(state_names, shapes)), dict(zip(state_names, state_stratifications)),  dict(zip(state_names, coords))
 
 def validate_parameter_function(func):
     # Validate the function passed to time_dependent_parameters
@@ -216,7 +224,7 @@ def validate_time_dependent_parameters(parameter_names, parameter_stratified_nam
 
     return extra_params
 
-def validate_initial_states(state_names, initial_states, stratification_size, coordinates):
+def validate_initial_states(state_shapes, initial_states):
     """
     A function to check the types and sizes of the model's initial states provided by the user.
     Automatically assumes non-specified states are equal to zero.
@@ -224,17 +232,11 @@ def validate_initial_states(state_names, initial_states, stratification_size, co
     Parameters
     ----------
 
-    state_names: list
-        Contains model state names (type: str)
+    state_shapes: dict
+        Contains the shape of every model state.
     
     initial_states: dict
         Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
-
-    stratification_size: list
-        Contains the number of coordinates of every stratification
-    
-    coordinates: dict
-        Keys: stratification name, Values: coordinates.
 
     Returns
     -------
@@ -244,33 +246,34 @@ def validate_initial_states(state_names, initial_states, stratification_size, co
         Types/Size checked, redundant initial states checked, states sorted according to `state_names`.
     """
 
-    for state in state_names:
-        if state in initial_states:
+    for state_name, state_shape in state_shapes.items():
+        if state_name in initial_states:
             # if present, verify the length
-            initial_states[state] = check_initial_states_size(
-                                        initial_states[state], state, "initial state", stratification_size, coordinates
+            initial_states[state_name] = check_initial_states_shape(
+                                        initial_states[state_name], state_shape, state_name, "initial state",
                                         )
         else:
             # Fill with zeros
-            initial_states[state] = np.zeros(stratification_size)
+            initial_states[state_name] = np.zeros(state_shape)
 
     # validate the states (using `set` to ignore order)
-    if set(initial_states.keys()) != set(state_names):
+    if set(initial_states.keys()) != set(state_shapes.keys()):
         raise ValueError(
-            f"The specified initial states don't exactly match the predefined states. Redundant states: {set(initial_states.keys()).difference(set(state_names))}"
+            f"The specified initial states don't exactly match the predefined states. Redundant states: {set(initial_states.keys()).difference(set(state_shapes.keys()))}"
         )
 
     # sort the initial states to match the state_names
-    initial_states = {state: initial_states[state] for state in state_names}
+    initial_states = {state: initial_states[state] for state in state_shapes}
 
     return initial_states
 
-def check_initial_states_size(values, name, object_name, stratification_size, coordinates):
-    """A function checking the size of an initial state
+def check_initial_states_shape(values, desired_shape, name, object_name):
+    """A function checking if the provided initial states have the correct shape
     """
+
     # If the model doesn't have stratifications, initial states can be defined as: np.array([int/float]), [int/float], int or float
     # However these still need to converted to a np.array internally
-    if stratification_size == [1]:
+    if list(desired_shape) == [1]:
         if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64,np.ndarray)):
             raise TypeError(
                 f"{object_name} {name} must be of type int, float, or list. found {type(values)}"
@@ -280,25 +283,20 @@ def check_initial_states_size(values, name, object_name, stratification_size, co
                 values = np.asarray([values,])
         values = np.asarray(values)
 
-        if list(values.shape) != stratification_size:
+        if values.shape != desired_shape:
             raise ValueError(
-                "The abscence of model coordinates indicate a desired "
-                "model states size of {strat_size}, but {obj} '{name}' "
+                "The desired shape of model state '{name}' is {desired_shape}, but provided {obj} '{name}' "
                 "has length {val}".format(
-                    strat_size=stratification_size,
-                    obj=object_name, name=name, val=list(values.shape)
+                    desired_shape=desired_shape, obj=object_name, name=name, val=values.shape
                 )
             )
-
     else:
         values = np.asarray(values)
-        if list(values.shape) != stratification_size:
+        if values.shape != desired_shape:
             raise ValueError(
-                "The coordinates provided for the stratifications '{strat}' indicate a "
-                "model states size of {strat_size}, but {obj} '{name}' "
+                "The desired shape of model state '{name}' is {desired_shape}, but provided {obj} '{name}' "
                 "has length {val}".format(
-                    strat=list(coordinates.keys()), strat_size=stratification_size,
-                    obj=object_name, name=name, val=list(values.shape)
+                    desired_shape=desired_shape, obj=object_name, name=name, val=values.shape
                 )
             )
 
@@ -347,6 +345,73 @@ def merge_parameter_names_parameter_stratified_names(parameter_names, parameter_
                 merged_params += stratified_names
     return merged_params
 
+def validate_integrate_signature(integrate_func, parameter_names_merged, state_names, _function_parameters):
+    """A function checking the inputs of the integrate function"""
+
+    # First argument should always be 't'
+    sig = inspect.signature(integrate_func)
+    keywords = list(sig.parameters.keys())
+    if keywords[0] != "t":
+        raise ValueError(
+            "The first argument of the integrate function should always be 't'"
+        )
+    
+    # Verify all parameters and state follow after 't'
+    if set(parameter_names_merged + state_names) != set(keywords[1:]):
+        # Extract redundant and missing parameters
+        redundant_all = set(keywords[1:]).difference(set(parameter_names_merged + state_names))
+        missing_all = set(parameter_names_merged + state_names).difference(set(keywords[1:]))
+        # Let's split the missing variables in parameters/states for extra clarity
+        missing_states = [name for name in missing_all if name in state_names]
+        missing_parameters = [name for name in missing_all if name in parameter_names_merged]
+        raise ValueError(
+            "The provided state names and parameters don't match the parameters and states of the integrate function. "
+            "Missing parameters: {0}. Missing states: {1}. "
+            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
+        )
+
+    all_params = parameter_names_merged
+    # additional parameters from time-dependent parameter functions
+    # are added to specified_params after the above check
+    if _function_parameters:
+        _extra_params = [item for sublist in _function_parameters for item in sublist]
+        # Remove duplicate arguments in time dependent parameter functions
+        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
+        all_params += _extra_params
+        len_before = len(all_params)
+        # Line below removes duplicate arguments with integrate defenition
+        all_params = OrderedDict((x, True) for x in all_params).keys()
+        len_after = len(all_params)
+        # Line below computes number of integrate arguments used in time dependent parameter functions
+        n_duplicates = len_before - len_after
+        _n_function_params = len(_extra_params) - n_duplicates
+    else:
+        _n_function_params = 0
+        _extra_params = []
+    
+    return all_params, list(_extra_params)
+
+def validate_provided_parameters(all_params, parameters):
+    """Verify all parameters (parameters + stratified parameters + TDPF parameters) are provided by the user. Verify 't' is not a TDPF parameter."""
+
+    # Validate the params
+    if set(parameters.keys()) != set(all_params):
+        raise ValueError(
+            "The specified parameters don't exactly match the predefined parameters. "
+            "Redundant parameters: {0}. Missing parameters: {1}".format(
+            set(parameters.keys()).difference(set(all_params)),
+            set(all_params).difference(set(parameters.keys())))
+        )
+    parameters = {param: parameters[param] for param in all_params}
+
+    # After building the list of all model parameters, verify no parameters 't' were used
+    if 't' in parameters:
+        raise ValueError(
+        "Parameter name 't' is reserved for the timestep of scipy.solve_ivp.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
+            )
+    
+    return parameters
+
 def validate_ODEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
                         parameter_stratified_names, _function_parameters, _create_fun, integrate_func):
     """
@@ -361,66 +426,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
     states and parameter values.
 
     """
-
-    # Validate Model class definition (the integrate function)
-    # First argument should always be 't'
-    sig = inspect.signature(integrate_func)
-    keywords = list(sig.parameters.keys())
-    if keywords[0] != "t":
-        raise ValueError(
-            "The first argument of the integrate function should always be 't'"
-        )
-    # Add parameters and stratified parameters to one list: specified_params
-    specified_params = merge_parameter_names_parameter_stratified_names(parameter_names, parameter_stratified_names)
-    # Check if all the states and parameters are present
-    if set(specified_params + state_names) != set(keywords[1:]):
-        # Extract redundant and missing parameters
-        redundant_all = set(keywords[1:]).difference(set(specified_params + state_names))
-        missing_all = set(specified_params + state_names).difference(set(keywords[1:]))
-        # Let's split the missing variables in parameters/states for extra clarity
-        for state_name in state_names:
-            missing_states = [name for name in missing_all if name in state_names]
-        for parameter_name in parameter_names:
-            missing_parameters = [name for name in missing_all if name in parameter_names]
-        raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the integrate function. "
-            "Missing parameters: {0}. Missing states: {1}. "
-            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
-        )
-    # additional parameters from time-dependent parameter functions
-    # are added to specified_params after the above check
-    if _function_parameters:
-        _extra_params = [item for sublist in _function_parameters for item in sublist]
-        # Remove duplicate arguments in time dependent parameter functions
-        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
-        specified_params += _extra_params
-        len_before = len(specified_params)
-        # Line below removes duplicate arguments with integrate defenition
-        specified_params = OrderedDict((x, True) for x in specified_params).keys()
-        len_after = len(specified_params)
-        # Line below computes number of integrate arguments used in time dependent parameter functions
-        n_duplicates = len_before - len_after
-        _n_function_params = len(_extra_params) - n_duplicates
-    else:
-        _n_function_params = 0
-        _extra_params = []
-
-    # Validate the params
-    if set(parameters.keys()) != set(specified_params):
-        raise ValueError(
-            "The specified parameters don't exactly match the predefined parameters. "
-            "Redundant parameters: {0}. Missing parameters: {1}".format(
-            set(parameters.keys()).difference(set(specified_params)),
-            set(specified_params).difference(set(parameters.keys())))
-        )
-
-    parameters = {param: parameters[param] for param in specified_params}
-
-    # After building the list of all model parameters, verify no parameters 't' were used
-    if 't' in parameters:
-        raise ValueError(
-        "Parameter name 't' is reserved for the timestep of scipy.solve_ivp.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
-            )
 
     # the size of the stratified parameters
     if parameter_stratified_names:
@@ -445,12 +450,6 @@ def validate_ODEModel(initial_states, parameters, coordinates, stratification_si
                         parameters[param], param, "stratified parameter",i,stratification_size,coordinates
                     )
                 i = i + 1
-
-    # Size/type of the initial states
-    # Redundant states
-    # Fill in unspecified states with zeros
-    initial_states = validate_initial_states(state_names, initial_states, stratification_size, coordinates)
-
 
     # Call integrate function with initial values to check if the function returns all states
     fun = _create_fun(None)
