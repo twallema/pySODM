@@ -86,6 +86,8 @@ def fill_initial_state_with_zero(state_names, initial_states):
     return state_values
 
 def validate_stratifications(stratification_names, coordinates):
+    """Checks if the combination of the `stratification_names` in the model defenition is compatible with the `coordinates` provided when initializing the model. Returns the stratification size of every stratification.
+    """
     # Validate stratification
     if stratification_names:
         if not coordinates:
@@ -116,6 +118,62 @@ def validate_stratifications(stratification_names, coordinates):
             stratification_size = [1]
 
     return stratification_size
+
+def validate_state_stratifications(state_stratifications, coordinates, state_names):
+    """Valide if length of `state_stratifications` is equal to the length of `state_names`. Check if the stratifications provided for every model state are existing stratifications."""
+
+    # Length equal to state_names?   
+    if len(state_stratifications) != len(state_names):
+        raise ValueError(
+            f"The length of `state_stratifications` ({len(state_stratifications)}) must match the length of `state_names` ({len(state_names)})"
+        )
+    # Contains only valid coordinates?
+    for i,state_name in enumerate(state_names):
+        if not all(x in coordinates.keys() for x in state_stratifications[i]):
+            raise ValueError(
+                f"The stratification names of model state '{state_name}', specified in position {i} of `state_stratifications` contains invalid coordinate names. Redundant names: {set(state_stratifications[i]).difference(set(coordinates.keys()))}"
+        )
+
+def build_state_sizes(coordinates, state_names, state_stratifications):
+    """A function returning a dictionary containing, for every model state, the correct shape.
+    """
+
+    if not state_stratifications:
+        if not coordinates:
+            return dict(zip(state_names, len(state_names)*[(1,),] ))
+        else:
+            shape=[]
+            for key,value in coordinates.items():
+                try:
+                    shape.append(len(value))
+                except:
+                    raise ValueError(
+                            f"Unable to deduce stratification length from '{value}' of coordinate '{key}'"
+                        )
+            return dict(zip(state_names, len(state_names)*[tuple(shape),] ))
+    else:
+        if not coordinates:
+            raise ValueError(
+                "`state_stratifications` found in the model defenition, however you have not provided `coordinates` when initializing the model. "
+            )
+        else:
+            shapes=[]
+            for i,state_name in enumerate(state_names):
+                stratifications = state_stratifications[i]
+                if not stratifications:
+                    shapes.append( (1,) )
+                else:
+                    shape=[]
+                    for stratification in stratifications:
+                        try:
+                            shape.append(len(coordinates[stratification]))
+                        except:
+                            raise ValueError(
+                                 f"Unable to deduce stratification length from '{coordinates[stratification]}' of coordinate '{stratification}'"
+                            )
+                    shapes.append(tuple(shape))
+            return dict(zip(state_names, shapes))
+
 
 def validate_parameter_function(func):
     # Validate the function passed to time_dependent_parameters

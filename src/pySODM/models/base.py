@@ -13,7 +13,7 @@ import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date
-from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates
+from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, validate_time_dependent_parameters, validate_ODEModel, validate_SDEModel, check_duplicates, build_state_sizes, validate_state_stratifications
 
 class SDEModel:
     """
@@ -489,6 +489,8 @@ class SDEModel:
 ## ODE Models ##
 ################
 
+import sys
+
 class ODEModel:
     """
     Initialise an ordinary differential equations model
@@ -532,15 +534,20 @@ class ODEModel:
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
         check_duplicates(self.state_names, 'state_names')
-        try:
-            check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
-        except:
-            check_duplicates(self.parameter_names, 'parameter_names')
+        check_duplicates(self.parameter_names, 'parameter_names')
+        check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
         if self.stratification_names:
             check_duplicates(self.stratification_names, 'stratification_names')
 
         # Validate and compute the stratification sizes
         self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
+
+        # Validate state_stratifications
+        if self.state_stratifications:
+            validate_state_stratifications(self.state_stratifications, self.coordinates, self.state_names)
+        
+        # Build a dictionary containing the size of every state
+        self.state_sizes = build_state_sizes(self.coordinates, self.state_names, self.state_stratifications)
 
         # Validate the time-dependent parameter functions
         if time_dependent_parameters:
@@ -548,10 +555,20 @@ class ODEModel:
         else:
             self._function_parameters = []
 
+        # Validate the shapes of the initial states, fill non-defined states with zeros
+
+        # Verify the signature of the integrate function
+
+        # Verify all parameters were provided
+
+        # Validate the size of the stratified parameters
+
+        # Test function
+
         # Validate the model
         self.initial_states, self.parameters, self._n_function_params, self._extra_params = validate_ODEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                                            self.parameter_names, self.parameter_stratified_names, self._function_parameters,
-                                                                                                            self._create_fun, self.integrate)
+                                                                                                              self.parameter_names, self.parameter_stratified_names, self._function_parameters,
+                                                                                                              self._create_fun, self.integrate)
 
     # Overwrite integrate class
     @staticmethod
