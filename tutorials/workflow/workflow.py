@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
     # Define a time-dependent parameter function
     def lower_infectivity(t, states, param, start_measures):
-        if t < start_measures:
+        if pd.to_datetime(t) < start_measures:
             return param
         else:
             return param/2
