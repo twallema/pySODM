@@ -3,6 +3,7 @@ import inspect
 import itertools
 import numpy as np
 import pandas as pd
+import datetime
 from collections import OrderedDict
 
 def date_to_diff(actual_start_date, end_date):
@@ -13,7 +14,7 @@ def date_to_diff(actual_start_date, end_date):
     return float((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
 
 def validate_simulation_time(time, warmup):
-    """Validates the simulation time of the sim() function. """
+    """Validates the simulation time of the sim() function. Various input types are converted to: time = [start_float, stop_float]"""
 
     actual_start_date=None
     if isinstance(time, float):
@@ -22,7 +23,7 @@ def validate_simulation_time(time, warmup):
         time = [0-warmup, time]
     elif isinstance(time, list):
         if not len(time) == 2:
-            raise ValueError(f"Length of list-like input of simulation start and stop is two. You have supplied: time={time}. 'Time' must be of format: time=[start, stop].")
+            raise ValueError(f"'Time' must be of format: time=[start, stop]. You have supplied: time={time}.")
         else:
             # If they are all int or flat (or commonly occuring np.int64/np.float64)
             if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
@@ -38,13 +39,22 @@ def validate_simulation_time(time, warmup):
                 actual_start_date = time[0] - pd.Timedelta(days=warmup)
                 time = [0, date_to_diff(actual_start_date, time[1])]
             else:
-                raise TypeError(
-                    f"List-like input of simulation start and stop must contain either all int/float or all strings or all pd.Timestamps "
+                raise ValueError(
+                    f"List-like input of simulation start and stop must contain either all int/float or all str/datetime, not a combination of the two "
                     )
+    elif isinstance(time, (str,datetime.datetime)):
+        raise TypeError(
+            "You have only provided one date as input 'time', how am I supposed to know when to start/end this simulation?"
+        )
     else:
         raise TypeError(
                 "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
             )
+
+    if time[1] < time[0]:
+        raise ValueError(
+            "Start of simulation is chronologically after end of simulation"
+        )
     return time, actual_start_date
 
 def validate_draw_function(draw_function, parameters, samples):

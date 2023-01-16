@@ -7,11 +7,10 @@ from pySODM.models.base import ODEModel
 ## Model without stratification ##
 ##################################
 
-# Start with the simplest model to test basic functionalities
-
 class SIR(ODEModel):
+    """A Simple SIR model without dimension
+    """
 
-    # state variables and parameters
     state_names = ['S', 'I', 'R']
     parameter_names = ['beta', 'gamma']
 
@@ -25,8 +24,7 @@ class SIR(ODEModel):
         return dS, dI, dR
 
 def test_SIR_time():
-    """
-    Test the use of int/float/list time indexing
+    """Test the use of int/float/list time indexing
     """
 
     # Define parameters and initial states
@@ -35,6 +33,10 @@ def test_SIR_time():
     # Build model
     model = SIR(initial_states, parameters)
 
+    # Do it right
+
+    # Same starttime and stoptime
+    output = model.sim([0,0])
     # Simulate using a mixture of int/float
     time = [int(10), float(50.3)]
     output = model.sim(time)
@@ -43,7 +45,7 @@ def test_SIR_time():
     # Simulate using a list of timesteps
     time = [0, 50]
     output = model.sim(time)
-
+    
     # 'time' present in output
     assert 'time' in list(output.dims.keys())
     # Default (no specification output frequency): 0, 1, 2, 3, ..., 50
@@ -57,7 +59,27 @@ def test_SIR_time():
     assert I[0] == 10
     assert S.shape == (51, )
 
+    # Do it wrong
+
+    # Start before end
+    with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
+        model.sim([20,5])
+
+    # Wrong type
+    with pytest.raises(TypeError, match="Input argument 'time' must be a"):
+        model.sim(np.zeros(2))    
+
+    # If list: wrong length
+    with pytest.raises(ValueError, match="You have supplied:"):
+        model.sim([0, 50, 100])    
+
+    # Combination of datetime and int/float
+    with pytest.raises(ValueError, match="List-like input of simulation start and stop"):
+        model.sim([0, pd.to_datetime('2020-03-15')])
+
 def test_SIR_date():
+    """Test the use of str/datetime time indexing
+    """
 
     # Define parameters and initial states
     parameters = {"beta": 0.9, "gamma": 0.2}
@@ -65,7 +87,7 @@ def test_SIR_date():
     # Build model
     model = SIR(initial_states, parameters)
 
-    # Simulate using dates
+    # Do it right
     output = model.sim(['2020-01-01', '2020-02-20'])
     output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')])
 
@@ -79,9 +101,19 @@ def test_SIR_date():
     assert I[0] == 10
     assert S.shape == (51, )
 
+    # Do it wrong
+
+    # Start before end
+    with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
+        model.sim(['2020-03-15','2020-03-01'])
+
+    # Combination of str/datetime
+    with pytest.raises(ValueError, match="List-like input of simulation start and stop must contain either"):
+        model.sim([pd.to_datetime('2020-01-01'), '2020-05-01'])
+
     # Simulate using a mixture of timestamp and string
-    with pytest.raises(TypeError, match="List-like input of simulation start"):
-        output = model.sim(['2020-01-01', pd.Timestamp('2020-02-20')])
+    with pytest.raises(TypeError, match="You have only provided one date as input"):
+        model.sim(pd.to_datetime('2020-01-01'))
 
 def test_model_init_validation():
     # valid initialization: initial states as lists
@@ -150,8 +182,8 @@ def test_model_init_validation():
 ###################################
 
 class SIRstratified(ODEModel):
-
-    # state variables and parameters
+    """An SIR Model with one stratification and the same state size
+    """
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
     parameter_stratified_names = ['beta']
@@ -167,52 +199,47 @@ class SIRstratified(ODEModel):
         dR = gamma*I
         return dS, dI, dR
 
-def test_stratified_SIR_time():
+def test_stratified_SIR_output_shape():
+    """Assert the states have the correct size
+    """
+    # Initialize
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
     initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
     coordinates = {'age_groups': ['0-20','20-120']}
-
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-
+    # Simualte
     time = [0, 50]
     output = model.sim(time)
-
+    # Assert state size
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
     assert output["S"].values.shape == (2, 51)
     assert output["I"].values.shape == (2, 51)
     assert output["R"].values.shape == (2, 51)
 
-def test_stratified_SIR_date():
-
-    # Define parameters and initial states
+def test_stratified_SIR_automatic_filling_initial_states():
+    """Validate the initial states not defined are automatically filled with zeros
+    """
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
+    # Leave out "R"
+    initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10]}
     coordinates = {'age_groups': ['0-20','20-120']}
-
-    # Build model
+    # assert that the Rs state is filled with zeros correctly
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
+    assert model.initial_states["R"].tolist() == [0, 0]
 
-    # Simulate using dates
-    output = model.sim(['2020-01-01', '2020-02-20'])
-
-    # Validate
-    assert output["S"].values.shape == (2, 51)
-    assert output["I"].values.shape == (2, 51)
-    assert output["R"].values.shape == (2, 51)
-
-def test_model_stratified_init_validation():
+def test_stratified_SIR_init_validation():
 
     # valid initialization
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
     initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
     coordinates = {'age_groups': ['0-20','20-120']}
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-    #assert model.initial_states == initial_states
+
+    assert model.initial_states == initial_states
     assert model.parameters == parameters
-    # assert model state/parameter names didn't change
+    assert model.parameter_stratified_names == ['beta']
     assert model.state_names == ['S', 'I', 'R']
     assert model.parameter_names == ['gamma']
-    #assert model.parameter_stratified_names == ['beta']
 
     # forget coordinates
     with pytest.raises(ValueError, match="Stratification name provided in integrate"):
@@ -266,17 +293,72 @@ def test_model_stratified_init_validation():
     SIRstratified.parameter_names = ["gamma"]
     SIRstratified.parameter_stratified_names = [["beta"]]
 
-def test_model_stratified_default_initial_state():
-    parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
-    coordinates = {'age_groups': ['0-20','20-120']}
-    
-    # leave out the initial R state
-    initial_states2 = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10]}
+#################################################################
+## A model with different stratifications for different states ##
+#################################################################
 
-    # assert that the Rs state is filled with zeros correctly
-    model = SIRstratified(initial_states2, parameters, coordinates=coordinates)
-    assert model.initial_states["R"].tolist() == [0, 0]
+class SIR_SI(ODEModel):
+    """
+    An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
+    """
+
+    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameter_names = ['beta', 'gamma']
+    parameter_stratified_names = ['alpha']
+    stratification_names = ['age_group']
+    state_stratifications = [['age_group'],['age_group'],['age_group'],[],[]]
+
+    @staticmethod
+    def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):
+
+        # Calculate total mosquito population
+        N = S + I + R
+        N_v = S_v + I_v
+        # Calculate human differentials
+        dS = -alpha*(I_v/N_v)*S
+        dI = alpha*(I_v/N_v)*S - 1/gamma*I
+        dR = 1/gamma*I
+        # Calculate mosquito differentials
+        dS_v = -np.sum(alpha*(I/N)*S_v) + (1/beta)*N_v - (1/beta)*S_v
+        dI_v = np.sum(alpha*(I/N)*S_v) - (1/beta)*I_v
+
+        return dS, dI, dR, dS_v, dI_v
+
+def test_SIR_SI_state_shapes():
+    """Validate the shapes of the states
+    """
+
+    # Define parameters and initial condition
+    params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
+    init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+    # Define model coordinates
+    age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
+    coordinates={'age_group': age_groups}
+    # Initialize model
+    model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    # Simulate
+    output = model.sim([0, 50])
+    # Assert state size
+    np.testing.assert_allclose(output["time"], np.arange(0, 51))
+    assert output["S"].values.shape == (4, 51)
+    assert output["I"].values.shape == (4, 51)
+    assert output["R"].values.shape == (4, 51)
+    assert output["S_v"].values.shape == (51,)
+    assert output["I_v"].values.shape == (51,)
+
+def test_SIR_SI_automatic_filling_initial_states():
+    """Validate the initial states not defined are automatically filled with zeros
+    """
+    # Define parameters and initial condition
+    params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
+    init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+    # Define model coordinates
+    age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
+    coordinates={'age_group': age_groups}
+    # Initialize model
+    model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    assert model.initial_states["I"].tolist() == [0, 0, 0, 0]
+    assert model.initial_states["R"].tolist() == [0, 0, 0, 0]
 
 ###############################
 ## Time-dependent parameters ##
@@ -322,7 +404,7 @@ def test_TDPF_stratified():
     output2 = model2.sim(time)
     assert np.less_equal(output['R'].values, output_without['R'].values).all()
 
-    # Define a TDPF which uses an existing model parameter as extra argument (which doesn't make sense)
+    # Define a TDPF which uses an existing model parameter as extra argument
     def compliance_func(t, states, param, gamma):
         if t < 0:
             return param
@@ -330,11 +412,10 @@ def test_TDPF_stratified():
             return param * gamma
 
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    #msg="are used both in a time-dependent parameter function and in the integrate function"
-    #with pytest.raises(ValueError, match=msg):
     model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
-    output2 = model2.sim(time)      
+    output2 = model2.sim(time)   
+
 # TDPF on a regular parameter
 def test_TDPF_nonstratified():
     # states, parameters, coordinates
