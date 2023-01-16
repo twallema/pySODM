@@ -768,22 +768,24 @@ class ODEModel:
         # Append the time dimension
         state_dimensions={}
         for k,v in self.state_dimensions.items():
+            v_acc = v.copy()
             if actual_start_date is not None:
-                v.append('date')
-                state_dimensions.update({k: v})
+                v_acc.append('date')
+                state_dimensions.update({k: v_acc})
             else:
-                v.append('time')
-                state_dimensions.update({k: v})
+                v_acc.append('time')
+                state_dimensions.update({k: v_acc})
 
         # Append the time coordinates
         state_coordinates={}
         for k,v in self.state_coordinates.items():
+            v_acc=v.copy()
             if actual_start_date is not None:
-                v.append(actual_start_date + pd.to_timedelta(output["t"], unit='D'))
-                state_coordinates.update({k: v})
+                v_acc.append(actual_start_date + pd.to_timedelta(output["t"], unit='D'))
+                state_coordinates.update({k: v_acc})
             else:
-                v.append(output["t"])
-                state_coordinates.update({k: v})
+                v_acc.append(output["t"])
+                state_coordinates.update({k: v_acc})
 
         # Build the xarray dataset
         data = {}
