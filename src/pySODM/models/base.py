@@ -26,14 +26,14 @@ class SDEModel:
     To initialise the model, provide following inputs:
 
     states : dictionary
-        contains the initial values of all non-zero model states, f.i. for an SEIR model,
-        e.g. {'S': [1000, 1000, 1000], 'E': [1, 1, 1]
+        contains the initial values of all non-zero model states, f.i. for an SIR model,
+        e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
     parameters : dictionary
-        values of all parameters (both stratified and not)
+        values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
-        Optionally specify a function for time-dependent parameters. The
-        signature of the function should be ``fun(t, states, param, ...)`` taking
+        Optionally specify a function for time dependency on the parameters. The
+        signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
         the time, the initial parameter value, and potentially additional
         keyword argument, and should return the new parameter value for
         time `t`.
@@ -491,8 +491,6 @@ class SDEModel:
 ## ODE Models ##
 ################
 
-import sys
-
 class ODEModel:
     """
     Initialise an ordinary differential equations model
@@ -502,14 +500,14 @@ class ODEModel:
     To initialise the model, provide following inputs:
 
     states : dictionary
-        contains the initial values of all non-zero model states, f.i. for an SEIR model,
-        e.g. {'S': [1000, 1000, 1000], 'E': [1, 1, 1]
+        contains the initial values of all non-zero model states, f.i. for an SIR model,
+        e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
     parameters : dictionary
-        values of all parameters (both stratified and not)
+        values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
-        Optionally specify a function for time-dependent parameters. The
-        signature of the function should be ``fun(t, states, param, ...)`` taking
+        Optionally specify a function for time dependency on the parameters. The
+        signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
         the time, the initial parameter value, and potentially additional
         keyword argument, and should return the new parameter value for
         time `t`.
@@ -649,7 +647,7 @@ class ODEModel:
 
     def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep):
         """
-        A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
+        A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionary and runs `_sim_single`
         """
         self.parameters.update(drawn_parameters)
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep)
