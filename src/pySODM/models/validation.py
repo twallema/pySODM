@@ -394,6 +394,7 @@ def validate_provided_parameters(all_params, parameters):
     return parameters
 
 def check_stratpar_size(values, name, object_name,stratification_names,desired_size):
+    """Checks the size of stratified parameters. Converts stratified parameters to a numpy array."""
     values = np.asarray(values)
     if values.ndim != 1:
         raise ValueError(

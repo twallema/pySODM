@@ -7,6 +7,8 @@ from pySODM.models.base import ODEModel
 ## Model without stratification ##
 ##################################
 
+# Start with the simplest model to test basic functionalities
+
 class SIR(ODEModel):
 
     # state variables and parameters
@@ -23,6 +25,9 @@ class SIR(ODEModel):
         return dS, dI, dR
 
 def test_SIR_time():
+    """
+    Test the use of int/float/list time indexing
+    """
 
     # Define parameters and initial states
     parameters = {"beta": 0.9, "gamma": 0.2}
@@ -39,9 +44,11 @@ def test_SIR_time():
     time = [0, 50]
     output = model.sim(time)
 
-    # Validate
+    # 'time' present in output
     assert 'time' in list(output.dims.keys())
+    # Default (no specification output frequency): 0, 1, 2, 3, ..., 50
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
+    # Numerically speaking everything ok?
     S = output["S"].values.squeeze()
     assert S[0] == 1_000_000 - 10
     assert S.shape == (51, )
@@ -107,7 +114,7 @@ def test_model_init_validation():
 
     # wrong length initial states
     initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
-    with pytest.raises(ValueError, match="The abscence of model coordinates indicate a desired model"):
+    with pytest.raises(ValueError, match="The desired shape of model state"):
         SIR(initial_states2, parameters)
 
     # wrong initial states
@@ -234,12 +241,12 @@ def test_model_stratified_init_validation():
 
     # initial state of the wrong length
     initial_states2 = {"S": 600_000 - 20, "I": [20, 10], "R": [0, 0]}
-    msg = r"The coordinates provided for the stratifications"
+    msg = r"The desired shape of model state"
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     initial_states2 = {"S": [0] * 3, "I": [20, 10], "R": [0, 0]}
-    msg = r"The coordinates provided for the stratifications"
+    msg = r"The desired shape of model state"
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
