@@ -26,7 +26,7 @@ class SIR(SDEModel):
         return S_new, I_new, R_new
 
 def test_SIR_time():
-    """Test the use of int/float/list time indexing
+    """ Test the use of int/float/list time indexing
     """
 
     # Define parameters and initial states
@@ -80,7 +80,7 @@ def test_SIR_time():
         model.sim([0, pd.to_datetime('2020-03-15')])
 
 def test_SIR_date():
-    """Test the use of str/datetime time indexing
+    """ Test the use of str/datetime time indexing
     """
 
     # Define parameters and initial states
@@ -118,7 +118,8 @@ def test_SIR_date():
         model.sim(pd.to_datetime('2020-01-01'))
         
 def test_SSA():
-
+    """ In all testes, the tau-leap is used by default
+    """
     # Define parameters and initial states
     parameters = {"beta": 0.9, "gamma": 0.2}
     initial_states = {"S": [1000 - 10], "I": [10], "R": [0]}
@@ -170,7 +171,7 @@ def test_model_init_validation():
 
     # wrong length initial states
     initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
-    with pytest.raises(ValueError, match="The abscence of model coordinates indicate a desired model"):
+    with pytest.raises(ValueError, match="The desired shape of model state"):
         SIR(initial_states2, parameters)
 
     # wrong initial states
@@ -179,22 +180,26 @@ def test_model_init_validation():
         SIR(initial_states2, parameters)
 
     # wrong parameters
+    initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     parameters2 = {"beta": 0.9, "gamma": 0.2, "other": 1}
     with pytest.raises(ValueError, match="specified parameters don't"):
         SIR(initial_states, parameters2)
 
     # validate model class itself
+    initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.state_names = ["S", "R"]
-    with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the compute_rates function."):
+    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
         SIR(initial_states, parameters)
 
+    initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.state_names = ["S", "II", "R"]
-    with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the compute_rates function."):
+    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
         SIR(initial_states, parameters)
 
+    initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.state_names = ["S", "I", "R"]
     SIR.parameter_names = ['beta', 'alpha']
-    with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the compute_rates function."):
+    with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function."):
         SIR(initial_states, parameters)
 
     # ensure to set back to correct ones
@@ -226,38 +231,33 @@ class SIRstratified(SDEModel):
         R_new = R + transitionings['I'][0]
         return S_new, I_new, R_new
 
-def test_stratified_SIR_time():
+def test_stratified_SIR_output_shape():
+    """Assert the states have the correct size
+    """
+    # Initialize
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
     initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
     coordinates = {'age_groups': ['0-20','20-120']}
-
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-
+    # Simualte
     time = [0, 50]
     output = model.sim(time)
-
+    # Assert state size
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
     assert output["S"].values.shape == (2, 51)
     assert output["I"].values.shape == (2, 51)
     assert output["R"].values.shape == (2, 51)
 
-def test_stratified_SIR_date():
-
-    # Define parameters and initial states
+def test_stratified_SIR_automatic_filling_initial_states():
+    """Validate the initial states not defined are automatically filled with zeros
+    """
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
+    # Leave out "R"
+    initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10]}
     coordinates = {'age_groups': ['0-20','20-120']}
-
-    # Build model
+    # assert that the Rs state is filled with zeros correctly
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-
-    # Simulate using dates
-    output = model.sim(['2020-01-01', '2020-02-20'])
-
-    # Validate
-    assert output["S"].values.shape == (2, 51)
-    assert output["I"].values.shape == (2, 51)
-    assert output["R"].values.shape == (2, 51)
+    assert model.initial_states["R"].tolist() == [0, 0]
 
 def test_model_stratified_init_validation():
 
@@ -300,12 +300,12 @@ def test_model_stratified_init_validation():
 
     # initial state of the wrong length
     initial_states2 = {"S": 600_000 - 20, "I": [20, 10], "R": [0, 0]}
-    msg = r"The coordinates provided for the stratifications"
+    msg = r"The desired shape of model state"
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     initial_states2 = {"S": [0] * 3, "I": [20, 10], "R": [0, 0]}
-    msg = r"The coordinates provided for the stratifications"
+    msg = r"The desired shape of model state"
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
@@ -325,17 +325,83 @@ def test_model_stratified_init_validation():
     SIRstratified.parameter_names = ["gamma"]
     SIRstratified.parameter_stratified_names = [["beta"]]
 
-def test_model_stratified_default_initial_state():
-    parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
-    initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10], "R": [0, 0]}
-    coordinates = {'age_groups': ['0-20','20-120']}
-    
-    # leave out the initial R state
-    initial_states2 = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10]}
+#################################################################
+## A model with different stratifications for different states ##
+#################################################################
 
-    # assert that the Rs state is filled with zeros correctly
-    model = SIRstratified(initial_states2, parameters, coordinates=coordinates)
-    assert model.initial_states["R"].tolist() == [0, 0]
+class SIR_SI(SDEModel):
+    """
+    A stochastic, age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
+    """
+
+    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameter_names = ['beta', 'gamma']
+    parameter_stratified_names = ['alpha']
+    stratification_names = ['age_group']
+    state_stratifications = [['age_group'],['age_group'],['age_group'],[],[]]
+
+    @staticmethod
+    def compute_rates(t, S, I, R, S_v, I_v, alpha, beta, gamma):
+
+        # Calculate total mosquito population
+        N = S + I + R
+        N_v = S_v + I_v
+
+        rates = {
+            'S': [alpha*(I_v/N_v),],
+            'I': [(1/gamma)*np.ones(N.shape),],
+            'S_v': [np.sum(alpha*(I/N))*np.ones(N_v.shape), (1/beta)*np.ones(N_v.shape),],
+            'I_v': [(1/beta)*np.ones(N_v.shape),]
+        }
+
+        return rates
+
+    @staticmethod
+    def apply_transitionings(t, tau, transitionings, S, I, R, S_v, I_v, alpha, beta, gamma):
+
+        S_new = S - transitionings['S'][0]
+        I_new = I + transitionings['S'][0] - transitionings['I'][0]
+        R_new = R + transitionings['I'][0]
+        S_v_new = S_v - transitionings['S_v'][0] + transitionings['I_v'][0]
+        I_v_new = I_v + transitionings['S_v'][0] - transitionings['I_v'][0]
+
+        return S_new, I_new, R_new, S_v_new, I_v_new
+
+def test_SIR_SI_state_shapes():
+    """Validate the shapes of the states
+    """
+
+    # Define parameters and initial condition
+    params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
+    init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+    # Define model coordinates
+    age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
+    coordinates={'age_group': age_groups}
+    # Initialize model
+    model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    # Simulate
+    output = model.sim([0, 50])
+    # Assert state size
+    np.testing.assert_allclose(output["time"], np.arange(0, 51))
+    assert output["S"].values.shape == (4, 51)
+    assert output["I"].values.shape == (4, 51)
+    assert output["R"].values.shape == (4, 51)
+    assert output["S_v"].values.shape == (51,)
+    assert output["I_v"].values.shape == (51,)
+
+def test_SIR_SI_automatic_filling_initial_states():
+    """Validate the initial states not defined are automatically filled with zeros
+    """
+    # Define parameters and initial condition
+    params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
+    init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+    # Define model coordinates
+    age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
+    coordinates={'age_group': age_groups}
+    # Initialize model
+    model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    assert model.initial_states["I"].tolist() == [0, 0, 0, 0]
+    assert model.initial_states["R"].tolist() == [0, 0, 0, 0]
 
 ###############################
 ## Time-dependent parameters ##
@@ -393,8 +459,6 @@ def test_TDPF_stratified():
                            time_dependent_parameters={'beta': compliance_func})
     output2 = model2.sim(time)
 
-test_TDPF_stratified()
-
 # TDPF on a regular parameter
 def test_TDPF_nonstratified():
     # states, parameters, coordinates
@@ -421,8 +485,6 @@ def test_TDPF_nonstratified():
 
     # without the rise in time to recovery, the infected pool will be larger over the first 10 timesteps
     assert np.less_equal(output_without['I'].values[20:], output['I'].values[20:]).all()
-
-test_TDPF_nonstratified()
 
 ####################
 ## Draw functions ##

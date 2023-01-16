@@ -278,7 +278,7 @@ def test_stratified_SIR_init_validation():
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     # validate model class itself
-    msg = "The provided state names and parameters don't match the parameters and states of the integrate function"
+    msg = "The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function"
     SIRstratified.parameter_names = ["gamma", "alpha"]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
