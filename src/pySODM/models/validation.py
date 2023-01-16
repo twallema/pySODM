@@ -336,17 +336,50 @@ def merge_parameter_names_parameter_stratified_names(parameter_names, parameter_
                 merged_params += stratified_names
     return merged_params
 
-def validate_integrate_signature(integrate_func, parameter_names_merged, state_names, _function_parameters):
-    """A function checking the inputs of the integrate function"""
+def validate_apply_transitionings_signature(apply_transitionings, parameter_names_merged, state_names):
+    """A function checking the inputs of the apply_transitionings function"""
+
+    # First argument should always be 't'
+    sig = inspect.signature(apply_transitionings)
+    keywords = list(sig.parameters.keys())
+    if keywords[0] != "t":
+        raise ValueError(
+            "The first argument of the 'apply_transitionings' function should always be 't'"
+        )
+    elif keywords[1] != 'tau':
+        raise ValueError(
+            "The second argument of the 'apply_transitionings' function should always be 'tau'"
+        )
+    elif keywords[2] != 'transitionings':
+        raise ValueError(
+            "The third argument of the 'apply_transitionings' function should always be 'transitionings'"
+        )
+
+    # Verify all parameters and state follow after 't'/'tau'/'transitionings'
+    if set(parameter_names_merged + state_names) != set(keywords[3:]):
+        # Extract redundant and missing parameters
+        redundant_all = set(keywords[3:]).difference(set(parameter_names_merged + state_names))
+        missing_all = set(parameter_names_merged + state_names).difference(set(keywords[1:]))
+        # Let's split the missing variables in parameters/states for extra clarity
+        missing_states = [name for name in missing_all if name in state_names]
+        missing_parameters = [name for name in missing_all if name in parameter_names_merged]
+        raise ValueError(
+            "The provided state names and parameters don't match the parameters and states of the apply_transitionings function. "
+            "Missing parameters: {0}. Missing states: {1}. "
+            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
+        )
+
+def validate_integrate_or_compute_rates_signature(integrate_func, parameter_names_merged, state_names, _function_parameters):
+    """A function checking the inputs of the integrate/compute_rates function"""
 
     # First argument should always be 't'
     sig = inspect.signature(integrate_func)
     keywords = list(sig.parameters.keys())
     if keywords[0] != "t":
         raise ValueError(
-            "The first argument of the integrate function should always be 't'"
+            "The first argument of the integrate/compute_rates function should always be 't'"
         )
-    
+
     # Verify all parameters and state follow after 't'
     if set(parameter_names_merged + state_names) != set(keywords[1:]):
         # Extract redundant and missing parameters
@@ -356,7 +389,7 @@ def validate_integrate_signature(integrate_func, parameter_names_merged, state_n
         missing_states = [name for name in missing_all if name in state_names]
         missing_parameters = [name for name in missing_all if name in parameter_names_merged]
         raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the integrate function. "
+            "The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function. "
             "Missing parameters: {0}. Missing states: {1}. "
             "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
         )
@@ -476,222 +509,24 @@ def validate_integrate(initial_states, parameters, _create_fun, state_shapes):
             f"State shapes: {state_shapes}"
         )
 
-def validate_SDEModel(initial_states, parameters, coordinates, stratification_size, state_names, parameter_names,
-                        parameter_stratified_names, _function_parameters, compute_rates_func, apply_transitionings_func):
-    """
-    This does some basic validation of the model + initialization:
+def validate_compute_rates(compute_rates, initial_states, states_shape, parameter_names_merged, parameters):
+    """A function to call compute_rates and check if the output type and contents are alright"""
 
-    1) Validation of the integrate function to ensure it matches with
-    the specified `state_names`, `parameter_names`, etc.
-    This is actually a validation of the model class itself, but it is
-    easier to do this only on initialization of a model instance.
-
-    2) Validation of the actual initialization with initial values for the
-    states and parameter values.
-
-    """
-
-    #############################
-    ## Validate the signatures ##
-    #############################
-
-    # Compute_rates function
-    # ~~~~~~~~~~~~~~~~~~~~~~
-
-    sig = inspect.signature(compute_rates_func)
-    keywords = list(sig.parameters.keys())
-    if keywords[0] != "t":
-        raise ValueError(
-            "The first argument of the 'compute_rates' function should always be 't'"
-        )
-    # Add parameters and stratified parameters to one list: specified_params
-    specified_params = merge_parameter_names_parameter_stratified_names(parameter_names, parameter_stratified_names)
-    # Check if all the states and parameters are present
-    if set(specified_params + state_names) != set(keywords[1:]):
-        # Extract redundant and missing parameters
-        redundant_all = set(keywords[1:]).difference(set(specified_params + state_names))
-        missing_all = set(specified_params + state_names).difference(set(keywords[1:]))
-        # Let's split the missing variables in parameters/states for extra clarity
-        for state_name in state_names:
-            missing_states = [name for name in missing_all if name in state_names]
-        for parameter_name in parameter_names:
-            missing_parameters = [name for name in missing_all if name in parameter_names]
-        raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the compute_rates function. "
-            "Missing parameters: {0}. Missing states: {1}. "
-            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
-        )
-    # Save a copy to validate the model later on
-    specified_params_wo_TDPF_pars = specified_params.copy()
-    # additional parameters from time-dependent parameter functions
-    # are added to specified_params after the above check
-    if _function_parameters:
-        _extra_params = [item for sublist in _function_parameters for item in sublist]
-        # Remove duplicate arguments in time dependent parameter functions
-        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
-        specified_params += _extra_params
-        len_before = len(specified_params)
-        # Line below removes duplicate arguments with integrate defenition
-        specified_params = OrderedDict((x, True) for x in specified_params).keys()
-        len_after = len(specified_params)
-        # Line below computes number of integrate arguments used in time dependent parameter functions
-        n_duplicates = len_before - len_after
-        _n_function_params = len(_extra_params) - n_duplicates
-    else:
-        _n_function_params = 0
-        _extra_params = []
-
-    # Validate the params
-    if set(parameters.keys()) != set(specified_params):
-        raise ValueError(
-            "The specified parameters don't exactly match the predefined parameters. "
-            "Redundant parameters: {0}. Missing parameters: {1}".format(
-            set(parameters.keys()).difference(set(specified_params)),
-            set(specified_params).difference(set(parameters.keys())))
-        )
-
-    parameters_compute_rates = {param: parameters[param] for param in specified_params}
-
-    # apply_transitionings function
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    sig = inspect.signature(apply_transitionings_func)
-    keywords = list(sig.parameters.keys())
-    if keywords[0] != "t":
-        raise ValueError(
-            "The first argument of the 'apply_transitionings' function should always be 't'"
-        )
-    elif keywords[1] != 'tau':
-        raise ValueError(
-            "The second argument of the 'apply_transitionings' function should always be 'tau'"
-        )
-    elif keywords[2] != 'transitionings':
-        raise ValueError(
-            "The third argument of the 'apply_transitionings' function should always be 'transitionings'"
-        )
-
-    # Add parameters and stratified parameters to one list: specified_params
-    specified_params = merge_parameter_names_parameter_stratified_names(parameter_names, parameter_stratified_names)
-    # Check if all the states and parameters are present
-    if set(specified_params + state_names) != set(keywords[3:]):
-        # Extract redundant and missing parameters
-        redundant_all = set(keywords[3:]).difference(set(specified_params + state_names))
-        missing_all = set(specified_params + state_names).difference(set(keywords[3:]))
-        # Let's split the missing variables in parameters/states for extra clarity
-        for state_name in state_names:
-            missing_states = [name for name in missing_all if name in state_names]
-        for parameter_name in parameter_names:
-            missing_parameters = [name for name in missing_all if name in parameter_names]
-        raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the apply_transitionings function. "
-            "Missing parameters: {0}. Missing states: {1}. "
-            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
-        )
-    # additional parameters from time-dependent parameter functions
-    # are added to specified_params after the above check
-    if _function_parameters:
-        _extra_params = [item for sublist in _function_parameters for item in sublist]
-        # Remove duplicate arguments in time dependent parameter functions
-        _extra_params = OrderedDict((x, True) for x in _extra_params).keys()
-        specified_params += _extra_params
-        len_before = len(specified_params)
-        # Line below removes duplicate arguments with integrate defenition
-        specified_params = OrderedDict((x, True) for x in specified_params).keys()
-        len_after = len(specified_params)
-        # Line below computes number of integrate arguments used in time dependent parameter functions
-        n_duplicates = len_before - len_after
-        _n_function_params = len(_extra_params) - n_duplicates
-    else:
-        _n_function_params = 0
-        _extra_params = []
-    # Validate the params
-    if set(parameters.keys()) != set(specified_params):
-        raise ValueError(
-            "The specified parameters don't exactly match the predefined parameters. "
-            "Redundant parameters: {0}. Missing parameters: {1}".format(
-            set(parameters.keys()).difference(set(specified_params)),
-            set(specified_params).difference(set(parameters.keys())))
-        )
-
-    parameters = {param: parameters[param] for param in specified_params}
-
-    # Assert equality as a sanity check
-    if set(parameters.keys()) != set(parameters_compute_rates.keys()):
-        raise ValueError(
-            "The model parameters derived from the 'compute_rates' function do not match the model parameters of the 'apply_transitionings' function."
-            "Different keys: {0}".format(
-            set(parameters.keys()).difference(set(parameters_compute_rates.keys())))
-        )
-
-    # After building the list of all model parameters, verify no parameters 't'/'tau' or 'transitionings' were used
-    if 't' in parameters:
-        raise ValueError(
-            "Parameter name 't' is reserved for the simulation time.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
-            )
-    if 'tau' in parameters:
-        raise ValueError(
-            "Parameter name 'tau' is reserved for the simulation time.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
-            )
-    if 'transitionings' in parameters:
-        raise ValueError(
-            "Parameter name 'transitionings' is reserved for the simulation time.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
-            )
-    ###############################################################################
-    ## Validate the initial_states / stratified params having the correct length ##
-    ###############################################################################
-
-    # the size of the stratified parameters
-    if parameter_stratified_names:
-        i = 0
-        if not isinstance(parameter_stratified_names[0], list):
-            if len(parameter_stratified_names) == 1:
-                for param in parameter_stratified_names:
-                    validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
-                        )
-                i = i + 1
-            else:
-                for param in parameter_stratified_names:
-                    validate_stratified_parameters(
-                            parameters[param], param, "stratified parameter",i,stratification_size,coordinates
-                        )
-                i = i + 1
-        else:
-            for stratified_names in parameter_stratified_names:
-                for param in stratified_names:
-                    validate_stratified_parameters(
-                        parameters[param], param, "stratified parameter",i,stratification_size,coordinates
-                    )
-                i = i + 1
-
-    # Size/type of the initial states
-    # Redundant states
-    # Fill in unspecified states with zeros
-    initial_states = validate_initial_states(state_names, initial_states, stratification_size, coordinates, None)
-
-
-    #########################################################################
-    # Validate the 'compute_rates' and 'apply_transitionings' by calling it #
-    #########################################################################
-
+    # Throw TDPF parameters out of parameters dictionary
+    parameters_wo_TDPF_pars={k:v for k, v in parameters.items() if k in parameter_names_merged}
     # 'func' in class 'SDEModel' of 'base.py' automatically converts states to np.array
     # However, we do not wish to validate the output of 'func' but rather of its consituent functions: compute_rates, apply_transitionings
     initial_states_copy={k: v[:] for k, v in initial_states.items()}
     for k,v in initial_states.items():
-        initial_states[k] = np.asarray(initial_states[k])
-
-    # compute_rates
-    # ~~~~~~~~~~~~~
-    # TODO: Throw out _extra_params here
-    parameters_wo_TDPF_pars = {param: parameters[param] for param in specified_params_wo_TDPF_pars}
+        initial_states_copy[k] = np.asarray(initial_states[k])
     # Call the function with initial values to check if the function returns the right format of dictionary
-    rates = compute_rates_func(10, **initial_states, **parameters_wo_TDPF_pars)
+    rates = compute_rates(10, **initial_states_copy, **parameters_wo_TDPF_pars)
     # Check if a dictionary is returned
     if not isinstance(rates, dict):
         raise TypeError("Output of function 'compute_rates' should be of type dictionary")
     # Check if all states present are valid model parameters
     for state in rates.keys():
-        if not state in state_names:
+        if not state in initial_states.keys():
             raise ValueError(
                 f"Rate found for an invalid model state '{state}'"
             )
@@ -706,23 +541,22 @@ def validate_SDEModel(initial_states, parameters, coordinates, stratification_si
         for i,rate in enumerate(rate_list):
             if not isinstance(rate, np.ndarray):
                 raise TypeError(f"the rate of the {i}th transitioning for state '{state_name}' coming from function `compute_rates` is not of type 'np.ndarray' but {type(rate)}")
-            if list(rate.shape) != stratification_size:
-                raise ValueError(f"The provided coordinates indicate a state size of {stratification_size}, but rate of the {i}th transitioning for state '{state_name}' has shape {list(rate.shape)}")
-    
-    # apply_transitionings
-    # ~~~~~~~~~~~~~~~~~~~~
+            if rate.shape != states_shape[state_name]:
+                raise ValueError(f"State {state_name} has size {states_shape[state_name]}, but rate of the {i}th transitioning for state '{state_name}' has shape {list(rate.shape)}")
+    return rates
 
-    new_states = apply_transitionings_func(10, 1, rates, **initial_states, **parameters_wo_TDPF_pars)
+def validate_apply_transitionings(apply_transitionings, rates, initial_states, states_shape, parameter_names_merged, parameters):
+    """A function to call apply_transitionings and check if the output type and contents are alright"""
+    
+    # Throw TDPF parameters out of parameters dictionary
+    parameters_wo_TDPF_pars={k:v for k, v in parameters.items() if k in parameter_names_merged}
+    # Update states
+    new_states = apply_transitionings(10, 1, rates, **initial_states, **parameters_wo_TDPF_pars)
     # Check
-    if len(list(new_states)) != len(state_names):
-        raise ValueError(f"The number of outputs of function 'apply_transitionings_func' ({len(list(new_states))}) is not equal to the number of states ({len(state_names)})")
+    if len(list(new_states)) != len(initial_states.keys()):
+        raise ValueError(f"The number of outputs of function 'apply_transitionings_func' ({len(list(new_states))}) is not equal to the number of states ({len(initial_states.keys())})")
     for i, new_state in enumerate(list(new_states)):
         if not isinstance(new_state, np.ndarray):
             raise TypeError(f"Output state of function 'apply_transitionings_func' in position {i} is not a np.ndarray")
-        if list(new_state.shape) != stratification_size:
-            raise ValueError(f"The provided coordinates indicate a state size of {stratification_size}, but the {i}th output of function 'apply_transitionings_func' has shape {list(new_state.shape)}")
-    
-    # Reset initial states
-    initial_states={k: v[:] for k, v in initial_states_copy.items()}
-
-    return initial_states, parameters, _n_function_params, list(_extra_params)
+        if new_state.shape != states_shape[list(initial_states.keys())[i]]:
+                raise ValueError(f"State {list(initial_states.keys())[i]} has size {states_shape[list(initial_states.keys())[i]]}, but rate of the {i}th transitioning for state '{list(initial_states.keys())[i]}' has shape {list(rate.shape)}")

@@ -14,8 +14,81 @@ from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date, list_to_dict
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, \
-                                        validate_time_dependent_parameters, validate_integrate, validate_SDEModel, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
-                                            validate_initial_states, validate_integrate_signature, validate_provided_parameters, validate_parameter_stratified_sizes
+                                        validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
+                                            validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
+                                                validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
+
+def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
+    """
+    Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
+
+    Parameters
+    ----------
+
+    output: dict
+        Keys: "y" (states) and "t" (timesteps)
+        Size of `y`: (total number of states, number of timesteps)
+        Size of `t`: number of timesteps
+
+    state_shapes: dict
+        Keys: state names. Values: tuples with state shape
+
+    state_dimensions: dict
+        Keys: state names. Values: list containing dimensions associated with state
+
+    state_coordinates: dict
+        Keys: state names. Values: list containing coordinates of every dimension the state is associated with
+
+    actual_start_date: datetime
+        Used to determine if the time output should be returned as dates
+
+    Returns
+    -------
+
+    output: xarray.Dataset
+        Simulation results
+    """
+
+    # Convert scipy's output to a dictionary of states with the correct sizes
+    new_state_shapes={}
+    for k,v in state_shapes.items():
+        v=list(v)
+        v.append(len(output["t"]))
+        new_state_shapes.update({k: tuple(v)})
+    output_flat = np.ravel(output["y"])
+    data_variables = list_to_dict(output_flat, new_state_shapes)
+
+    # Append the time dimension
+    new_state_dimensions={}
+    for k,v in state_dimensions.items():
+        v_acc = v.copy()
+        if actual_start_date is not None:
+            v_acc.append('date')
+            new_state_dimensions.update({k: v_acc})
+        else:
+            v_acc.append('time')
+            new_state_dimensions.update({k: v_acc})
+
+    # Append the time coordinates
+    new_state_coordinates={}
+    for k,v in state_coordinates.items():
+        v_acc=v.copy()
+        if actual_start_date is not None:
+            v_acc.append(actual_start_date + pd.to_timedelta(output["t"], unit='D'))
+            new_state_coordinates.update({k: v_acc})
+        else:
+            v_acc.append(output["t"])
+            new_state_coordinates.update({k: v_acc})
+
+    # Build the xarray dataset
+    data = {}
+    for var, arr in data_variables.items():
+        if len(new_state_dimensions[var]) == 1:
+            arr = np.ravel(arr)
+        xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        data[var] = xarr
+
+    return xarray.Dataset(data)
 
 class SDEModel:
     """
@@ -45,12 +118,13 @@ class SDEModel:
 
     state_names = None
     parameter_names = None
-    parameter_stratified_names = None
     stratification_names = None
+    parameter_stratified_names = None
+    state_stratifications = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
-        self.parameters = parameters
+        # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
@@ -59,26 +133,46 @@ class SDEModel:
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
         check_duplicates(self.state_names, 'state_names')
-        try:
-            check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
-        except:
-            check_duplicates(self.parameter_names, 'parameter_names')
+        check_duplicates(self.parameter_names, 'parameter_names')
+        check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
         if self.stratification_names:
             check_duplicates(self.stratification_names, 'stratification_names')
 
         # Validate and compute the stratification sizes
         self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
 
-        # Validate the time-dependent parameter functions
+        # Validate state_stratifications
+        if self.state_stratifications:
+            validate_state_stratifications(self.state_stratifications, self.coordinates, self.state_names)
+        
+        # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
+        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_stratifications)
+
+        # Validate the shapes of the initial states, fill non-defined states with zeros
+        self.initial_states = validate_initial_states(self.state_shapes, states)
+
+        # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
             self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
-        
-        # Validate the model
-        self.initial_states, self.parameters, self._n_function_params, self._extra_params = validate_SDEModel(states, parameters, coordinates, self.stratification_size, self.state_names,
-                                                                                                              self.parameter_names, self.parameter_stratified_names, self._function_parameters,
-                                                                                                              self.compute_rates, self.apply_transitionings)
+
+        # Verify the signature of the compute_rates function; extract the additional parameters of the TDPFs
+        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameter_names_merged, self.state_names, self._function_parameters)
+
+        # Verify the signature of the apply_transitionings function
+        validate_apply_transitionings_signature(self.apply_transitionings, self.parameter_names_merged, self.state_names)
+
+        # Verify all parameters were provided
+        self.parameters = validate_provided_parameters(all_params, parameters)
+
+        # Validate the size of the stratified parameters (Perhaps move this way up front?)
+        if self.parameter_stratified_names:
+            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, self.parameters)
+
+        # Call the compute_rates function, check if it works and check the sizes of the differentials in the output
+        rates = validate_compute_rates(self.compute_rates, self.initial_states, self.state_shapes, self.parameter_names_merged, self.parameters)
+        validate_apply_transitionings(self.apply_transitionings, rates, self.initial_states, self.state_shapes, self.parameter_names_merged, self.parameters)
 
     # Overwrite integrate class
     @staticmethod
@@ -258,16 +352,11 @@ class SDEModel:
         def func(t, y, pars={}):
                 """As used by scipy -> flattend in, flattend out"""
 
-                # -------------------------------------------------------------
-                # Flatten y and construct dictionary of states and their values
-                # -------------------------------------------------------------
+                # ------------------------------------------------
+                # Deflatten y and reconstruct dictionary of states 
+                # ------------------------------------------------
 
-                # for the moment assume sequence of parameters, vars,... is correct
-                size_lst=[len(self.state_names)]
-                for size in self.stratification_size:
-                    size_lst.append(size)
-                y_reshaped = y.reshape(tuple(size_lst))
-                states = dict(zip(self.state_names, y_reshaped))
+                states = list_to_dict(y, self.state_shapes)
 
                 # --------------------------------------
                 # update time-dependent parameter values
@@ -311,21 +400,28 @@ class SDEModel:
 
                 dstates = self.apply_transitionings(t, tau, transitionings, **states, **params)
 
-                return np.array(dstates).flatten(), tau
+                # -------
+                # Flatten
+                # -------
+
+                out=[]
+                for d in dstates:
+                    out.extend(list(np.ravel(d)))
+
+                return np.asarray(out), tau
 
         return func
 
     def _solve_discrete(self, fun, t_eval, y, args):
         # Preparations
-        y=np.asarray(y) # otherwise error in func : y.reshape does not work
-        y=np.reshape(y,[y.size,1])
+        y = np.reshape(y, [y.size,1])
         y_prev=y
         # Simulation loop
         t_lst=[t_eval[0]]
         t = t_eval[0]
         while t < t_eval[-1]:
             out, tau = fun(t, y_prev, args)
-            y_prev=out
+            y_prev = out
             out = np.reshape(out,[out.size,1])
             y = np.append(y,out,axis=1)
             t = t + tau
@@ -352,9 +448,9 @@ class SDEModel:
             y0 = list(itertools.chain(*y0))
 
         # Run the time loop
-        output = self._solve_discrete(fun, t_eval, list(itertools.chain(*self.initial_states.values())), self.parameters)
+        output = self._solve_discrete(fun, t_eval, np.asarray(y0), self.parameters)
 
-        return self._output_to_xarray_dataset(output, actual_start_date)
+        return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
 
     def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, tau, output_timestep):
         """
@@ -450,43 +546,6 @@ class SDEModel:
 
         return out
 
-    def _output_to_xarray_dataset(self, output, actual_start_date=None):
-        """
-        Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
-        """
-
-        if self.coordinates:
-            dims = list(self.coordinates.keys()).copy()
-        else:
-            dims = []
-        
-        if actual_start_date is not None:
-            dims.append('date')
-            coords = {"date": actual_start_date + pd.to_timedelta(output["t"], unit='D')}
-        else:
-            dims.append('time')
-            coords = {"time": output["t"]}
-
-        if self.coordinates:
-            coords.update(self.coordinates)
-
-        size_lst = [len(self.state_names)]
-        if self.coordinates:
-            for size in self.stratification_size:
-                size_lst.append(size)
-        size_lst.append(len(output["t"]))
-
-
-        y_reshaped = output["y"].reshape(tuple(size_lst))
-        zip_star = zip(self.state_names, y_reshaped)
-     
-        data = {}
-        for var, arr in zip_star:
-            xarr = xarray.DataArray(arr, coords=coords, dims=dims)
-            data[var] = xarr
-        
-        return xarray.Dataset(data)
-
 ################
 ## ODE Models ##
 ################
@@ -559,7 +618,7 @@ class ODEModel:
             self._function_parameters = []
 
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_signature(self.integrate, self.parameter_names_merged, self.state_names, self._function_parameters)
+        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.integrate, self.parameter_names_merged, self.state_names, self._function_parameters)
 
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters)
@@ -643,7 +702,7 @@ class ODEModel:
         output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
 
         # map to variable names
-        return self._output_to_xarray_dataset(output, actual_start_date)
+        return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
 
     def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep):
         """
@@ -657,7 +716,6 @@ class ODEModel:
         """
         Run a model simulation for the given time period. Can optionally perform `N` repeated simulations of time days.
         Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
-
 
         Parameters
         ----------
@@ -718,8 +776,6 @@ class ODEModel:
            
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
-        
-        # Parallel case: https://www.delftstack.com/howto/python/python-pool-map-multiple-arguments/#parallel-function-execution-with-multiple-arguments-using-the-pool.starmap-method
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
@@ -750,49 +806,3 @@ class ODEModel:
         self.parameters = cp
 
         return out
-
-    def _output_to_xarray_dataset(self, output, actual_start_date=None):
-        """
-        Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
-        """
-        
-        # Convert scipy's output to a dictionary of states with the correct sizes
-        state_shapes={}
-        for k,v in self.state_shapes.items():
-            v=list(v)
-            v.append(len(output["t"]))
-            state_shapes.update({k: tuple(v)})
-        output_flat = np.ravel(output["y"])
-        data_variables = list_to_dict(output_flat, state_shapes)
-
-        # Append the time dimension
-        state_dimensions={}
-        for k,v in self.state_dimensions.items():
-            v_acc = v.copy()
-            if actual_start_date is not None:
-                v_acc.append('date')
-                state_dimensions.update({k: v_acc})
-            else:
-                v_acc.append('time')
-                state_dimensions.update({k: v_acc})
-
-        # Append the time coordinates
-        state_coordinates={}
-        for k,v in self.state_coordinates.items():
-            v_acc=v.copy()
-            if actual_start_date is not None:
-                v_acc.append(actual_start_date + pd.to_timedelta(output["t"], unit='D'))
-                state_coordinates.update({k: v_acc})
-            else:
-                v_acc.append(output["t"])
-                state_coordinates.update({k: v_acc})
-
-        # Build the xarray dataset
-        data = {}
-        for var, arr in data_variables.items():
-            if len(state_dimensions[var]) == 1:
-                arr = np.ravel(arr)
-            xarr = xarray.DataArray(arr, dims=state_dimensions[var], coords=state_coordinates[var])
-            data[var] = xarr
-
-        return xarray.Dataset(data)
