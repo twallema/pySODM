@@ -561,12 +561,12 @@ class ODEModel:
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
         all_params, self._extra_params = validate_integrate_signature(self.integrate, self.parameter_names_merged, self.state_names, self._function_parameters)
 
-        # Validate the size of the stratified parameters (Perhaps move this way up front?)
-        if self.parameter_stratified_names:
-            parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, parameters)
-
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters)
+
+        # Validate the size of the stratified parameters (Perhaps move this way up front?)
+        if self.parameter_stratified_names:
+            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, self.parameters)
 
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
         validate_integrate(self.initial_states, self.parameters, self._create_fun, self.state_shapes)
