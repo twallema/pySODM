@@ -401,8 +401,8 @@ def test_TDPF_stratified():
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9]), "prevention": 0.2}
     model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
-    output2 = model2.sim(time)
     assert np.less_equal(output['R'].values, output_without['R'].values).all()
+    assert model2.parameters == parameters
 
     # Define a TDPF which uses an existing model parameter as extra argument
     def compliance_func(t, states, param, gamma):
@@ -414,7 +414,6 @@ def test_TDPF_stratified():
     parameters = {"gamma": 0.2, "beta": np.array([0.8, 0.9])}
     model2 = SIRstratified(initial_states, parameters, coordinates=coordinates,
                            time_dependent_parameters={'beta': compliance_func})
-    output2 = model2.sim(time)   
 
 # TDPF on a regular parameter
 def test_TDPF_nonstratified():

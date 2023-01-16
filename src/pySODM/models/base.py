@@ -519,8 +519,8 @@ class ODEModel:
 
     state_names = None
     parameter_names = None
-    parameter_stratified_names = None
     stratification_names = None
+    parameter_stratified_names = None
     state_stratifications = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
