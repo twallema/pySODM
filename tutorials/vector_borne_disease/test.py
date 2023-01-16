@@ -23,11 +23,11 @@ warnings.filterwarnings("ignore")
 ##################
 
 # Import the ODEModel class
-from models import SIR_SI
+from models import SDE_SIR_SI as SIR_SI
 
 # Define parameters and initial condition
-params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
-init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 7}
+init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 2}
 # Define model coordinates
 age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
 coordinates={'age_group': age_groups}
