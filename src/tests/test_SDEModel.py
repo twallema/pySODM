@@ -26,12 +26,19 @@ class SIR(SDEModel):
         return S_new, I_new, R_new
 
 def test_SIR_time():
+    """Test the use of int/float/list time indexing
+    """
 
     # Define parameters and initial states
     parameters = {"beta": 0.9, "gamma": 0.2}
     initial_states = {"S": [1_000_000 - 10], "I": [10], "R": [0]}
     # Build model
     model = SIR(initial_states, parameters)
+
+    # Do it right
+
+    # Same starttime and stoptime
+    output = model.sim([0,0])
     # Simulate using a mixture of int/float
     time = [int(10), float(50.3)]
     output = model.sim(time)
@@ -40,19 +47,41 @@ def test_SIR_time():
     # Simulate using a list of timesteps
     time = [0, 50]
     output = model.sim(time)
-
-    # Validate
+    
+    # 'time' present in output
     assert 'time' in list(output.dims.keys())
+    # Default (no specification output frequency): 0, 1, 2, 3, ..., 50
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
+    # Numerically speaking everything ok?
     S = output["S"].values.squeeze()
     assert S[0] == 1_000_000 - 10
     assert S.shape == (51, )
-    assert S[-1] < 12_000
+    assert S[-1] < 12000
     I = output["I"].squeeze()
     assert I[0] == 10
     assert S.shape == (51, )
 
+    # Do it wrong
+
+    # Start before end
+    with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
+        model.sim([20,5])
+
+    # Wrong type
+    with pytest.raises(TypeError, match="Input argument 'time' must be a"):
+        model.sim(np.zeros(2))    
+
+    # If list: wrong length
+    with pytest.raises(ValueError, match="You have supplied:"):
+        model.sim([0, 50, 100])    
+
+    # Combination of datetime and int/float
+    with pytest.raises(ValueError, match="List-like input of simulation start and stop"):
+        model.sim([0, pd.to_datetime('2020-03-15')])
+
 def test_SIR_date():
+    """Test the use of str/datetime time indexing
+    """
 
     # Define parameters and initial states
     parameters = {"beta": 0.9, "gamma": 0.2}
@@ -60,7 +89,7 @@ def test_SIR_date():
     # Build model
     model = SIR(initial_states, parameters)
 
-    # Simulate using dates
+    # Do it right
     output = model.sim(['2020-01-01', '2020-02-20'])
     output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')])
 
@@ -69,15 +98,25 @@ def test_SIR_date():
     S = output["S"].values.squeeze()
     assert S[0] == 1_000_000 - 10
     assert S.shape == (51, )
-    assert S[-1] < 12_000
+    assert S[-1] < 12000
     I = output["I"].squeeze()
     assert I[0] == 10
     assert S.shape == (51, )
 
-    # Simulate using a mixture of timestamp and string
-    with pytest.raises(TypeError, match="List-like input of simulation start"):
-        output = model.sim(['2020-01-01', pd.Timestamp('2020-02-20')])
+    # Do it wrong
 
+    # Start before end
+    with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
+        model.sim(['2020-03-15','2020-03-01'])
+
+    # Combination of str/datetime
+    with pytest.raises(ValueError, match="List-like input of simulation start and stop must contain either"):
+        model.sim([pd.to_datetime('2020-01-01'), '2020-05-01'])
+
+    # Simulate using a mixture of timestamp and string
+    with pytest.raises(TypeError, match="You have only provided one date as input"):
+        model.sim(pd.to_datetime('2020-01-01'))
+        
 def test_SSA():
 
     # Define parameters and initial states
