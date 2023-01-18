@@ -102,115 +102,46 @@ def test_correct_approach_wo_stratification():
         plt.show()
         plt.close()
 
-    # Variables
-    n_mcmc = 10
-    multiplier_mcmc = 5
-    print_n = 5
-    discard = 5
-    samples_path='sampler_output/'
-    fig_path='sampler_output/'
-    identifier = 'username'
-    # initialize objective function
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
-    # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=objective_function.expanded_bounds)
-    # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': 0, 'end_calibration': 50, 'n_chains': nwalkers,
-                'warmup': 0, 'labels': labels, 'parameters': pars, 'starting_estimate': list(theta)}
-    # Sample 100 iterations
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
-                                   fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True,
-                                   settings_dict=settings)
-    #Generate samples dict
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
+    if __name__ == "__main__":
+        # Variables
+        n_mcmc = 10
+        multiplier_mcmc = 5
+        print_n = 5
+        discard = 5
+        samples_path='sampler_output/'
+        fig_path='sampler_output/'
+        identifier = 'username'
+        # initialize objective function
+        objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+        # Perturbate previously obtained estimate
+        ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=objective_function.expanded_bounds)
+        # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
+        settings={'start_calibration': 0, 'end_calibration': 50, 'n_chains': nwalkers,
+                    'warmup': 0, 'labels': labels, 'parameters': pars, 'starting_estimate': list(theta)}
+        # Sample 100 iterations
+        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True,
+                                    settings_dict=settings)
+        #Generate samples dict
+        samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
-    #Visualize result
-    if plot:
-        # Define draw function
-        def draw_fcn(param_dict, samples_dict):
-            param_dict['beta'] = np.random.choice(samples_dict['beta'])
-            return param_dict
-        # Simulate model
-        out = model.sim([0,endtime+30], N=30, samples=samples_dict, draw_fcn=draw_fcn)
-        # Add poisson observation noise
-        out = add_negative_binomial_noise(out, alpha)
-        # Visualize
-        fig,ax=plt.subplots()
-        ax.scatter(df.index.get_level_values('time').unique(), df.groupby(by=['time']).sum())
-        for i in range(30):
-            ax.plot(out['time'], out['I'].isel(draws=i), linewidth=1, alpha=0.1, color='blue')
-        plt.show()
-        plt.close()
-
-def test_xarray_datasets():
-    """ Test the use of an xarray.DataArray as dataset
-    """
-    # Define parameters and initial states
-    parameters = {"beta": 0.1, "gamma": 0.2}
-    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
-    # Build model
-    model = SIR(initial_states, parameters)
-    # Define dataset
-    data=[df.groupby(by=['time']).sum().to_xarray(),]
-    states = ["I",]
-    weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha,]
-    # Calibated parameters and bounds
-    pars = ['beta',]
-    labels = ['$\\beta$',]
-    bounds = [(1e-6,1),]
-    # Setup objective function without priors and with negative weights 
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
-
-test_xarray_datasets()
-
-class SIR_nd_beta(ODEModel):
-
-    # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['beta', 'gamma']
-
-    @staticmethod
-    def integrate(t, S, I, R, beta, gamma):
-        """Basic SIR model"""
-        beta = beta[0,0,0]
-        N = S + I + R
-        dS = -beta*I*S/N
-        dI = beta*I*S/N - gamma*I
-        dR = gamma*I
-        return dS, dI, dR
-
-def test_calibration_nd_parameter():
-    """ Test the calibration of an n-dimensional parameter
-    """
-    # Define parameters and initial states
-    parameters = {"beta": 0.1*np.ones([2,2,2]), "gamma": 0.2}
-    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
-    # Build model
-    model = SIR_nd_beta(initial_states, parameters)
-    # Define dataset
-    data=[df.groupby(by=['time']).sum(),]
-    states = ["I",]
-    weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha,]
-    # Calibated parameters and bounds
-    pars = ['beta',]
-    labels = ['$\\beta$',]
-    bounds = [(1e-6,1),]
-    # Setup objective function without priors and with negative weights 
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
-    # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
-    # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
-                        processes=1, max_iter=20)[0]
-
-test_calibration_nd_parameter()
+        #Visualize result
+        if plot:
+            # Define draw function
+            def draw_fcn(param_dict, samples_dict):
+                param_dict['beta'] = np.random.choice(samples_dict['beta'])
+                return param_dict
+            # Simulate model
+            out = model.sim([0,endtime+30], N=30, samples=samples_dict, draw_fcn=draw_fcn)
+            # Add poisson observation noise
+            out = add_negative_binomial_noise(out, alpha)
+            # Visualize
+            fig,ax=plt.subplots()
+            ax.scatter(df.index.get_level_values('time').unique(), df.groupby(by=['time']).sum())
+            for i in range(30):
+                ax.plot(out['time'], out['I'].isel(draws=i), linewidth=1, alpha=0.1, color='blue')
+            plt.show()
+            plt.close()
 
 def break_stuff_wo_stratification():
 
@@ -293,9 +224,6 @@ def break_stuff_wo_stratification():
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
-# For some weird ass reason this doesn't run if I don't call it..
-break_stuff_wo_stratification()
-
 def break_log_likelihood_functions_wo_stratification():
 
     # Define parameters and initial states
@@ -361,7 +289,71 @@ def break_log_likelihood_functions_wo_stratification():
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
-break_log_likelihood_functions_wo_stratification()
+def test_xarray_datasets():
+    """ Test the use of an xarray.DataArray as dataset
+    """
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum().to_xarray(),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+
+class SIR_nd_beta(ODEModel):
+
+    # state variables and parameters
+    state_names = ['S', 'I', 'R']
+    parameter_names = ['beta', 'gamma']
+
+    @staticmethod
+    def integrate(t, S, I, R, beta, gamma):
+        """Basic SIR model"""
+        beta = beta[0,0,0]
+        N = S + I + R
+        dS = -beta*I*S/N
+        dI = beta*I*S/N - gamma*I
+        dR = gamma*I
+        return dS, dI, dR
+
+def test_calibration_nd_parameter():
+    """ Test the calibration of an n-dimensional parameter
+    """
+    # Define parameters and initial states
+    parameters = {"beta": 0.1*np.ones([2,2,2]), "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR_nd_beta(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    weights = np.array([1,])
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+    # Setup objective function without priors and with negative weights 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    # PSO
+    theta = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    # Nelder-Mead
+    theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
+                        processes=1, max_iter=20)[0]
 
 ###################################
 ## Model with one stratification ##
@@ -421,8 +413,6 @@ def test_correct_approach_with_one_stratification_0():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
-test_correct_approach_with_one_stratification_0()
-
 def break_stuff_with_one_stratification():
 
     # Axes in data not present in model
@@ -459,8 +449,6 @@ def break_stuff_with_one_stratification():
     with pytest.raises(Exception, match="coordinate '0-20' of stratification 'age_groups' in the 0th"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
-
-break_stuff_with_one_stratification()
 
 def break_log_likelihood_functions_with_one_stratification():
 
@@ -510,8 +498,6 @@ def break_log_likelihood_functions_with_one_stratification():
     log_likelihood_fnc_args = [alpha*np.ones([2]), ]
     log_posterior_probability(model,pars,bounds,data,states,
                                 log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)        
-
-break_log_likelihood_functions_with_one_stratification()
 
 ####################################
 ## Model with two stratifications ##
@@ -570,8 +556,6 @@ def test_correct_approach_with_two_stratifications():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
-test_correct_approach_with_two_stratifications()
-
 def test_aggregation_function():
     # Setup model
     parameters = {"gamma": 0.2, "beta": np.array([0.1, 0.1])}
@@ -602,8 +586,6 @@ def test_aggregation_function():
     with pytest.raises(ValueError, match="number of aggregation functions must be equal to one or"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
-
-test_aggregation_function()
 
 def break_log_likelihood_functions_with_two_stratifications():
 
@@ -691,5 +673,3 @@ def break_log_likelihood_functions_with_two_stratifications():
     with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
-
-break_log_likelihood_functions_with_two_stratifications()
