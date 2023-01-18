@@ -870,9 +870,9 @@ def create_fake_xarray_output(state_dimensions, state_coordinates, initial_state
     # Build the xarray dataset
     data = {}
     for var, arr in initial_states.items():
-        if arr.ndim == 1:
+        if arr.ndim >= 1:
             if state_dimensions[var]:
-                arr = np.expand_dims(arr, axis=1)      
+                arr = arr[..., np.newaxis]
         xarr = xr.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
         data[var] = xarr
 
