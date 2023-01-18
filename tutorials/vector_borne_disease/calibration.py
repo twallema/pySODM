@@ -61,8 +61,8 @@ out['I_v'] = (['time'], y)
 data_mosquitos = out['I_v'].to_series()
 
 # Start and enddate
-start_date = out.isel(time=0)
-end_date = out.isel(time=-1)
+start_date = out['time'].isel(time=0).values
+end_date = out['time'].isel(time=-1).values
 
 #########################
 ## Calibrate the model ##
@@ -83,14 +83,16 @@ if __name__ == '__main__':
     pars = ['alpha', 'beta']
     labels = ['$\\alpha$','$\\beta$']
     bounds = [(1e-6,1),(1e-6,1)]
+    def aggfunc1(output):
+        return output
+    def aggfunc2(output):
+        return output
     # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
-    
-    sys.exit()
+    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)#,aggregation_function=[aggfunc1,aggfunc2])
     # Initial guess
-    theta = [0.10,7]
+    theta = [0.10, 0.10, 0.10, 0.10, 7]
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=18, max_iter=30)[0]
+    theta = nelder_mead.optimize(objective_function, theta, 0.10*np.ones(len(theta)), processes=18, max_iter=30)[0]
     # Simulate the model
     model.parameters.update({'beta': theta[0]})
     out = model.sim([start_date, end_date])
