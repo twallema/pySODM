@@ -411,9 +411,10 @@ class log_posterior_probability():
             dims = [time_index,] + additional_axes_data
             interp = interp.transpose(*dims)
             ymodel = interp.sel({k:coordinates_data_also_in_model[jdx] for jdx,k in enumerate(additional_axes_data)}).values
-            # Automatically reorder the dataframe so that time/date is first index
-            df = df.reorder_levels([time_index,]+additional_axes_data)
-            ydata = df.unstack().values
+            # Automatically reorder the dataframe so that time/date is first index (stack only works for 2 indices sadly --> pandas to xarray --> reorder --> to numpy)
+            df = df.to_xarray()
+            df = df.transpose(*dims)
+            ydata = df.to_numpy()
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
                 raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
@@ -1048,8 +1049,9 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         else:
                             # Make sure time index is in first position
-                            val = log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx])
-                            log_likelihood_fnc_args[idx] = val.unstack().values          
+                            val = log_likelihood_fnc_args[idx].to_xarray()
+                            val = val.transpose([time_index,]+additional_axes_data[idx])
+                            log_likelihood_fnc_args[idx] = val.to_numpy()         
             else:
                 # Compute desired shape in case of one parameter per stratfication
                 desired_shape=[]
@@ -1075,7 +1077,8 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         else:
                             # Make sure time index is in first position
-                            val = log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx])
-                            log_likelihood_fnc_args[idx] = val.unstack().values
+                            val = log_likelihood_fnc_args[idx].to_xarray()
+                            val = val.transpose([time_index,]+additional_axes_data[idx])
+                            log_likelihood_fnc_args[idx] = val.to_numpy()
     
     return log_likelihood_fnc_args
