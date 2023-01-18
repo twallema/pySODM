@@ -94,17 +94,17 @@ if __name__ == '__main__':
     out = model.sim([start_date, end_date])
     # Visualize result
     fig,ax=plt.subplots(nrows=2, ncols=1, figsize=(8,6), sharex=True)
-    ax[0].plot(out['time'], out['I_v'], color='red', label='Infected')
-    ax[0].plot(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos, color='black', label='data')
+    ax[0].plot(out['time'], out['I_v']/init_states['S_v']*100, color='red', label='Infected')
+    ax[0].plot(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos/init_states['S_v']*100, color='black', label='data')
     ax[0].set_ylabel('Health state vectors (%)')
     ax[0].legend()
     ax[0].set_title('Vector lifespan: ' + str(params['beta']) + ' days')
     colors=['black', 'red', 'green', 'blue']
     labels=['0-5','5-15','15-65','65-120']
     for i,age_group in enumerate(age_groups):
-        ax[1].plot(out['time'], out['I'].sel(age_group=age_group), color=colors[i], label=labels[i])
+        ax[1].plot(out['time'], out['I'].sel(age_group=age_group)/init_states['S'][i]*100000, color=colors[i], label=labels[i])
     for age_group in age_groups:
-        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group], color='black', label='data', alpha=0.6)
+        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group]/init_states['S'][i]*100000, color='black', label='data', alpha=0.6)
     ax[1].set_ylabel('Infectious humans per 100K')
     ax[1].legend()
     ax[1].set_xlabel('time (days)')
@@ -161,17 +161,17 @@ if __name__ == '__main__':
     # Visualize result
     fig,ax=plt.subplots(nrows=2, ncols=1, figsize=(8,6), sharex=True)
     for i in range(N):
-        ax[0].plot(out['time'], out['I_v'].isel(draws=i), color='red', linewidth=2, alpha=0.03)
-    ax[0].plot(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos, color='black', label='data')
+        ax[0].plot(out['time'], out['I_v'].isel(draws=i)/init_states['S_v']*100, color='red', linewidth=2, alpha=0.03)
+    ax[0].plot(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos/init_states['S_v']*100, color='black', label='data')
     ax[0].set_ylabel('Health state vectors (%)')
     ax[0].legend()
     ax[0].set_title('Vector lifespan: ' + str(params['beta']) + ' days')
     colors=['black', 'red', 'green', 'blue']
     labels=['0-5','5-15','15-65','65-120']
     for i,age_group in enumerate(age_groups):
-        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group], color=colors[i], label='data '+labels[i])
+        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group]/init_states['S'][i]*100000, color=colors[i], label=labels[i])
         for j in range(N):
-            ax[1].plot(out['time'], out['I'].sel(age_group=age_group).isel(draws=j), color=colors[i], linewidth=2, alpha=0.03)
+            ax[1].plot(out['time'], out['I'].sel(age_group=age_group).isel(draws=j)/init_states['S'][i]*100000, color=colors[i], linewidth=2, alpha=0.03)
     ax[1].set_ylabel('Infectious humans per 100K')
     ax[1].legend()
     ax[1].set_xlabel('time (days)')
