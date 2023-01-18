@@ -343,7 +343,7 @@ class log_posterior_probability():
         ## Compare data and model stratifications ##
         ############################################
 
-        out = create_fake_xarray_output(model.coordinates, model.initial_states, self.time_index)
+        out = create_fake_xarray_output(model.state_dimensions, model.state_coordinates, model.initial_states, self.time_index)
         self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
 
         ########################################
@@ -799,9 +799,9 @@ def validate_aggregation_function(aggregation_function, n_datasets):
     ----------
     aggregation_function: callable function or list
         An aggregation functions receives as input an xarray.DataArray, obtained by extracting the model output at the state the user wishes to calibrate.
-        Like so: input_to_aggregation_function = simulation_output[state_name]
+        e.g. input_to_aggregation_function = simulation_output[state_name]
         The aggregation function performs some operation on this data (f.i. aggregating over certain age groups or spatial levels) and returns an xarray.DataArray.
-        NO INPUT CHECKS ARE PERFORMED ON AGGREGATION FUNCTIONS
+        NO INPUT CHECKS ARE PERFORMED ON THE AGGREGATION FUNCTIONS THEMSELVES!
     
     n_datasets: int
         Number of datasets
@@ -831,15 +831,18 @@ def validate_aggregation_function(aggregation_function, n_datasets):
         )
     return aggregation_function
 
-def create_fake_xarray_output(model_coordinates, initial_states, time_index):
+def create_fake_xarray_output(state_dimensions, state_coordinates, initial_states, time_index):
     """ 
     A function to "replicate" the xarray.Dataset output of a simulation
     Made to omit the need to call the sim function in the initialization of the log_posterior_probability
 
     Parameters
     ----------
-    model_coordinates: None or dict
-        Dictionary of model coordinates
+    state_dimensions: dict
+        Keys: model states. Values: List containing dimensions associated with state.
+
+    state_coordinates: dict
+        Keys: model states. Values: List containing coordinates associated with each dimension associated with state.
 
     initial_states: dict
         Dictionary of initial model states
@@ -853,32 +856,34 @@ def create_fake_xarray_output(model_coordinates, initial_states, time_index):
     out: xarray.Dataset
         Model "output" 
     """
-    # Create a fake model output
-    if model_coordinates:
-        # Expand existing coordinates with the time index
-        coords=model_coordinates.copy()
-        coords.update({time_index: [0,]})
-        dims=coords.keys()
-        # Generate dataset
-        dt = {}
-        for var, arr in initial_states.items():
-            xarr = xr.DataArray(arr[...,None], coords=coords, dims=dims)
-            dt[var] = xarr
-        out = xr.Dataset(dt)
-    else:
-        # Coordinates are time index
-        coords={time_index: [0,]}
-        dims= [time_index, ]
-        # Generate dataset
-        dt = {}
-        for var, arr in initial_states.items():
-            xarr = xr.DataArray(arr, coords=coords, dims=dims)
-            dt[var] = xarr
-        out = xr.Dataset(dt)
-    return out
+
+    # Append the time dimension
+    new_state_dimensions={}
+    for k,v in state_dimensions.items():
+        v_acc = v.copy()
+        v_acc.append(time_index)
+        new_state_dimensions.update({k: v_acc})
+
+    # Append the time coordinates
+    new_state_coordinates={}
+    for k,v in state_coordinates.items():
+        v_acc=v.copy()
+        v_acc.append([0,])
+        new_state_coordinates.update({k: v_acc})
+
+    # Build the xarray dataset
+    data = {}
+    for var, arr in initial_states.items():
+        if arr.ndim == 1:
+            if state_dimensions[var]:
+                arr = np.expand_dims(arr, axis=1)      
+        xarr = xr.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        data[var] = xarr
+
+    return xr.Dataset(data)
 
 
-def compare_data_model_coordinates(output, data, state_names, aggregation_function, additional_axes_data):
+def compare_data_model_coordinates(output, data, calibration_state_names, aggregation_function, additional_axes_data):
     """
     A function to check if data and model dimensions/coordinates can be aligned correctly (subject to possible aggregation functions introduced by the user).
 
@@ -890,7 +895,7 @@ def compare_data_model_coordinates(output, data, state_names, aggregation_functi
     data: list
         List containing the datasets
 
-    state_names: list
+    calibration_state_names: list
         Contains the names (type: str) of the model states to match with each dataset in `data`
 
     aggregation_function: list
@@ -911,31 +916,29 @@ def compare_data_model_coordinates(output, data, state_names, aggregation_functi
     # Validate
     coordinates_data_also_in_model=[]
     aggregate_over=[]
-    # Loop over states we'd like to match
-    for i, (state_name, df) in enumerate(zip(state_names, data)):
+    # Loop over states/datasets we'd like to match
+    for i, (state_name, df) in enumerate(zip(calibration_state_names, data)):
+        # Call the aggregation function
         if aggregation_function:
-            # Call the aggregation function
+            
             new_output = aggregation_function[i](output[state_name])
-            # Recreate the 'model.coordinates' attribute using this fake dataset
-            coord=[]
-            for dim in new_output.dims:
-                if ((dim != 'time') & (dim != 'date')):
-                    coord.append(new_output.coords[dim].values)
-            model_coordinates = dict(zip(output.dims, coord))
         else:
-            # Recreate the 'model.coordinates' attribute using this fake dataset
-            coord=[]
-            for dim in output.dims:
-                if ((dim != 'time') & (dim != 'date')):
-                    coord.append(output.coords[dim].values)
-            model_coordinates = dict(zip(output.dims, coord))
+            new_output = output[state_name]
+        # Create a dictionary containing, for every dimensions that is not 'time'/'date'
+        # key: list of dimensions, value: list of corresponding coordinates
+        dimensions = list(new_output.dims)
+        dimensions = [d for d in dimensions if ((d != 'time')&(d!='date'))]
+        coordinates=[]
+        for dim in dimensions:
+            coordinates.append(new_output.coords[dim].values)
+        dims_coords = dict(zip(dimensions, coordinates))
 
-        # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
-        coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(additional_axes_data[i], i, model_coordinates, data))
+        # Compute the coordinates present in both data and model (we'll have to match these)
+        coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(additional_axes_data[i], i, dims_coords, data))
         
         # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-        aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], model_coordinates))
-    
+        aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], dims_coords))
+
     return coordinates_data_also_in_model, aggregate_over
 
 def validate_log_likelihood_funtion(log_likelihood_function):
