@@ -27,37 +27,42 @@ from pySODM.optimization.objective_functions import log_posterior_probability, l
 import warnings
 warnings.filterwarnings("ignore")
 
-######################################################
-## Generate a synthetic dataset with overdispersion ##
-######################################################
-
-dates = pd.date_range('2022-12-01','2023-01-21')
-x = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
-alpha = 0.03
-td = 10
-y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(x*np.log(2)/td) + (1/alpha)))
-d = pd.Series(index=dates, data=y, name='CASES')
-# Index name must be data for calibration to work
-d.index.name = 'date'
-# Data collection only on weekdays
-d = d[d.index.dayofweek < 5]
-
 ##################
 ## Define model ##
 ##################
 
 # Import the ODEModel class
-from models import SDE_SIR_SI as SIR_SI
-
+from models import ODE_SIR_SI as SIR_SI
 # Define parameters and initial condition
 params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 7}
 init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 2}
 # Define model coordinates
 age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
 coordinates={'age_group': age_groups}
-
 # Initialize model
 model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+
+################################
+## Generate synthetic dataset ##
+################################
+
+# Simulate model
+out = model.sim(120)
+
+# Overdisperse data from humans
+alpha=0.03
+y = np.random.negative_binomial(1/alpha, (1/alpha)/(out['I'] + (1/alpha)))
+out['I'] = (['age_group','time'], y)
+data_humans = out['I'].to_series()
+
+# Overdisperse data from mosquitos
+y = np.random.negative_binomial(1/alpha, (1/alpha)/(out['I_v'] + (1/alpha)))
+out['I_v'] = (['time'], y)
+data_mosquitos = out['I_v'].to_series()
+
+# Start and enddate
+start_date = out.isel(time=0)
+end_date = out.isel(time=-1)
 
 #########################
 ## Calibrate the model ##
@@ -65,46 +70,47 @@ model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
 
 if __name__ == '__main__':
 
-    #######################
-    ## Variance analysis ##
-    #######################
-
-    results, ax = variance_analysis(d, resample_frequency='W')
-    alpha = results.loc['negative binomial', 'theta']
-    print(results)
-    plt.show()
-    plt.close()
-
     ##############################
     ## Frequentist optimization ##
     ##############################
 
     # Define dataset
-    data=[d, ]
-    states = ["I",]
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha,]
+    data=[data_humans, data_mosquitos]
+    states = ["I","I_v"]
+    log_likelihood_fnc = [ll_negative_binomial,ll_negative_binomial]
+    log_likelihood_fnc_args = [len(age_groups)*[alpha,], alpha]
     # Calibated parameters and bounds
-    pars = ['beta',]
-    labels = ['$\\beta$',]
-    bounds = [(1e-6,1),]
+    pars = ['alpha', 'beta']
+    labels = ['$\\alpha$','$\\beta$']
+    bounds = [(1e-6,1),(1e-6,1)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
-    # Extract start- and enddate
-    start_date = d.index.min()
-    end_date = d.index.max()
+    
+    sys.exit()
     # Initial guess
-    theta = [0.50,]
+    theta = [0.10,7]
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=30)[0]
+    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=18, max_iter=30)[0]
     # Simulate the model
     model.parameters.update({'beta': theta[0]})
     out = model.sim([start_date, end_date])
     # Visualize result
-    fig,ax=plt.subplots(figsize=(12,4))
-    ax.plot(out['date'], out['I'], color='red', label='Infectious')
-    ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2, label='data')
-    ax.legend()
+    fig,ax=plt.subplots(nrows=2, ncols=1, figsize=(8,6), sharex=True)
+    ax[0].plot(out['time'], out['I_v']/init_states['S_v']*100, color='red', label='Infected')
+    ax[0].scatter(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos, alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2, label='data')
+    ax[0].set_ylabel('Health state vectors (%)')
+    ax[0].legend()
+    ax[0].set_title('Vector lifespan: ' + str(params['beta']) + ' days')
+    colors=['black', 'red', 'green', 'blue']
+    labels=['0-5','5-15','15-65','65-120']
+    for i,age_group in enumerate(age_groups):
+        ax[1].plot(out['time'], out['I'].sel(age_group=age_group)/init_states['S'][i]*100000, color=colors[i], label=labels[i])
+    for age_group in age_groups:
+        ax[1].scatter(data_humans.index.get_level_values('time').unique(), data_humans.loc[age_group, slice(None)], alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2, label='data')
+    ax[1].set_ylabel('Infectious humans per 100K')
+    ax[1].legend()
+    ax[1].set_xlabel('time (days)')
+    ax[1].set_title('Vector-to-human transfer rate: '+str(params['alpha']))
     plt.show()
     plt.close()
 
