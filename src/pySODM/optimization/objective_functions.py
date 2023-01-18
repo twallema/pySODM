@@ -352,7 +352,7 @@ class log_posterior_probability():
 
         self.n_log_likelihood_extra_args = validate_log_likelihood_funtion(log_likelihood_fnc)
         self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
-                                                                                self.time_index, log_likelihood_fnc_args, log_likelihood_fnc, self.series_to_ndarray)
+                                                                                self.time_index, log_likelihood_fnc_args, log_likelihood_fnc)
 
         # Assign attributes to class
         self.model = model
@@ -373,11 +373,6 @@ class log_posterior_probability():
             args = log_prior_prob_fnc_args[idx]
             lp.append(fnc(theta,args))
         return sum(lp)
-
-    @staticmethod
-    def series_to_ndarray(df):
-            shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
-            return df.to_numpy().reshape(shape)
 
     def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args,
                                 time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model,
@@ -417,7 +412,8 @@ class log_posterior_probability():
             interp = interp.transpose(*dims)
             ymodel = interp.sel({k:coordinates_data_also_in_model[jdx] for jdx,k in enumerate(additional_axes_data)}).values
             # Automatically reorder the dataframe so that time/date is first index
-            ydata = self.series_to_ndarray(df.reorder_levels([time_index,]+additional_axes_data))
+            df = df.reorder_levels([time_index,]+additional_axes_data)
+            ydata = df.unstack().values
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
                 raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
@@ -983,7 +979,7 @@ def validate_log_likelihood_funtion(log_likelihood_function):
 
 
 def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_args, additional_axes_data, coordinates_data_also_in_model, time_index, log_likelihood_fnc_args,
-                                                log_likelihood_fnc, series_to_ndarray):
+                                                log_likelihood_fnc):
 
     # Input checks on the additional arguments of the log likelihood functions
     for idx, df in enumerate(data):
@@ -1052,7 +1048,8 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         else:
                             # Make sure time index is in first position
-                            log_likelihood_fnc_args[idx] = series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx]))                 
+                            val = log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx])
+                            log_likelihood_fnc_args[idx] = val.unstack().values          
             else:
                 # Compute desired shape in case of one parameter per stratfication
                 desired_shape=[]
@@ -1078,6 +1075,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         else:
                             # Make sure time index is in first position
-                            log_likelihood_fnc_args[idx] = series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx]))
+                            val = log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx])
+                            log_likelihood_fnc_args[idx] = val.unstack().values
     
     return log_likelihood_fnc_args

@@ -44,6 +44,10 @@ model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
 ## Generate synthetic dataset ##
 ################################
 
+def series_to_ndarray(df):
+    shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
+    return df.to_numpy().reshape(shape)
+
 # Simulate model
 out = model.sim(120)
 
@@ -51,7 +55,6 @@ out = model.sim(120)
 alpha=0.03
 y = np.random.negative_binomial(1/alpha, (1/alpha)/(out['I'] + (1/alpha)))
 out['I'] = (['age_group','time'], y)
-out['I'] = out['I'].transpose(*['time', 'age_group'])
 data_humans = out['I'].to_series()
 
 # Overdisperse data from mosquitos
@@ -103,8 +106,7 @@ if __name__ == '__main__':
     labels=['0-5','5-15','15-65','65-120']
     for i,age_group in enumerate(age_groups):
         ax[1].plot(out['time'], out['I'].sel(age_group=age_group)/init_states['S'][i]*100000, color=colors[i], label=labels[i])
-    for age_group in age_groups:
-        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group]/init_states['S'][i]*100000, color='black', label='data', alpha=0.6)
+        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[age_group, slice(None)]/init_states['S'][i]*100000, color='black', label='data', alpha=0.6)
     ax[1].set_ylabel('Infectious humans per 100K')
     ax[1].legend()
     ax[1].set_xlabel('time (days)')
@@ -117,7 +119,7 @@ if __name__ == '__main__':
     ###########################
 
     # Variables
-    n_mcmc = 100
+    n_mcmc = 1000
     multiplier_mcmc = 9
     processes = 9
     print_n = 50
@@ -165,16 +167,19 @@ if __name__ == '__main__':
     ax[0].plot(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos/init_states['S_v']*100, color='black', label='data')
     ax[0].set_ylabel('Health state vectors (%)')
     ax[0].legend()
-    ax[0].set_title('Vector lifespan: ' + str(params['beta']) + ' days')
+    beta = np.mean(samples_dict['beta'])
+    ax[0].set_title(f'Vector lifespan: {beta:.1f} days')
     colors=['black', 'red', 'green', 'blue']
     labels=['0-5','5-15','15-65','65-120']
     for i,age_group in enumerate(age_groups):
-        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group]/init_states['S'][i]*100000, color=colors[i], label=labels[i])
+        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[age_group,slice(None)]/init_states['S'][i]*100000, color=colors[i], label=labels[i])
         for j in range(N):
             ax[1].plot(out['time'], out['I'].sel(age_group=age_group).isel(draws=j)/init_states['S'][i]*100000, color=colors[i], linewidth=2, alpha=0.03)
     ax[1].set_ylabel('Infectious humans per 100K')
+    alpha = [np.mean(samples_dict['alpha'][0]), np.mean(samples_dict['alpha'][1]), np.mean(samples_dict['alpha'][2]), np.mean(samples_dict['alpha'][3])]
+    alpha = [round(i, 2) for i in alpha]
+    ax[1].set_title(f'Vector-to-human transfer rate: {alpha}')
     ax[1].legend()
     ax[1].set_xlabel('time (days)')
-    ax[1].set_title('Vector-to-human transfer rate: '+str(params['alpha']))
     plt.show()
     plt.close()
