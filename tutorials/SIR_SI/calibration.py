@@ -44,10 +44,6 @@ model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
 ## Generate synthetic dataset ##
 ################################
 
-def series_to_ndarray(df):
-    shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
-    return df.to_numpy().reshape(shape)
-
 # Simulate model
 out = model.sim(120)
 

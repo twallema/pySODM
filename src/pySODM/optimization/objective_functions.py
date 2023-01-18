@@ -257,7 +257,15 @@ class log_posterior_probability():
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
         ############################################################################################################
 
-        if not weights:
+        # Check type of `weights`
+        if isinstance(weights, (list,np.ndarray)):
+            if isinstance(weights, np.ndarray):
+                if weights.ndim > 1:
+                    raise TypeError("Expected a 1D np.array for input argument `weights`")
+        else:
+            raise TypeError("Expected a list/1D np.array for input argument `weights`")
+            
+        if weights is None:
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):
                 raise ValueError(
                     "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), and the extra arguments of the log likelihood function ({3}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args))

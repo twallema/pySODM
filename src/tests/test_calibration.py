@@ -22,9 +22,6 @@ warmup = starttime
 n_datapoints = 20
 alpha = 0.05
 
-# Visualisations?
-plot = False
-
 ###################################################################################
 ## Dummy dataset consisting of two stratifications: age groups and spatial units ##
 ###################################################################################
@@ -61,9 +58,36 @@ class SIR(ODEModel):
         dR = gamma*I
         return dS, dI, dR
 
-# ~~~~~~~~~~~~~~~~
-# Correct approach
-# ~~~~~~~~~~~~~~~~
+# Do the same for every input argument of the log_posterior_probability
+def test_weights():
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    labels = ['$\\beta$',]
+    bounds = [(1e-6,1),]
+
+    # Correct: list
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,[1,],labels=labels)
+    # Correct: np.array
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,np.array([1,]),labels=labels)
+    # Incorrect: list of wrong length
+    with pytest.raises(ValueError, match="the extra arguments of the log likelihood function"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,[1,1],labels=labels)
+    # Incorrect: numpy array with more than one dimension
+    with pytest.raises(TypeError, match="Expected a 1D np.array for input argument"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,np.ones([3,3]),labels=labels)
+    # Incorrect: datatype string
+    with pytest.raises(TypeError, match="Expected a list/1D np.array for input argument"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,'hey',labels=labels)
 
 def test_correct_approach_wo_stratification():
 
@@ -92,15 +116,6 @@ def test_correct_approach_wo_stratification():
     # Nelder-Mead
     theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], 
                         kwargs={'simulation_kwargs':{'warmup': warmup}}, processes=1, max_iter=10)[0]
-    if plot:
-        # Visualize results
-        model.parameters['beta'] = theta[0]
-        out = model.sim([0,endtime])
-        fig,ax=plt.subplots()
-        ax.scatter(df.index.get_level_values('time').unique(), df.groupby(by=['time']).sum())
-        ax.plot(out['time'], out['I'])
-        plt.show()
-        plt.close()
 
     if __name__ == "__main__":
         # Variables
@@ -124,24 +139,6 @@ def test_correct_approach_wo_stratification():
                                     settings_dict=settings)
         #Generate samples dict
         samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
-
-        #Visualize result
-        if plot:
-            # Define draw function
-            def draw_fcn(param_dict, samples_dict):
-                param_dict['beta'] = np.random.choice(samples_dict['beta'])
-                return param_dict
-            # Simulate model
-            out = model.sim([0,endtime+30], N=30, samples=samples_dict, draw_fcn=draw_fcn)
-            # Add poisson observation noise
-            out = add_negative_binomial_noise(out, alpha)
-            # Visualize
-            fig,ax=plt.subplots()
-            ax.scatter(df.index.get_level_values('time').unique(), df.groupby(by=['time']).sum())
-            for i in range(30):
-                ax.plot(out['time'], out['I'].isel(draws=i), linewidth=1, alpha=0.1, color='blue')
-            plt.show()
-            plt.close()
 
 def break_stuff_wo_stratification():
 
@@ -673,3 +670,64 @@ def break_log_likelihood_functions_with_two_stratifications():
     with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+
+##################################################
+## Model where states have different dimensions ##
+##################################################
+
+class ODE_SIR_SI(ODEModel):
+    """
+    An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
+    """
+
+    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameter_names = ['beta', 'gamma']
+    parameter_stratified_names = ['alpha']
+    stratification_names = ['age_groups']
+    state_stratifications = [['age_groups'],['age_groups'],['age_groups'],[],[]]
+
+    @staticmethod
+    def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):
+
+        # Calculate total mosquito population
+        N = S + I + R
+        N_v = S_v + I_v
+        # Calculate human differentials
+        dS = -alpha*(I_v/N_v)*S
+        dI = alpha*(I_v/N_v)*S - 1/gamma*I
+        dR = 1/gamma*I
+        # Calculate mosquito differentials
+        dS_v = -np.sum(alpha*(I/N)*S_v) + (1/beta)*N_v - (1/beta)*S_v
+        dI_v = np.sum(alpha*(I/N)*S_v) - (1/beta)*I_v
+
+        return dS, dI, dR, dS_v, dI_v
+
+def test_SIR_SI():
+
+    #################
+    ## Setup model ##
+    #################
+
+    # Define parameters and initial condition
+    params={'alpha': np.array([0.05, 0.1]), 'gamma': 5, 'beta': 7}
+    init_states = {'S': [606938, 1328733], 'S_v': 1e6, 'I_v': 2}
+    # Define model coordinates
+    age_groups = ['0-20','20-120']
+    coordinates={'age_groups': age_groups}
+    # Initialize model
+    model = ODE_SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+
+    # Variables that don't really change
+    states = ["I","I_v"]
+    weights = np.array([1,1])
+    log_likelihood_fnc = [ll_negative_binomial,ll_negative_binomial]
+    log_likelihood_fnc_args = [len(age_groups)*[alpha,], alpha]
+    # Calibated parameters and bounds
+    pars = ['alpha','beta']
+    labels = ['$\\alpha$','$\\beta$']
+    bounds = [(1e-4,1),(1,21)]
+    # Human population --> calibrate to age stratified data
+    # Vector population --> calibrate to unstratified data
+    data=[df.groupby(by=['time','age_groups']).sum(), df.groupby(by=['time']).sum()]
+    # Correct use
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,)
