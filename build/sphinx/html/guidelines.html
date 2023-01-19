@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contribution guidelines &mdash; pySODM  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Git workflow" href="git_workflow.html" />
+    <link rel="prev" title="Start to collaborate" href="start_to_collaborate.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> pySODM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling and calibration workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="enzyme_kinetics.html">Enzyme kinetics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="influenza_1718.html">Influenza 2017-2018</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speedup.html">Speeding up models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="start_to_collaborate.html">Start to collaborate</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contribution guidelines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-repository-structure"><code class="docutils literal notranslate"><span class="pre">pySODM</span></code> Repository structure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#code">Code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#automate-stuff">Automate stuff</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-files">Other files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tests">Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">Documentation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#website">Website</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docstrings">Docstrings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#coding-guidelines">Coding guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#git-workflow">Git Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="git_workflow.html">Git workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pySODM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Contribution guidelines</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guidelines.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="contribution-guidelines">
+<h1>Contribution guidelines<a class="headerlink" href="#contribution-guidelines" title="Permalink to this heading">¶</a></h1>
+<section id="pysodm-repository-structure">
+<h2><code class="docutils literal notranslate"><span class="pre">pySODM</span></code> Repository structure<a class="headerlink" href="#pysodm-repository-structure" title="Permalink to this heading">¶</a></h2>
+<p>The code inside the <code class="docutils literal notranslate"><span class="pre">~/src/pySODM</span></code> directory is the actual Python package, while the code inside the <code class="docutils literal notranslate"><span class="pre">~/tutorials</span></code> directory provides some examples of applications of the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> package. The <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> environment (lives inside <code class="docutils literal notranslate"><span class="pre">~/environement.yml</span></code>) groups the necessary dependencies to run the tutorials in a convenient conda environment. Each subfolder of the repository has a specific purpose and we would ask to respect the general layout. Still, this is all work in progress, so alterations to it that improve the workflow are certainly possible. Please do your suggestion by creating a <a class="reference external" href="https://github.com/twallema/pySODM/issues/new/choose">New issue</a>.</p>
+<p><strong>Remember:</strong> Anyone should be able to reproduce the final products with the code in <code class="docutils literal notranslate"><span class="pre">~/src</span></code> and the dependencies listed in <code class="docutils literal notranslate"><span class="pre">~/setup.py</span></code>!</p>
+<section id="code">
+<h3>Code<a class="headerlink" href="#code" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── src                                     &lt;- all reusable code blocks
+│   ├── pySODM
+|   │   ├── models                          &lt;- code related to constructing models
+|   │   ├── optimization                    &lt;- code related to parameter callibration
+|   │   └── __init__.py                     &lt;- structured as lightweight python package
+│   ├── tests
+|   │   ├── ... .py                         &lt;- all test code during development
+</pre></div>
+</div>
+</section>
+<section id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── docs                                    &lt;- documentation
+│   ├── conf.py
+│   ├── index.rst                           &lt;- explanations are written inside markdown or st files
+│   ├── ... .md                             &lt;- pages of the documentation website
+│   ├── Makefile
+│   └── _static
+│   │   └── figs                            &lt;- figs linked to the documentation
+│   │       ├── ...
+</pre></div>
+</div>
+</section>
+<section id="automate-stuff">
+<h3>Automate stuff<a class="headerlink" href="#automate-stuff" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── .github                                 &lt;- Automate specific steps with github actions
+│   ├── workflows
+│   │   ├── deploy.yml
+│   │   └── ...
+</pre></div>
+</div>
+</section>
+<section id="other-files">
+<h3>Other files<a class="headerlink" href="#other-files" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── environment.yml                         &lt;- A conda environment bundling all dependencies to run the tutorials
+├── LICENSE                                 &lt;- MIT License
+├── setup.py                                &lt;- Package name, version and dependencies
+└── README.md                               &lt;- focus on how to get started, setup environment name conventions and
+</pre></div>
+</div>
+</section>
+</section>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this heading">¶</a></h2>
+<p>Always keep in mind additional dependencies lower <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>’s life expectancy. Consider all alternatives before adding a dependency to <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>! When adding a new dependency to <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>’s base code (lives inside <code class="docutils literal notranslate"><span class="pre">~/src/</span></code>) be sure to add the dependency to the setup file <a class="reference external" href="https://github.com/twallema/pySODM/blob/master/setup.py">setup.py</a>. Need a dependency for a tutorial only (not needed in <code class="docutils literal notranslate"><span class="pre">~/src/</span></code>)? Add it to the <a class="reference external" href="https://github.com/twallema/pySODM/blob/master/environment.yml">evironment file</a> only.</p>
+</section>
+<section id="tests">
+<h2>Tests<a class="headerlink" href="#tests" title="Permalink to this heading">¶</a></h2>
+<p>Three test scripts are defined in <code class="docutils literal notranslate"><span class="pre">~/src/tests/</span></code>: 1) <code class="docutils literal notranslate"><span class="pre">test_ODEModel.py</span></code> to test the initializiation and simulation of ODE models, 2) <code class="docutils literal notranslate"><span class="pre">test_SDEModel.py</span></code>, similar but for SDE models and 3) <code class="docutils literal notranslate"><span class="pre">test_calibration.py</span></code>, to test the common calibration workflow. Testing these routines is usefull to verify that modifications made to the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> code do not break code. Or alternatively, if the code does break, to see where it breaks. The test routines must pass when performing a PR to Github. To run a test locally,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">pySODM</span>
+<span class="n">pytest</span> <span class="n">test_calibration</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+</section>
+<section id="id1">
+<h2>Documentation<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h2>
+<section id="website">
+<h3>Website<a class="headerlink" href="#website" title="Permalink to this heading">¶</a></h3>
+<p>Documentation consists of both the technical matter about the code as well as background information on the models. To keep these up to date and centralized, we use <a class="reference external" href="https://www.sphinx-doc.org/en/master/">Sphinx</a> which enables us to keep the documentation together on a website.</p>
+<p>The Sphinx setup provides the usage of both <code class="docutils literal notranslate"><span class="pre">.rst</span></code> file, i.e. <a class="reference external" href="https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html">restructuredtext</a> as well as <code class="docutils literal notranslate"><span class="pre">.md</span></code> files, i.e. <a class="reference external" href="https://www.markdownguide.org/basic-syntax/">Markdown</a>. The latter is generally experienced as easier to write, while the former provides more advanced functionalities. Existing pages of the documentation reside in <code class="docutils literal notranslate"><span class="pre">~/docs/</span></code> and can be adjusted directly. In case you want to build the documentation locally, make sure you have the development dependencies installed (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">&quot;.[develop]&quot;</span></code>) to run the sphinx build script. To build locally, use,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">build_sphinx</span>
+</pre></div>
+</div>
+<p>When you want to create a new page, make sure to add the page to the <code class="docutils literal notranslate"><span class="pre">index.rst</span></code> in order to make the page part of the website. The website is build automatically using <a class="reference external" href="https://github.com/twallema/pySODM/blob/master/.github/workflows/deploy.yml#L22-L24">github actions</a> and the output is deployed to <a class="reference external" href="https://twallema.github.io/pySODM/">https://twallema.github.io/pySODM/</a>. The resulting html-website is created in the directory <code class="docutils literal notranslate"><span class="pre">build/html</span></code>. Double click any of the <code class="docutils literal notranslate"><span class="pre">html</span></code> file in the folder to open the website in your browser (no server required).</p>
+</section>
+<section id="docstrings">
+<h3>Docstrings<a class="headerlink" href="#docstrings" title="Permalink to this heading">¶</a></h3>
+<p>For each function or class you write, make sure to add documentation to the function. We use the <a class="reference external" href="https://numpydoc.readthedocs.io/en/latest/format.html">numpy docstring</a> format to write documentation. For each function, make sure the following items are defined at least:</p>
+<ul class="simple">
+<li><p>Short summary: What does the function or class do? (top line)</p></li>
+<li><p>Parameters: For every input variable, list both the type and a short description of what it represents.</p></li>
+<li><p>Returns: For every output variable, list both the type and a short description of what it represents.</p></li>
+<li><p>References (if applicable)</p></li>
+</ul>
+<p>As an example, consider,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+   <span class="sd">&quot;&quot;&quot;The sum of two numbers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ==========</span>
+
+<span class="sd">    a: float</span>
+<span class="sd">        The first number.</span>
+<span class="sd">    b: float</span>
+<span class="sd">        The second number.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    =======</span>
+
+<span class="sd">    sum: float</span>
+<span class="sd">        The sum of the first and second number.</span>
+<span class="sd">   &quot;&quot;&quot;</span>
+
+    <span class="nb">sum</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+
+   <span class="k">return</span> <span class="nb">sum</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="coding-guidelines">
+<h2>Coding guidelines<a class="headerlink" href="#coding-guidelines" title="Permalink to this heading">¶</a></h2>
+<p>The following are some guidelines on how new code should be written. Of course, there are special cases and there will be exceptions to these rules. However, uniformly formatted code makes it easier to share code ownership. The <code class="docutils literal notranslate"><span class="pre">pydov</span></code> project tries to closely follow the official Python guidelines detailed in <a class="reference external" href="https://www.python.org/dev/peps/pep-0008/">PEP8</a> which detail how code should be formatted and indented. Please read it and follow it.</p>
+<p>In addition, we add the following guidelines:</p>
+<ul class="simple">
+<li><p>DRY: <a class="reference external" href="https://www.plutora.com/blog/understanding-the-dry-dont-repeat-yourself-principle">Don’t Repeat Yourself</a></p></li>
+<li><p>Use underscores to separate words in non class names: <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> rather than <code class="docutils literal notranslate"><span class="pre">nsamples</span></code>.</p></li>
+<li><p>Avoid multiple statements on one line. Prefer a line return after a control flow statement (<code class="docutils literal notranslate"><span class="pre">if/for</span></code>).</p></li>
+<li><p>Please don’t use <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">*</span></code> in any case. It is considered harmful by the official Python recommendations. It makes the code harder to read as the origin of symbols is no longer explicitly referenced, but most important, it prevents using a static analysis tool like pyflakes to automatically find bugs.</p></li>
+<li><p>Provide a <a class="reference external" href="https://numpydoc.readthedocs.io/en/latest/format.html">numpy docstring</a> for all your functions and classes.</p></li>
+<li><p>Please use lowercase names (eventually with <code class="docutils literal notranslate"><span class="pre">_</span></code>) as column names for pandas Dataframes.</p></li>
+</ul>
+</section>
+<section id="git-workflow">
+<h2>Git Workflow<a class="headerlink" href="#git-workflow" title="Permalink to this heading">¶</a></h2>
+<p>Before doing any changes, always make sure your own version of your code (i.e. <code class="docutils literal notranslate"><span class="pre">fork</span></code>) is up to date with the <code class="docutils literal notranslate"><span class="pre">master</span></code> of the <a class="reference external" href="https://github.com/twallema/pySODM">main repository </a>. First, check out the <strong><a class="reference internal" href="git_workflow.html"><span class="doc std std-doc">git workflow</span></a></strong> for a step-by-step explanation of the proposed workflow. For more information, see also,</p>
+<ul class="simple">
+<li><p>If you are a command line person, check <a class="reference external" href="https://gist.github.com/CristinaSolana/1885435">this workflow</a></p></li>
+<li><p>If you are not a command line person: <a class="reference external" href="https://www.sitepoint.com/quick-tip-sync-your-fork-with-the-original-without-the-cli/">this workflow</a> can help you staying up to date.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="start_to_collaborate.html" class="btn btn-neutral float-left" title="Start to collaborate" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="git_workflow.html" class="btn btn-neutral float-right" title="Git workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Tijs Alleman.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

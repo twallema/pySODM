@@ -1,0 +1,8 @@
+LICENSE
+README.md
+setup.py
+src/pySODM.egg-info/PKG-INFO
+src/pySODM.egg-info/SOURCES.txt
+src/pySODM.egg-info/dependency_links.txt
+src/pySODM.egg-info/requires.txt
+src/pySODM.egg-info/top_level.txt
