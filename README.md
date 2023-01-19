@@ -2,6 +2,8 @@
 
 *Simulating and Optimising Dynamical Models in Python 3*
 
+https://twallema.github.io/pySODM
+
 ### Aim & Scope
 
 A modeling and simulation workflow will typically constitute the following steps,
