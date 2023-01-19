@@ -692,7 +692,7 @@ class ODEModel:
         fun = self._create_fun(actual_start_date)
 
         t0, t1 = time
-        t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
+        t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
 
         # Scipy can only take flattened list of states
         y0 = list(itertools.chain(*self.initial_states.values()))
