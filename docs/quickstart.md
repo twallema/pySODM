@@ -61,9 +61,9 @@ Data variables:
 
 ![SIR_time](/_static/figs/workflow/SIR_time.png)
 
-## Stratifications: adding age groups to the SIR model
+## dimensions: adding age groups to the SIR model
 
-To transform our SIR model's states in 1D vectors, referred to as a *stratification* throughout the documentation, add the `stratification_names` keyword to the model declaration.
+To transform our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimension_names` keyword to the model declaration.
 
 ```python
 # Import the ODEModel class
@@ -77,7 +77,7 @@ class stratified_SIR(ODEModel):
     
     state_names = ['S','I','R']
     parameter_names = ['beta', 'gamma]
-    stratification_names = ['age_groups']
+    dimension_names = ['age_groups']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
@@ -93,7 +93,7 @@ class stratified_SIR(ODEModel):
         return dS, dI, dR
 ```
 
-When initializing the model, additionally provide a dictionary containing coordinates for every stratification declared previously.
+When initializing the model, additionally provide a dictionary containing coordinates for every dimension declared previously.
 
 ```python
 model = stratified_SIR(states={'S': 1000*np.ones(4), 'I': np.ones(4)},

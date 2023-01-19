@@ -27,8 +27,8 @@ The foundations of pySODM were implemented by Stijn Van Hoey and Joris Van Den B
 | Workflow                     | Features                                                                                                                        |
 |------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | Building a dynamic model     | ODEs and Gillespie (SSA, tau-leaping)                                                                                           |
-|                              | Stratification in n-dimensional states                                                                                          |
-|                              | Output handling in xarray (supports int/float as well as datetime timesteps, assignment of coordinates to stratifications)      |
+|                              | dimension in n-dimensional states                                                                                          |
+|                              | Output handling in xarray (supports int/float as well as datetime timesteps, assignment of coordinates to dimensions)      |
 |                              | 2D model states (experimental; ODE only)                                                                                        |
 | Simulating a dynamic model   | Time-dependent variation of model parameters using complex functions and large datasets                                         |
 |                              | Simulating models with parameters drawn from distributions for sensitivity/scenario analysis                                    |

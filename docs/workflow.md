@@ -47,7 +47,7 @@ d = pd.Series(index=dates, data=y, name='CASES')
 d = d[d.index.dayofweek < 5]
 ```
 
-Datasets used in an optimization must always be a `pd.Series` in case the model has no stratifications, or a `pd.DataFrame` with a `pd.MultiIndex` if the model has stratifications. In the dataset, an index level named `time` (if the time axis consists of int/float) or `date` (if the time axis consists of dates) must always be present. In this tutorial, we'll use dates and thus we rename the index of our dataset `date`. 
+Datasets used in an optimization must always be a `pd.Series` in case the model has no dimensions, or a `pd.DataFrame` with a `pd.MultiIndex` if the model has dimensions. In the dataset, an index level named `time` (if the time axis consists of int/float) or `date` (if the time axis consists of dates) must always be present. In this tutorial, we'll use dates and thus we rename the index of our dataset `date`. 
 
 ```
 # Index name must be data for calibration to work
@@ -101,7 +101,7 @@ from pySODM.models.base import ODEModel
 # Define the model equations
 class ODE_SIR(ODEModel):
     """
-    Simple SIR model without stratifications
+    Simple SIR model without dimensions
     """
     
     state_names = ['S','I','R']

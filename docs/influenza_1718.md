@@ -1,6 +1,6 @@
 # An SDE Model for the 2017-2018 Influenza Season in Belgium
 
-In this tutorial, we'll revisit epidemiology by setting up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional charateristics of seasonal Influenza and we'll use the concept of *stratifications* to include four age groups in our model. Opposed to the simple SIR tutorial, where changes in the number of social contacts were not considered, we'll use a *time-dependent parameter function* to include the effects of school closures during school holidays in our Influenza model. Finally, we'll calibrate two of the model's parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge at our disposal. One of the calibrated model parameters is a 1D vector, pySODM allows users to easily calibrate n-dimensional model parameters.
+In this tutorial, we'll revisit epidemiology by setting up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional charateristics of seasonal Influenza and we'll use the concept of *dimensions* to include four age groups in our model. Opposed to the simple SIR tutorial, where changes in the number of social contacts were not considered, we'll use a *time-dependent parameter function* to include the effects of school closures during school holidays in our Influenza model. Finally, we'll calibrate two of the model's parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge at our disposal. One of the calibrated model parameters is a 1D vector, pySODM allows users to easily calibrate n-dimensional model parameters.
 
 This tutorial introduces the following concepts,
 - Building a stochastic model and solving it with Gillespie's Tau-Leaping method
@@ -31,7 +31,7 @@ date        age_group
 Name: CASES, Length: 96, dtype: float64
 ```
 
-The `pd.Multiindex` is important to our log posterior probability function. pySODM can automatically align a stratified model with a stratified dataset and compute the total log posterior probability, as long as the model stratification and the dataframes index level have the same name and share coordinates. The stratification in our dataset is named `'age_group'` and has four coordinates: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])`. The `time`/`date` axis is obligatory as always.
+The `pd.Multiindex` is important to our log posterior probability function. pySODM can automatically align a stratified model with a stratified dataset and compute the total log posterior probability, as long as the model dimension and the dataframes index level have the same name and share coordinates. The dimension in our dataset is named `'age_group'` and has four coordinates: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])`. The `time`/`date` axis is obligatory as always.
 
 > **note** If we'd stratify our model further to include spatial patches, we could still calibrate the model to the DataFrame above. pySODM would, in its current implementation, automatically sum over the model's spatial axis to align the prediction with the data. Potentially, this automatic summation could be replaced with a `lambda` function.
 
@@ -82,7 +82,7 @@ R^i(t+\tau) &=& R^i(t) + \mathcal{N}(I_a \rightarrow R)^i + \mathcal{N}(I_a \rig
 
 ### The model
 
-Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `stratification_names` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `parameter_stratified_names`. **As stratification name, we use the same name as the age stratification in the dataset: `'age_groups'`. The coordinates of the stratification will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
+Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `dimension_names` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `parameter_stratified_names`. **As dimension name, we use the same name as the age dimension in the dataset: `'age_groups'`. The coordinates of the dimension will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
 
 ```python
 from pySODM.models.base import SDEModel
@@ -96,7 +96,7 @@ class SDE_influenza_model(SDEModel):
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma','N']
     parameter_stratified_names = ['f_a']
-    stratification_names = ['age_group']
+    dimension_names = ['age_group']
 
     @staticmethod
     def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
@@ -177,7 +177,7 @@ class make_contact_matrix_function():
 
 ### Initializing the model
 
-Next, we'll set the model up in our calibration script `~/tutorials/influenza_1718/calibration.py`. We load the model and social contact function from `models.py` and initialize the contact matrix function using the social contact matrices (hardcoded in the example). Then, as always, we define the model parameters, initial states (obtained analytically so the differentials are zero at {math}`t=0`) and coordinates. **The coordinates for stratification `age_groups` must be the same as the dataset: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)]`**. 
+Next, we'll set the model up in our calibration script `~/tutorials/influenza_1718/calibration.py`. We load the model and social contact function from `models.py` and initialize the contact matrix function using the social contact matrices (hardcoded in the example). Then, as always, we define the model parameters, initial states (obtained analytically so the differentials are zero at {math}`t=0`) and coordinates. **The coordinates for dimension `age_groups` must be the same as the dataset: `pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)]`**. 
 
 ```python
 
@@ -214,7 +214,7 @@ model = influenza_model(init_states,params,coordinates,time_dependent_parameters
 
 ### Calibration
 
-The syntax to set up the log posterior probability function is similar to the previous tutorials. Our multiindexed `pd.DataFrame` containing the age-stratified data and the model's age stratification share the same name and coordinates. pySODM performs the necessary input checks and will automatically align these axes when computing the log posterior probability. We aim to calibrate two model parameters: {math}`\beta` and {math}`\mathbf{f_a}`. However, {math}`\mathbf{f_a}` consists of four elements {math}`f_a^i`, how does pySODM handle this?
+The syntax to set up the log posterior probability function is similar to the previous tutorials. Our multiindexed `pd.DataFrame` containing the age-stratified data and the model's age dimension share the same name and coordinates. pySODM performs the necessary input checks and will automatically align these axes when computing the log posterior probability. We aim to calibrate two model parameters: {math}`\beta` and {math}`\mathbf{f_a}`. However, {math}`\mathbf{f_a}` consists of four elements {math}`f_a^i`, how does pySODM handle this?
 
 As if nothing's up,
 
