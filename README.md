@@ -40,12 +40,14 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
 
 ### Versions
 
+- Version 0.2.0 (2023-01-19, PR #xx)
+    > Introduction of `state_dimensions` in model declaration, allowing the user to define models where states can have different sizes.
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODEModel, SDEModel and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
         > Start of semantic versions: Major.Minor.Patch
     - Version 0.1.2 (2023-01-11, PR #23)
-        > Calibration of 1D model parameters generalized to n-dimensions.
+        > Calibration of 1-D model parameters generalized to n-dimensions.
         > Added 'aggregation functions' to the `log_posterior_probability` class to perform custom aggregations of model output before matching with data.
         > `xarray.DataArray`/`xarray.Dataset` can be used as datasets during calibration. Internally converted to `pd.DataFrame`.
 - Version 0.0 (2022-11-14)
