@@ -2,7 +2,19 @@
 
 ## Set up a dimensionless ODE model
 
-Load pySODM's [`ODEModel` class](models.md) and define your model. The code below implements a simple Susceptible-Infectious-Removed (SIR) disease model.
+Load pySODM's [`ODEModel` class](models.md) and define your model. As an example, we'll set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,
+
+<img src="./_static/figs/quickstart/quickstart_SIR_flowchart.png" width="500" />
+
+and governed by the following equations,
+```{math}
+\begin{eqnarray}
+N &=& S + I + R, \\
+\frac{dS}{dt} &=& - \beta S (I/N), \\
+\frac{dI}{dt} &=& \beta S (I/N) - (1/\gamma)I, \\
+\frac{dR}{dt} &=& (1/\gamma)I.
+\end{eqnarray}
+```
 
 ```python
 # Import the ODEModel class
@@ -56,11 +68,11 @@ Data variables:
 ```
 
 The simulation above results in the following trajectories for the number of susceptibles, infected and recovered individuals.
-![SIR_time](/_static/figs/workflow/SIR_time.png)
+![SIR_time](/_static/figs/quickstart/quickstart_SIR.png)
 
 ## Set up an ODE model with a labeled dimension
 
-To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimension_names` keyword to the model declaration.
+To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimension_names` keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.
 
 ```python
 # Import the ODEModel class
@@ -110,7 +122,7 @@ Data variables:
 ```
 
 ## Set up an ODE model with multiple dimensions
-pySODM allows model states to have different coordinates and thus different sizes. As an example and without mathematical details, consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and they transmit a diseae to the humans. Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
+pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and they transmit a diseae to the humans. Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
 
 ```python
 class ODE_SIR_SI(ODEModel):
@@ -173,7 +185,7 @@ Data variables:
 
 ## Set up a dimensionless SDE Model
 
-To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For mathematical background information on the SDE models, we refer to the manuscript (*coming soon*). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings.
+To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed description of implenting models using Gillespie's methods, we refer to the manuscript (*coming soon*). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings.
 
 ```python
 # Import the ODEModel class

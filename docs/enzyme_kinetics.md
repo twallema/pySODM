@@ -183,16 +183,7 @@ if __name__ == '__main__':
     ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.1, 0.1, 0.1, 0.1, 0.1], multiplier=5, bounds=bounds)
 ```
 
-Then, we'll setup and run the sampler using `run_EnsembleSampler` until the chains converge. We'll run the sampler for `n_mcmc=1000` iterations and print the diagnostic autocorrelation and trace plots every `print_n=50` iterations in a folder called `sampler_output/`. For convenience, we'll save the samples there as well. As an identifier for our "experiment", we'll use `'username'` but I suggest using something a little more creative when using pySODM to do research. While the sampler is running, have a look in the `sampler_output/` folder, which should look as follows,
-
-```
-├── sampler_output 
-|   |── username_BACKEND_2022-12-16.hdf5
-│   ├── autocorrelation
-│       └── username_AUTOCORR_2022-12-16.pdf
-│   └── traceplots
-│       └── username_TRACE_2022-12-16.pdf
-```
+Then, we'll setup and run the sampler using `run_EnsembleSampler` until the chains converge.
 
 ```python
 if __name__ == '__main__':
@@ -239,7 +230,7 @@ On the cornerplot we can see that the values of {math}`R_{AS}` and {math}`R_{Es}
 
 ![corner](/_static/figs/enzyme_kinetics/corner.png)
 
-Finally, we can use the *draw functions* to propagate the parameter samples in our model and asses the goodness-of-fit (see the [simple SIR tutorial](workflow.md)). Simulating a model is performed using the [sim](models.md) function. All that is left after simulating the model is to add the observational noise to the model predictions. I've computed the relative magnitude of the error on the datapoints and these are roughly equal to 5%. Given how we've used a Gaussian log likelihood function, we'll use `add_gaussian_noise()` to add 5% (relative) noise to the model output.
+Finally, we can use the *draw functions* to propagate the parameter samples in our model and asses the goodness-of-fit. Simulating a model is performed using the [sim](models.md) function. All that is left after simulating the model is to add the observational noise to the model predictions. I've computed the relative magnitude of the error on the datapoints and these are roughly equal to 5%. Given how we've used a Gaussian log likelihood function, we'll use `add_gaussian_noise()` to add 5% (relative) noise to the model output.
 
 ```python
 if __name__ == '__main__':
@@ -277,7 +268,7 @@ if __name__ == '__main__':
         plt.close()
 ```
 
-The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 38 mM D-glucose, 464 mM Lauric acid and 24 mM water present in the medium. After 16 hours, the reaction has equillibrated and {math}`32 \pm 2\ mM` (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of {math}`84\% \pm 5\%\ mM` (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields. To conclude this section, I visualize the yield on a 2D grid spanning the concentrations of D-Glucose and Lauric on the y-axis (given as the acid-to-sugar ratio with 40 mM of D-Glucose used), and the water concentration on the x-axis.
+The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 40.5 mM D-glucose, 121.5 mM Lauric acid and 24.3 mM water present in the medium. After 16 hours, the reaction has equillibrated and {math}`23.0 \pm 2\ mM` (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of {math}`57\% \pm 5\%\ mM` (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields. To conclude this section, I visualize the yield on a 2D grid spanning the concentrations of D-Glucose and Lauric on the y-axis (given as the acid-to-sugar ratio with 40 mM of D-Glucose used), and the water concentration on the x-axis.
 
 ![fit_2](/_static/figs/enzyme_kinetics/fit_2.png)
 
@@ -294,11 +285,11 @@ Our continuous flow reactor consists of a tube with an inner diameter of 2400 mi
 
 ![dem_sim](/_static/figs/enzyme_kinetics/dem_sim.png)
 
-In a reactor packed with immoblized enzymes, mass transfer processes are often as important as the chemical reaction itself. We introduce our reactants at the reactor inlet, where they move between the catalytic beads in the free moving solvent. The enzyme is located inside the Novozyme 435 beads and the reactants undergo two processes before they reach the enzyme: 1) They diffuse from the free moving solvent stream to the surface of the catalyst, this is called *external diffusion*. 2) They diffuse inside the pores of the catalyst to an enzyme molecule, this is called *internal diffusion*.
+In a reactor packed with immoblized enzymes, mass transfer processes are often as important as the chemical reaction itself. We introduce our reactants at the reactor inlet, where they move between the catalytic beads in the free moving solvent. The enzyme is located inside the Novozyme 435 beads and the reactants undergo two processes before they reach the enzyme: 1) They diffuse from the free moving solvent stream, through the layer of slower moving solvent adhering the catalyst bead (*boundary layer*) to the surface of the catalyst, this is called *external diffusion*. 2) They diffuse inside the pores of the catalyst to an enzyme molecule, this is called *internal diffusion*. Finally, the reaction happens and the reverse mass transfer processes releas the product in the free moving solvent stream.
 
 ![heterogeneous_catalyst](/_static/figs/enzyme_kinetics/massTransferCatalystPellet2.png)
 
-Luckily, the internal pores of the Novozyme 435 beads are quite large so internal diffusion can be ignored. This drastically simplifies our model, we only need to account for the mass transfer resistance between the free moving solvent and the surface of the catalyst. We will build a 1D model (along the axial dimension of the reactor) and assume our species are transported by diffusive and convenctive forces in the free moving solvent. The species can be transported through the liquid boundary layer to the catalyst particle surface where they can undergo the enzymatic reaction at a rate {math}`v^i`.
+Luckily, the internal pores of the Novozyme 435 beads are quite large so internal diffusion can be ignored. This drastically simplifies our model, we only need to account for the mass transfer resistance between the free moving solvent and the surface of the catalyst. We will build a 1D model (along the axial dimension of the reactor) and assume our species are transported by diffusive and convenctive forces in the free moving solvent. The species can be transported through the liquid boundary layer to the catalyst particle surface where they can undergo the enzymatic reaction at a rate {math}`v^i`. This system is governed by the following equations (for a derivation, see the manuscript *coming soon*),
 
 ```{math}
 \begin{cases}
@@ -306,7 +297,7 @@ Luckily, the internal pores of the Novozyme 435 beads are quite large so interna
 \dfrac{\partial C^{i,j}_{\mathrm{S}}}{\partial t} &= \underbrace{\text{-} \dfrac{k_{\mathrm{L}} a^i}{(1\text{-}\epsilon)} (C^{i,j}_{\mathrm{S}}-C^{i,j}_{\mathrm{F}})}_\text{diffusion to catalyst} + \underbrace{\rho_{\mathrm{B}} \dfrac{v^i}{[E]_{\mathrm{t}}}}_\text{reaction}\ ,
 \end{cases}
 ```
-Here, {math}`D^i_{ax}` is the axial dispersion coefficient, governing diffusion in the axial dimension. {math}`k_L a^i` is the mass transfer coefficient from the free moving solvent to the catalyst surface and vice versa. {math}`\epsilon` is the porosity of the packed bed, equal to 43%. {math}`\rho_B` is the density of the Novozyme 435 beads, equal to {math}`435 kg/m^3`. The values of {math}`D^i_{ax}` and  {math}`k_L a^i` were retrieved from the engineering literature, references are ommitted here.
+Here, {math}`D^i_{ax}` is the axial dispersion coefficient, governing diffusion in the axial dimension. {math}`k_L a^i` is the mass transfer coefficient from the free moving solvent to the catalyst surface and vice versa. {math}`\epsilon` is the porosity of the packed bed, equal to 43%. {math}`\rho_B` is the density of the Novozyme 435 beads, equal to {math}`435 kg/m^3`. The values of {math}`D^i_{ax}` and  {math}`k_L a^i` were retrieved from the engineering literature, references are ommitted here for the sake of brevity.
 
 We'll use the method-of-lines to implement these equations in the pySODM framework. The method-of-lines consists of discretizing only the spatial derivatives to obtain a system of coupled ordinary differential equations. We'll replace the spatial derivatives with their respective first order approximations. It is common practice to treat the convective term explictly while the diffusive term is treated implicitly.
 ```{math}
@@ -432,7 +423,7 @@ def draw_fcn(param_dict, samples_dict):
     return param_dict
 ```
 
-A first experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 28 mM water. The reactor tubing had a diameter of 2.4 mm and a length of 1 m. The reactants were pumped through the reactor at a flow rate of 0.2 mL/min, resulting in an average residence time of 13.5 minutes. After ten retention times, when the outlet concentration had stabilized, three samples were withdrawn at the outlet. Then, the reactor was cut short by 0.10 m, and again three samples were withdrawn at the outlet. In this way, the reactant profile acrosss the reactor length was obtained. I omit the code to replicate the following figures from this documentation as no new concepts are introduced beyond this point. Our packed-bed model does an adequate job at describing the data.
+A first experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 28 mM water. The reactants were pumped through the reactor at a flow rate of 0.2 mL/min, resulting in an average residence time of 13.5 minutes. After ten retention times, when the outlet concentration had stabilized, three samples were withdrawn at the outlet. Then, the reactor was cut short by 0.10 m, and again three samples were withdrawn at the outlet. In this way, the reactant profile acrosss the reactor length was obtained. I omit the code to replicate the following figures from this documentation as no new concepts are introduced beyond this point. Our packed-bed model does an adequate job at describing the data.
 
 ![PFR_reactorcut](/_static/figs/enzyme_kinetics/PFR_reactorcut.png)
 

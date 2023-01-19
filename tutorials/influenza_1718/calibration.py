@@ -40,7 +40,7 @@ data = data.squeeze()
 data_100K = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format_100K.csv'), index_col=[0,1], parse_dates=True)
 data_100K = data_100K.squeeze()
 # Re-insert pd.IntervalIndex (pd.IntervalIndex is always loaded as a string..)
-age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
+age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)], closed='left')
 iterables = [data.index.get_level_values('DATE').unique(), age_groups]
 names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 50
+    n_mcmc = 100
     multiplier_mcmc = 9
     print_n = 50
     discard = 30
@@ -252,6 +252,8 @@ if __name__ == '__main__':
         for tick in axs[id].get_xticklabels():
             tick.set_rotation(30)
         axs[id].grid(False)
+        if ((id == 0) | (id == 2)):
+            axs[id].set_ylabel('GP consultations (-)')
 
     plt.tight_layout()
     plt.show()
