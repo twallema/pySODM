@@ -52,7 +52,7 @@ from pySODM.models.base import ODEModel, SDEModel
 # Define the model equations
 class ODE_SIR(ODEModel):
     """
-    Simple SIR model without stratifications
+    Simple SIR model without dimensions
     """
     
     state_names = ['S','I','R']

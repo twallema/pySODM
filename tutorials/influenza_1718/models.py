@@ -11,7 +11,7 @@ class ODE_influenza_model(ODEModel):
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma', 'Nc']
     parameter_stratified_names = ['f_a']
-    stratification_names = ['age_group']
+    dimension_names = ['age_group']
 
     @staticmethod
     def integrate(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
@@ -37,7 +37,7 @@ class SDE_influenza_model(SDEModel):
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma','N']
     parameter_stratified_names = ['f_a']
-    stratification_names = ['age_group']
+    dimension_names = ['age_group']
 
     @staticmethod
     def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):

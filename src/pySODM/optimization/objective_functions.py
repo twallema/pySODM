@@ -263,7 +263,8 @@ class log_posterior_probability():
                 if weights.ndim > 1:
                     raise TypeError("Expected a 1D np.array for input argument `weights`")
         else:
-            raise TypeError("Expected a list/1D np.array for input argument `weights`")
+            if weights:
+                raise TypeError("Expected a list/1D np.array for input argument `weights`")
             
         if weights is None:
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):

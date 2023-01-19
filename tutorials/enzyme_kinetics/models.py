@@ -12,7 +12,7 @@ class packed_PFR(ODEModel):
     state_names = ['C_F', 'C_S']
     parameter_names = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
     parameter_stratified_names = [['kL_a', 'D_ax'],[]]
-    stratification_names = ['species', 'x']
+    dimension_names = ['species', 'x']
 
     @staticmethod
     @njit
@@ -25,7 +25,7 @@ class packed_PFR(ODEModel):
         # Reaction stochiometry
         stochiometry = [-1, -1, 1, 1]
 
-        # Stratification lengths
+        # dimension lengths
         N = C_F.shape[0]
         X = C_F.shape[1]
 

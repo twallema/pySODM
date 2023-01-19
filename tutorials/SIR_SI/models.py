@@ -9,8 +9,8 @@ class SDE_SIR_SI(SDEModel):
     state_names = ['S', 'I', 'R', 'S_v', 'I_v']
     parameter_names = ['beta', 'gamma']
     parameter_stratified_names = ['alpha']
-    stratification_names = ['age_group']
-    state_stratifications = [['age_group'],['age_group'],['age_group'],[],[]]
+    dimension_names = ['age_group']
+    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def compute_rates(t, S, I, R, S_v, I_v, alpha, beta, gamma):
@@ -47,8 +47,8 @@ class ODE_SIR_SI(ODEModel):
     state_names = ['S', 'I', 'R', 'S_v', 'I_v']
     parameter_names = ['beta', 'gamma']
     parameter_stratified_names = ['alpha']
-    stratification_names = ['age_group']
-    state_stratifications = [['age_group'],['age_group'],['age_group'],[],[]]
+    dimension_names = ['age_group']
+    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):
