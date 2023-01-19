@@ -90,6 +90,8 @@ class make_contact_matrix_function():
     # Define a pySODM compatible wrapper with the social policies
     def contact_function(self, t, states, param, ramp_time):
 
+        t = pd.to_datetime(t)
+
         delay = pd.Timedelta(days=ramp_time)
 
         if t <= pd.Timestamp('2017-12-20')+delay:
