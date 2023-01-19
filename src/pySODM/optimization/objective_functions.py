@@ -319,7 +319,7 @@ class log_posterior_probability():
             self.expanded_bounds = bounds
         else:
             raise Exception(
-                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameter_names_postprocessing}'  ({len(self.parameter_names_postprocessing)})"
             )
         # Expand labels
         if labels:
@@ -329,7 +329,7 @@ class log_posterior_probability():
                 self.expanded_labels = labels
             else:
                 raise Exception(
-                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameter_names_postprocessing}'  ({len(self.parameter_names_postprocessing)})"
                 )
         else:
             self.expanded_labels = self.parameter_names_postprocessing
