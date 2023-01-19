@@ -10,14 +10,14 @@ The ODEModel class inherits several attributes from the model class defined by t
 
 **Inherits:**
 
-* **state_names** (list) - Contains the names (type: str) of the states.
-* **parameter_names** (list) - Contains the names (type: str) of the non-stratified parameters. Non-stratified parameters are not subject to input checks and can thus be of any datatype/size.
-* **integrate** (function) - Function to compute the differentials of every model state. The integrate function must have the timestep `t` as its first input, followed by the `state_names`, `parameter_names` and `parameter_stratified_names` (their order is not important). The integrate function must return a differential for every model state of the correct size and **in the same order as `state_names`**. The integrate function must be a static method (include `@staticmethod`).
-* **dimension_names** (list) - optional - Contains the names of the dimension axes. The names given here become the dimensions in the simulation output `xarray` Dataset.
-* **parameter_stratified_names** (list) - optional - Contains the names of the stratified parameters. Stratified parameters are subject to input checks. They must be a list or a 1D np.ndarray with a length equal to the number of coordinates of the dimension axis. 
-    * For one dimension axes: list contains strings - `['stratpar_1', 'stratpar_2']`
-    * For multiple dimension axes: list contains lists, each sublist contains names of stratified parameters associated with that dimension axes - `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`
-* **state_2d** (list) - optional - Contains the names (type: str) of 2D states. Experimental, only available for ODE models and tested with one dimension axis.
+* **state_names** (list) - Names of the model's states.
+* **parameter_names** (list) - Names of the model's parameters. Parameters are not subject to input checks and can thus be of any datatype/size.
+* **integrate** (function) - Function computing the differentials of every model state. The integrate function must have the timestep `t` as its first input, followed by the `state_names`, `parameter_names` and `parameter_stratified_names` (their order is not important). The integrate function must return a differential for every model state of the correct size and **in the same order as `state_names`**. The integrate function must be a static method (include `@staticmethod`).
+* **dimension_names** (list) - optional - Names of the possible model dimensions. The coordinates of the dimensions are specified during initialization of the model.
+* **parameter_stratified_names** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length, which must be equal to the number of coordinates of the dimension axis it corresponds to, is verified during model initialization. Their use is optional and mainly serves as a way for the user to structure his code.
+    * If the model has one dimension: list contains strings - `['stratpar_1', 'stratpar_2']`
+    * If the model has multiple dimensions: list contains *n* sublists, where *n* is the number of model dimensions (length of `dimension_names`). Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimension_names` - example: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`
+* **state_dimensions** (list) - optional - Specify, for each model state in `state_names`, its dimensions. Allows users to define models with states of different sizes. If `state_dimensions` is not provided, all model states will have the same size, depending on the model's dimensions specified in `dimension_names`. If specified, `state_dimensions` must contain *n* sublists, where *n* is the number of model states (length of `state_names`). If some model states have no dimensions (i.e. it is a float), specify an empty list.
 
 Upon intialization of the model class, the following arguments must be provided.
 
@@ -56,14 +56,15 @@ The SDEModel class inherits several attributes from the model class defined by t
 
 **Inherits:**
 
-* **state_names** (list) - Contains the names (type: str) of the states.
-* **parameter_names** (list) - Contains the names (type: str) of the non-stratified parameters. Non-stratified parameters are not subject to input checks and can thus be of any datatype/size.
+* **state_names** (list) - Names of the model's states.
+* **parameter_names** (list) - Names of the model's parameters. Parameters are not subject to input checks and can thus be of any datatype/size.
 * **compute_rates** (function) - Function returning the rates of transitioning between the model states. `compute_rates()` must have the timestep `t` as its first input, followed by the `state_names`, `parameter_names` and the `parameter_stratified_names` (their order is not important). `compute_rates()` must be a static method (include `@staticmethod`). The output of `compute_rates()` must be a dictionary. Its keys must be valid model states, a rate is only needed for the states undergoing a transitioning. The corresponding values must be a list containing the rates of the possible transitionings of the state. In this way, a model state can have multiple transitionings.
 * **apply_transitionings** (function) - Function to update the states with the number of drawn transitionings. `apply_transitionings()` must have the timestep `t` as its first input, followed by the solver timestep `tau`, follwed by the dictionary containing the transitionings `transitionings`, then followed by the model states and parameters similarily to `compute_rates()`.
-* **dimension_names** (list) - optional - Contains the names of the dimension axes. The names given here become the dimensions in the simulation output `xarray` Dataset.
-* **parameter_stratified_names** (list) - optional - Contains the names of the stratified parameters. Stratified parameters are subject to input checks. They must be a list or a 1D np.ndarray with a length equal to the number of coordinates of the dimension axis. 
-    * For one dimension axes: list contains strings - `['stratpar_1', 'stratpar_2']`
-    * For multiple dimension axes: list contains lists, each sublist contains names of stratified parameters associated with that dimension axes - `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`
+* **dimension_names** (list) - optional - Names of the possible model dimensions. The coordinates of the dimensions are specified during initialization of the model.
+* **parameter_stratified_names** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length, which must be equal to the number of coordinates of the dimension axis it corresponds to, is verified during model initialization. Their use is optional and mainly serves as a way for the user to structure his code.
+    * If the model has one dimension: list contains strings - `['stratpar_1', 'stratpar_2']`
+    * If the model has multiple dimensions: list contains *n* sublists, where *n* is the number of model dimensions (length of `dimension_names`). Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimension_names` - example: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`
+* **state_dimensions** (list) - optional - Specify, for each model state in `state_names`, its dimensions. Allows users to define models with states of different sizes. If `state_dimensions` is not provided, all model states will have the same size, depending on the model's dimensions specified in `dimension_names`. If specified, `state_dimensions` must contain *n* sublists, where *n* is the number of model states (length of `state_names`). If some model states have no dimensions (i.e. it is a float), specify an empty list.
 
 Upon intialization of the model class, the following arguments must be provided.
 
