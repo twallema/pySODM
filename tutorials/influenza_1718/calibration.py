@@ -60,7 +60,7 @@ alpha = 0.03 # Overdispersion of data
 N = 10 # Repeated simulations
 start_calibration = start_date 
 end_calibration = pd.Timestamp('2018-03-01')
-identifier = 'twallema_2017-03-01'
+identifier = 'twallema_2018-03-01'
 
 ################
 ## Load model ##
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 100
+    n_mcmc = 30
     multiplier_mcmc = 9
     print_n = 50
     discard = 30
