@@ -160,12 +160,12 @@
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>date
-<span class="m">2022</span>-12-01     <span class="m">1</span>
-<span class="m">2022</span>-12-02     <span class="m">1</span>
+<span class="m">2022</span>-12-01<span class="w">     </span><span class="m">1</span>
+<span class="m">2022</span>-12-02<span class="w">     </span><span class="m">1</span>
 ...
-<span class="m">2023</span>-01-19    <span class="m">34</span>
-<span class="m">2023</span>-01-20    <span class="m">24</span>
-Name: CASES, dtype: int64
+<span class="m">2023</span>-01-19<span class="w">    </span><span class="m">34</span>
+<span class="m">2023</span>-01-20<span class="w">    </span><span class="m">24</span>
+Name:<span class="w"> </span>CASES,<span class="w"> </span>dtype:<span class="w"> </span>int64
 </pre></div>
 </div>
 <p>Visually,</p>
@@ -201,7 +201,7 @@ N &amp;=&amp; S + I + R, \\
 
 <span class="c1"># Define the model equations</span>
 <span class="k">class</span> <span class="nc">ODE_SIR</span><span class="p">(</span><span class="n">ODEModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Simple SIR model without dimensions</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
@@ -283,11 +283,11 @@ N &amp;=&amp; S + I + R, \\
 <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>                       theta        AIC
-gaussian           <span class="m">14</span>.568640  <span class="m">52</span>.300657
-poisson             <span class="m">0</span>.000000  <span class="m">44</span>.165044
-quasi-poisson       <span class="m">1</span>.925682  <span class="m">38</span>.796586
-negative binomial   <span class="m">0</span>.042804  <span class="m">32</span>.045864
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">                       </span>theta<span class="w">        </span>AIC
+gaussian<span class="w">           </span><span class="m">14</span>.568640<span class="w">  </span><span class="m">52</span>.300657
+poisson<span class="w">             </span><span class="m">0</span>.000000<span class="w">  </span><span class="m">44</span>.165044
+quasi-poisson<span class="w">       </span><span class="m">1</span>.925682<span class="w">  </span><span class="m">38</span>.796586
+negative<span class="w"> </span>binomial<span class="w">   </span><span class="m">0</span>.042804<span class="w">  </span><span class="m">32</span>.045864
 </pre></div>
 </div>
 <p>The negative binomial model with dispersion coefficient <span class="math notranslate nohighlight">\(\alpha = 0.043\)</span> is the most appropriate statistical model (lowest AIC). This estimate is quite good considering we’re using a very limited amount of data generated from a negative binomial model with a dispersion coefficient <span class="math notranslate nohighlight">\(\alpha = 0.03\)</span>.</p>
@@ -406,7 +406,7 @@ negative binomial   <span class="m">0</span>.042804  <span class="m">32</span>.0
 </pre></div>
 </div>
 <p>The resulting dictionary of samples contains the samples of <code class="docutils literal notranslate"><span class="pre">beta</span></code>, as well as the variables defined in the <code class="docutils literal notranslate"><span class="pre">settings</span></code> dictionary.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span><span class="s1">&#39;beta&#39;</span>: <span class="o">[</span><span class="m">0</span>.2758539499364022, ...,  <span class="m">0</span>.27321610939267427, <span class="m">0</span>.27459471960360476<span class="o">]</span>, <span class="s1">&#39;start_calibration&#39;</span>: <span class="s1">&#39;2022-12-01&#39;</span>, <span class="s1">&#39;end_calibration&#39;</span>: <span class="s1">&#39;2023-01-20&#39;</span>, <span class="s1">&#39;n_chains&#39;</span>: <span class="m">9</span>, <span class="s1">&#39;starting_estimate&#39;</span>: <span class="o">[</span><span class="m">0</span>.2745855197310446<span class="o">]}</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span><span class="s1">&#39;beta&#39;</span>:<span class="w"> </span><span class="o">[</span><span class="m">0</span>.2758539499364022,<span class="w"> </span>...,<span class="w">  </span><span class="m">0</span>.27321610939267427,<span class="w"> </span><span class="m">0</span>.27459471960360476<span class="o">]</span>,<span class="w"> </span><span class="s1">&#39;start_calibration&#39;</span>:<span class="w"> </span><span class="s1">&#39;2022-12-01&#39;</span>,<span class="w"> </span><span class="s1">&#39;end_calibration&#39;</span>:<span class="w"> </span><span class="s1">&#39;2023-01-20&#39;</span>,<span class="w"> </span><span class="s1">&#39;n_chains&#39;</span>:<span class="w"> </span><span class="m">9</span>,<span class="w"> </span><span class="s1">&#39;starting_estimate&#39;</span>:<span class="w"> </span><span class="o">[</span><span class="m">0</span>.2745855197310446<span class="o">]}</span>
 </pre></div>
 </div>
 </section>

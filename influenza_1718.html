@@ -118,17 +118,17 @@
 <p>Data on the weekly incidence of visits to General Practictioners (GP) are made publically available by the Belgian Scientific Institute of Public Health (Sciensano). These data were retrieved from the “End of season” report on Influenza in Belgium (see <code class="docutils literal notranslate"><span class="pre">data/raw/Influenza</span> <span class="pre">2017-2018</span> <span class="pre">End</span> <span class="pre">of</span> <span class="pre">Season_NL.pdf</span></code>). Using <a class="reference external" href="https://automeris.io/WebPlotDigitizer/">Webplotdigitizer</a>, the weekly number of GP visits in the different age groups were extracted (see <code class="docutils literal notranslate"><span class="pre">data/raw/dataset_influenza_1718.csv</span></code>). Then, the script <code class="docutils literal notranslate"><span class="pre">data_conversion.py</span></code> was used to convert the <em>raw</em> weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season into a better suited format. The weekly incidence was first converted to the absolute GP visits count by multipying with the demographics. Then, it was assumed that the weekly incidence was the sum of seven equal counts throughout the week preceding the data collection, and hence the weekly data were divided by seven. The formatted data are located in <code class="docutils literal notranslate"><span class="pre">data/interim/data_influenza_1718_format.csv</span></code>.</p>
 <p><img alt="data" src="_images/data.png" /></p>
 <p>The data are loaded in our calibration script <code class="docutils literal notranslate"><span class="pre">~/tutorials/influenza_1718/calibration.py</span></code> as a <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> with a <code class="docutils literal notranslate"><span class="pre">pd.Multiindex</span></code>. The <code class="docutils literal notranslate"><span class="pre">time</span></code>/<code class="docutils literal notranslate"><span class="pre">date</span></code> axis is obligatory. The other index names and values are the same as the model’s dimensions and coordinates. In this way, pySODM recognizes how model prediction and dataset must be aligned.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>date        age_group
-<span class="m">2017</span>-11-27  <span class="o">(</span><span class="m">0</span>, <span class="m">5</span><span class="o">]</span>        <span class="m">15</span>.373303
-            <span class="o">(</span><span class="m">5</span>, <span class="m">15</span><span class="o">]</span>       <span class="m">13</span>.462340
-            <span class="o">(</span><span class="m">15</span>, <span class="m">65</span><span class="o">]</span>     <span class="m">409</span>.713333
-            <span class="o">(</span><span class="m">65</span>, <span class="m">120</span><span class="o">]</span>     <span class="m">33</span>.502705
-                            ...    
-<span class="m">2018</span>-05-07  <span class="o">(</span><span class="m">0</span>, <span class="m">5</span><span class="o">]</span>         <span class="m">0</span>.000000
-            <span class="o">(</span><span class="m">5</span>, <span class="m">15</span><span class="o">]</span>        <span class="m">0</span>.000000
-            <span class="o">(</span><span class="m">15</span>, <span class="m">65</span><span class="o">]</span>       <span class="m">0</span>.000000
-            <span class="o">(</span><span class="m">65</span>, <span class="m">120</span><span class="o">]</span>      <span class="m">0</span>.000000
-Name: CASES, Length: <span class="m">96</span>, dtype: float64
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>date<span class="w">        </span>age_group
+<span class="m">2017</span>-11-27<span class="w">  </span><span class="o">(</span><span class="m">0</span>,<span class="w"> </span><span class="m">5</span><span class="o">]</span><span class="w">        </span><span class="m">15</span>.373303
+<span class="w">            </span><span class="o">(</span><span class="m">5</span>,<span class="w"> </span><span class="m">15</span><span class="o">]</span><span class="w">       </span><span class="m">13</span>.462340
+<span class="w">            </span><span class="o">(</span><span class="m">15</span>,<span class="w"> </span><span class="m">65</span><span class="o">]</span><span class="w">     </span><span class="m">409</span>.713333
+<span class="w">            </span><span class="o">(</span><span class="m">65</span>,<span class="w"> </span><span class="m">120</span><span class="o">]</span><span class="w">     </span><span class="m">33</span>.502705
+<span class="w">                            </span>...<span class="w">    </span>
+<span class="m">2018</span>-05-07<span class="w">  </span><span class="o">(</span><span class="m">0</span>,<span class="w"> </span><span class="m">5</span><span class="o">]</span><span class="w">         </span><span class="m">0</span>.000000
+<span class="w">            </span><span class="o">(</span><span class="m">5</span>,<span class="w"> </span><span class="m">15</span><span class="o">]</span><span class="w">        </span><span class="m">0</span>.000000
+<span class="w">            </span><span class="o">(</span><span class="m">15</span>,<span class="w"> </span><span class="m">65</span><span class="o">]</span><span class="w">       </span><span class="m">0</span>.000000
+<span class="w">            </span><span class="o">(</span><span class="m">65</span>,<span class="w"> </span><span class="m">120</span><span class="o">]</span><span class="w">      </span><span class="m">0</span>.000000
+Name:<span class="w"> </span>CASES,<span class="w"> </span>Length:<span class="w"> </span><span class="m">96</span>,<span class="w"> </span>dtype:<span class="w"> </span>float64
 </pre></div>
 </div>
 <blockquote>
@@ -182,7 +182,7 @@ R^i(t+\tau) &amp;=&amp; R^i(t) + \mathcal{N}(I_a \rightarrow R)^i + \mathcal{N}(
 
 <span class="k">class</span> <span class="nc">SDE_influenza_model</span><span class="p">(</span><span class="n">SDEModel</span><span class="p">):</span>
 
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Simple stochastic SEIR model for influenza with undetected carriers</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
