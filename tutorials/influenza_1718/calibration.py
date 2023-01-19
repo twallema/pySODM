@@ -240,10 +240,6 @@ if __name__ == '__main__':
         # Model trajectories
         axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).mean(dim='draws')/initN.loc[age_class]*100000*7, color='black', linestyle='--', alpha=0.7, linewidth=1, label='Model mean')
         axs[id].fill_between(out['date'],out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.15, label='Model 95% CI')
-        # School holidays
-        #axs[id].axvspan(pd.to_datetime('2017-12-20'),pd.to_datetime('2018-01-05'), color='black', alpha=0.05)
-        #axs[id].axvspan(pd.to_datetime('2018-02-10'),pd.to_datetime('2018-02-16'), color='black', alpha=0.05)
-        #axs[id].axvspan(pd.to_datetime('2018-03-28'),pd.to_datetime('2018-04-16'), color='black', alpha=0.05)
         # Format figure
         if id==3:
             axs[id].legend()      
