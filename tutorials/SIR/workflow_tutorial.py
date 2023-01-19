@@ -47,12 +47,12 @@ d = d[d.index.dayofweek < 5]
 ##################
 
 # Import the ODEModel class
-from pySODM.models.base import ODEModel, SDEModel
+from pySODM.models.base import ODEModel
 
 # Define the model equations
 class ODE_SIR(ODEModel):
     """
-    Simple SIR model without stratifications
+    Simple SIR model without dimensions
     """
     
     state_names = ['S','I','R']
@@ -126,10 +126,15 @@ if __name__ == '__main__':
     model.parameters.update({'beta': theta[0]})
     out = model.sim([start_date, end_date])
     # Visualize result
-    fig,ax=plt.subplots(figsize=(12,4))
-    ax.plot(out['date'], out['I'], color='red', label='Infectious')
-    ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2, label='data')
+    fig,ax=plt.subplots(figsize=(6,2.5))
+    ax.plot(out['date'], out['I'], color='red', label='Model')
+    ax.plot(d, color='black', marker='o', label='Observed')
     ax.legend()
+    ax.set_ylabel('Number of Infectious (-)')
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(30)
+    plt.tight_layout()
     plt.show()
     plt.close()
 
@@ -163,9 +168,10 @@ if __name__ == '__main__':
     ########################################
     
     # Visualize the distribution of the basic reproduction number
-    fig,ax=plt.subplots(figsize=(12,4))
+    fig,ax=plt.subplots(figsize=(6,2.5))
     ax.hist(np.array(samples_dict['beta'])*model.parameters['gamma'], density=True, color='black', alpha=0.6)
     ax.set_xlabel('$R_0$')
+    plt.tight_layout()
     plt.show()
     plt.close()
 
@@ -182,13 +188,17 @@ if __name__ == '__main__':
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize result
-    fig,ax=plt.subplots(figsize=(12,4))
+    fig,ax=plt.subplots(figsize=(6,2.5))
     for i in range(100):
         ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
     ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
-    ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
+    ax.plot(d, color='black', marker='o', label='Observed')
     ax.xaxis.set_major_locator(plt.MaxNLocator(3))
-    ax.set_ylabel('Number of infected')
+    ax.set_ylabel('Number of Infectious (-)')
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(30)
+    plt.tight_layout()
     plt.show()
     plt.close()
 
@@ -198,7 +208,7 @@ if __name__ == '__main__':
 
     # Define a time-dependent parameter function
     def lower_infectivity(t, states, param, start_measures):
-        if t < start_measures:
+        if pd.to_datetime(t) < start_measures:
             return param
         else:
             return param/2
@@ -206,6 +216,7 @@ if __name__ == '__main__':
     # Define draw function
     def draw_fcn(param_dict, samples_dict):
         param_dict['beta'] = np.random.choice(samples_dict['beta'])
+        param_dict['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
         return param_dict
 
     # Attach its arguments to the parameter dictionary
@@ -221,15 +232,19 @@ if __name__ == '__main__':
     out_with = add_negative_binomial_noise(out_with, alpha)
 
     # Visualize result
-    fig,ax=plt.subplots(figsize=(12,4))
+    fig,ax=plt.subplots(figsize=(6,2.5))
     for i in range(100):
         ax.plot(out['date'], out['I'].isel(draws=i), color='red', alpha=0.05)
         ax.plot(out_with['date'], out_with['I'].isel(draws=i), color='blue', alpha=0.05)
     ax.plot(out['date'], out['I'].mean(dim='draws'), color='red', alpha=0.6)
     ax.plot(out_with['date'], out_with['I'].mean(dim='draws'), color='blue', alpha=0.6)
-    ax.scatter(d.index, d.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
+    ax.plot(d, color='black', marker='o', label='Observed')
     ax.xaxis.set_major_locator(plt.MaxNLocator(3))
-    ax.set_ylabel('Number of infected')
+    ax.set_ylabel('Number of Infectious (-)')
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(30)
+    plt.tight_layout()
     plt.show()
     plt.close()
 

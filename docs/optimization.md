@@ -11,7 +11,7 @@
 * **model** (object) - An initialized ODEModel or SDEModel.
 * **parameter_names** (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
 * **bounds** (list) - Lower and upper bound of calibrated parameters provided as tuples. `[(lb_1, ub_1), ..., (lb_n, ub_n)]` 
-* **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use `[dataset,]`. Must contain a time index named `time` or `date`. Additional axes must be implemented using a `pd.Multiindex` and must bear the names/contain the coordinates of a valid model stratification.
+* **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use `[dataset,]`. Must contain a time index named `time` or `date`. Additional axes must be implemented using a `pd.Multiindex` and must bear the names/contain the coordinates of a valid model dimension.
 * **states** (list) - Names of the model states (type: str) the respective datasets should be matched to.
 * **log_likelihood_fnc** (list) - Contains a log likelihood function for every provided dataset.
 * **log_likelihood_fnc_args** (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (`ll_poisson`), provide an empty list.
@@ -40,7 +40,7 @@
 >    **Parameters:**
 >   * **ymodel** (list/np.ndarray) - Mean values of the Gaussian distribution (i.e. "mu" values), as predicted by the model
 >   * **ydata** (list/np.ndarray) - Data time series values to be matched with the model predictions.
->   * **sigma** (float/list of floats/np.ndarray) - Standard deviation(s) of the Gaussian distribution around the data 'ydata'. Two options are possible: 1) One error per model stratification, applied uniformly to all datapoints corresponding to that stratification; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.
+>   * **sigma** (float/list of floats/np.ndarray) - Standard deviation(s) of the Gaussian distribution around the data 'ydata'. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.
 
 >   **Returns:**
 >   * **ll** (float) - Loglikelihood associated with the comparison of the data points and the model prediction.  

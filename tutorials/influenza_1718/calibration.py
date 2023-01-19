@@ -40,7 +40,7 @@ data = data.squeeze()
 data_100K = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format_100K.csv'), index_col=[0,1], parse_dates=True)
 data_100K = data_100K.squeeze()
 # Re-insert pd.IntervalIndex (pd.IntervalIndex is always loaded as a string..)
-age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
+age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)], closed='left')
 iterables = [data.index.get_level_values('DATE').unique(), age_groups]
 names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
@@ -60,7 +60,7 @@ alpha = 0.03 # Overdispersion of data
 N = 10 # Repeated simulations
 start_calibration = start_date 
 end_calibration = pd.Timestamp('2018-03-01')
-identifier = 'twallema_2017-03-01'
+identifier = 'twallema_2018-03-01'
 
 ################
 ## Load model ##
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 50
+    n_mcmc = 30
     multiplier_mcmc = 9
     print_n = 50
     discard = 30
@@ -240,10 +240,6 @@ if __name__ == '__main__':
         # Model trajectories
         axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).mean(dim='draws')/initN.loc[age_class]*100000*7, color='black', linestyle='--', alpha=0.7, linewidth=1, label='Model mean')
         axs[id].fill_between(out['date'],out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.15, label='Model 95% CI')
-        # School holidays
-        #axs[id].axvspan(pd.to_datetime('2017-12-20'),pd.to_datetime('2018-01-05'), color='black', alpha=0.05)
-        #axs[id].axvspan(pd.to_datetime('2018-02-10'),pd.to_datetime('2018-02-16'), color='black', alpha=0.05)
-        #axs[id].axvspan(pd.to_datetime('2018-03-28'),pd.to_datetime('2018-04-16'), color='black', alpha=0.05)
         # Format figure
         if id==3:
             axs[id].legend()      
@@ -252,6 +248,8 @@ if __name__ == '__main__':
         for tick in axs[id].get_xticklabels():
             tick.set_rotation(30)
         axs[id].grid(False)
+        if ((id == 0) | (id == 2)):
+            axs[id].set_ylabel('GP consultations (-)')
 
     plt.tight_layout()
     plt.show()

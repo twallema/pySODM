@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 from scipy.stats import norm, weibull_min, triang, gamma
 from scipy.special import gammaln
+from pySODM.models.utils import list_to_dict
 from pySODM.optimization.utils import _thetas_to_thetas_dict
 from pySODM.models.validation import validate_initial_states
 
@@ -23,7 +24,7 @@ def ll_gaussian(ymodel, ydata, sigma):
         data time series values to be matched with the model predictions
     sigma: float/list of floats/np.ndarray
         standard deviation(s) of the Gaussian distribution around the mean value 'ymodel'
-        Two options are possible: 1) one error per model stratification, applied uniformly to all datapoints corresponding to that stratification OR
+        Two options are possible: 1) one error per model dimension, applied uniformly to all datapoints corresponding to that dimension OR
         2) one error for every datapoint, corresponding to a weighted least-squares estimator
 
     Returns
@@ -256,7 +257,16 @@ class log_posterior_probability():
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
         ############################################################################################################
 
-        if not weights:
+        # Check type of `weights`
+        if isinstance(weights, (list,np.ndarray)):
+            if isinstance(weights, np.ndarray):
+                if weights.ndim > 1:
+                    raise TypeError("Expected a 1D np.array for input argument `weights`")
+        else:
+            if weights:
+                raise TypeError("Expected a list/1D np.array for input argument `weights`")
+            
+        if weights is None:
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, log_likelihood_fnc_args]):
                 raise ValueError(
                     "The number of datasets ({0}), model states ({1}), log likelihood functions ({2}), and the extra arguments of the log likelihood function ({3}) must be of equal".format(len(data),len(states), len(log_likelihood_fnc), len(log_likelihood_fnc_args))
@@ -272,7 +282,7 @@ class log_posterior_probability():
         else:
             # Validate initial states
             for i, initial_states_dict in enumerate(initial_states):
-                initial_states[i] = validate_initial_states(model.state_names, initial_states_dict, model.stratification_size, model.coordinates, None)
+                initial_states[i] = validate_initial_states(model.state_shapes, initial_states_dict)
             # Check 
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
                 raise ValueError(
@@ -309,7 +319,7 @@ class log_posterior_probability():
             self.expanded_bounds = bounds
         else:
             raise Exception(
-                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameter_names_postprocessing}'  ({len(self.parameter_names_postprocessing)})"
             )
         # Expand labels
         if labels:
@@ -319,7 +329,7 @@ class log_posterior_probability():
                 self.expanded_labels = labels
             else:
                 raise Exception(
-                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameter_names_postprocessing}'  ({len(parameter_names_postprocessing)})"
+                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameter_names_postprocessing}'  ({len(self.parameter_names_postprocessing)})"
                 )
         else:
             self.expanded_labels = self.parameter_names_postprocessing
@@ -339,10 +349,10 @@ class log_posterior_probability():
         self.aggregation_function = aggregation_function
 
         ############################################
-        ## Compare data and model stratifications ##
+        ## Compare data and model dimensions ##
         ############################################
 
-        out = create_fake_xarray_output(model.coordinates, model.initial_states, self.time_index)
+        out = create_fake_xarray_output(model.state_dimensions, model.state_coordinates, model.initial_states, self.time_index)
         self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
 
         ########################################
@@ -351,7 +361,7 @@ class log_posterior_probability():
 
         self.n_log_likelihood_extra_args = validate_log_likelihood_funtion(log_likelihood_fnc)
         self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
-                                                                                self.time_index, log_likelihood_fnc_args, log_likelihood_fnc, self.series_to_ndarray)
+                                                                                self.time_index, log_likelihood_fnc_args, log_likelihood_fnc)
 
         # Assign attributes to class
         self.model = model
@@ -372,11 +382,6 @@ class log_posterior_probability():
             args = log_prior_prob_fnc_args[idx]
             lp.append(fnc(theta,args))
         return sum(lp)
-
-    @staticmethod
-    def series_to_ndarray(df):
-            shape = [len(df.index.get_level_values(i).unique().values) for i in range(df.index.nlevels)]
-            return df.to_numpy().reshape(shape)
 
     def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args,
                                 time_index, n_log_likelihood_extra_args, aggregate_over, additional_axes_data, coordinates_data_also_in_model,
@@ -415,8 +420,10 @@ class log_posterior_probability():
             dims = [time_index,] + additional_axes_data
             interp = interp.transpose(*dims)
             ymodel = interp.sel({k:coordinates_data_also_in_model[jdx] for jdx,k in enumerate(additional_axes_data)}).values
-            # Automatically reorder the dataframe so that time/date is first index
-            ydata = self.series_to_ndarray(df.reorder_levels([time_index,]+additional_axes_data))
+            # Automatically reorder the dataframe so that time/date is first index (stack only works for 2 indices sadly --> pandas to xarray --> reorder --> to numpy)
+            df = df.to_xarray()
+            df = df.transpose(*dims)
+            ydata = df.to_numpy()
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
                 raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
@@ -427,43 +434,13 @@ class log_posterior_probability():
     
         return total_ll
 
-    @staticmethod
-    def thetas_to_dict(thetas, parameter_shapes):
-        """
-        A function to reconstruct the calibrated parameters given our flat list with estimates of model parameters (thetas)
-
-        Parameters
-        ----------
-
-        thetas: list
-            Estimates of the model parameters (element expanded)
-
-        parameter_shapes: dict
-            Shapes of calibrated parameters. For int/float: (1,). Keys: parameter_names.
-        
-        Returns
-        -------
-
-        thetas_dict: dict
-            Dictionary containing the reconstructed parameters. Keys: parameter_names.
-        """
-
-        restoredArray =[]
-        offset=0
-        for i,s in enumerate(parameter_shapes.values()):
-            n = np.prod(s)
-            restoredArray.append(thetas[offset:(offset+n)].reshape(s))
-            offset+=n
-    
-        return dict(zip(parameter_shapes.keys(), restoredArray))
-
     def __call__(self, thetas, simulation_kwargs={}):
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
         # Unflatten thetas
-        thetas_dict = self.thetas_to_dict(thetas, self.parameter_shapes)
+        thetas_dict = list_to_dict(thetas, self.parameter_shapes)
 
         # Assign and remove warmup
         if 'warmup' in thetas_dict.keys():
@@ -519,7 +496,7 @@ def validate_dataset(data):
         - Correct datatype?
         - No Nan's?
         - Is the index level 'date'/'time present? (obligated)
-    Extracts and returns the additional stratifications in dataset besides the time axis.
+    Extracts and returns the additional dimensions in dataset besides the time axis.
 
     Parameters
     ----------
@@ -769,15 +746,15 @@ def get_coordinates_data_also_in_model(data_index_diff, i, model_coordinates, da
     tmp1=[]
     for data_dim in data_index_diff:
         tmp2=[]
-        # Model has no stratifications: data can only contain 'date' or 'time'
+        # Model has no dimensions: data can only contain 'date' or 'time'
         if not model_coordinates:
             raise Exception(
-                f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
+                f"Your model has no dimensions. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
             )
         # Verify the axes in additional_axes_data are valid model dimensions
         if data_dim not in list(model_coordinates.keys()):
             raise Exception(
-                f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
+                f"{i}th dataset coordinate '{data_dim}' is not a model dimension. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
             )
         else:
             # Verify all coordinates in the dataset can be found in the model
@@ -786,7 +763,7 @@ def get_coordinates_data_also_in_model(data_index_diff, i, model_coordinates, da
             for coord in coords_data:
                 if coord not in coords_model:
                     raise Exception(
-                        f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
+                        f"coordinate '{coord}' of dimension '{data_dim}' in the {i}th dataset was not found in the model coordinates of dimension '{data_dim}': {coords_model}"
                         )
                 else:
                     tmp2.append(coord)
@@ -828,9 +805,9 @@ def validate_aggregation_function(aggregation_function, n_datasets):
     ----------
     aggregation_function: callable function or list
         An aggregation functions receives as input an xarray.DataArray, obtained by extracting the model output at the state the user wishes to calibrate.
-        Like so: input_to_aggregation_function = simulation_output[state_name]
+        e.g. input_to_aggregation_function = simulation_output[state_name]
         The aggregation function performs some operation on this data (f.i. aggregating over certain age groups or spatial levels) and returns an xarray.DataArray.
-        NO INPUT CHECKS ARE PERFORMED ON AGGREGATION FUNCTIONS
+        NO INPUT CHECKS ARE PERFORMED ON THE AGGREGATION FUNCTIONS THEMSELVES!
     
     n_datasets: int
         Number of datasets
@@ -860,15 +837,18 @@ def validate_aggregation_function(aggregation_function, n_datasets):
         )
     return aggregation_function
 
-def create_fake_xarray_output(model_coordinates, initial_states, time_index):
+def create_fake_xarray_output(state_dimensions, state_coordinates, initial_states, time_index):
     """ 
     A function to "replicate" the xarray.Dataset output of a simulation
     Made to omit the need to call the sim function in the initialization of the log_posterior_probability
 
     Parameters
     ----------
-    model_coordinates: None or dict
-        Dictionary of model coordinates
+    state_dimensions: dict
+        Keys: model states. Values: List containing dimensions associated with state.
+
+    state_coordinates: dict
+        Keys: model states. Values: List containing coordinates associated with each dimension associated with state.
 
     initial_states: dict
         Dictionary of initial model states
@@ -882,32 +862,34 @@ def create_fake_xarray_output(model_coordinates, initial_states, time_index):
     out: xarray.Dataset
         Model "output" 
     """
-    # Create a fake model output
-    if model_coordinates:
-        # Expand existing coordinates with the time index
-        coords=model_coordinates.copy()
-        coords.update({time_index: [0,]})
-        dims=coords.keys()
-        # Generate dataset
-        dt = {}
-        for var, arr in initial_states.items():
-            xarr = xr.DataArray(arr[...,None], coords=coords, dims=dims)
-            dt[var] = xarr
-        out = xr.Dataset(dt)
-    else:
-        # Coordinates are time index
-        coords={time_index: [0,]}
-        dims= [time_index, ]
-        # Generate dataset
-        dt = {}
-        for var, arr in initial_states.items():
-            xarr = xr.DataArray(arr, coords=coords, dims=dims)
-            dt[var] = xarr
-        out = xr.Dataset(dt)
-    return out
+
+    # Append the time dimension
+    new_state_dimensions={}
+    for k,v in state_dimensions.items():
+        v_acc = v.copy()
+        v_acc.append(time_index)
+        new_state_dimensions.update({k: v_acc})
+
+    # Append the time coordinates
+    new_state_coordinates={}
+    for k,v in state_coordinates.items():
+        v_acc=v.copy()
+        v_acc.append([0,])
+        new_state_coordinates.update({k: v_acc})
+
+    # Build the xarray dataset
+    data = {}
+    for var, arr in initial_states.items():
+        if arr.ndim >= 1:
+            if state_dimensions[var]:
+                arr = arr[..., np.newaxis]
+        xarr = xr.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        data[var] = xarr
+
+    return xr.Dataset(data)
 
 
-def compare_data_model_coordinates(output, data, state_names, aggregation_function, additional_axes_data):
+def compare_data_model_coordinates(output, data, calibration_state_names, aggregation_function, additional_axes_data):
     """
     A function to check if data and model dimensions/coordinates can be aligned correctly (subject to possible aggregation functions introduced by the user).
 
@@ -919,7 +901,7 @@ def compare_data_model_coordinates(output, data, state_names, aggregation_functi
     data: list
         List containing the datasets
 
-    state_names: list
+    calibration_state_names: list
         Contains the names (type: str) of the model states to match with each dataset in `data`
 
     aggregation_function: list
@@ -940,31 +922,29 @@ def compare_data_model_coordinates(output, data, state_names, aggregation_functi
     # Validate
     coordinates_data_also_in_model=[]
     aggregate_over=[]
-    # Loop over states we'd like to match
-    for i, (state_name, df) in enumerate(zip(state_names, data)):
+    # Loop over states/datasets we'd like to match
+    for i, (state_name, df) in enumerate(zip(calibration_state_names, data)):
+        # Call the aggregation function
         if aggregation_function:
-            # Call the aggregation function
+            
             new_output = aggregation_function[i](output[state_name])
-            # Recreate the 'model.coordinates' attribute using this fake dataset
-            coord=[]
-            for dim in new_output.dims:
-                if ((dim != 'time') & (dim != 'date')):
-                    coord.append(new_output.coords[dim].values)
-            model_coordinates = dict(zip(output.dims, coord))
         else:
-            # Recreate the 'model.coordinates' attribute using this fake dataset
-            coord=[]
-            for dim in output.dims:
-                if ((dim != 'time') & (dim != 'date')):
-                    coord.append(output.coords[dim].values)
-            model_coordinates = dict(zip(output.dims, coord))
+            new_output = output[state_name]
+        # Create a dictionary containing, for every dimensions that is not 'time'/'date'
+        # key: list of dimensions, value: list of corresponding coordinates
+        dimensions = list(new_output.dims)
+        dimensions = [d for d in dimensions if ((d != 'time')&(d!='date'))]
+        coordinates=[]
+        for dim in dimensions:
+            coordinates.append(new_output.coords[dim].values)
+        dims_coords = dict(zip(dimensions, coordinates))
 
-        # Use the fake model output's coordinates to compute the coordinates present in both data and model (we'll have to match these)
-        coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(additional_axes_data[i], i, model_coordinates, data))
+        # Compute the coordinates present in both data and model (we'll have to match these)
+        coordinates_data_also_in_model.append(get_coordinates_data_also_in_model(additional_axes_data[i], i, dims_coords, data))
         
         # Construct a list containing (per dataset) the axes we need to sum the model output over prior to matching the data
-        aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], model_coordinates))
-    
+        aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], dims_coords))
+
     return coordinates_data_also_in_model, aggregate_over
 
 def validate_log_likelihood_funtion(log_likelihood_function):
@@ -1009,7 +989,7 @@ def validate_log_likelihood_funtion(log_likelihood_function):
 
 
 def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_args, additional_axes_data, coordinates_data_also_in_model, time_index, log_likelihood_fnc_args,
-                                                log_likelihood_fnc, series_to_ndarray):
+                                                log_likelihood_fnc):
 
     # Input checks on the additional arguments of the log likelihood functions
     for idx, df in enumerate(data):
@@ -1058,7 +1038,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                     if isinstance(log_likelihood_fnc_args[idx], list):
                         if not len(df.index.get_level_values(additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                             raise ValueError(
-                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the stratification axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the dimension axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                                 )
                     # np.ndarray
                     if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
@@ -1068,7 +1048,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         elif not len(df.index.get_level_values(additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                             raise ValueError(
-                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the dimension axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                             )
                     # pd.Series
                     if isinstance(log_likelihood_fnc_args[idx], pd.Series):
@@ -1078,7 +1058,9 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         else:
                             # Make sure time index is in first position
-                            log_likelihood_fnc_args[idx] = series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx]))                 
+                            val = log_likelihood_fnc_args[idx].to_xarray()
+                            val = val.transpose([time_index,]+additional_axes_data[idx])
+                            log_likelihood_fnc_args[idx] = val.to_numpy()         
             else:
                 # Compute desired shape in case of one parameter per stratfication
                 desired_shape=[]
@@ -1104,6 +1086,8 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         else:
                             # Make sure time index is in first position
-                            log_likelihood_fnc_args[idx] = series_to_ndarray(log_likelihood_fnc_args[idx].reorder_levels([time_index,]+additional_axes_data[idx]))
+                            val = log_likelihood_fnc_args[idx].to_xarray()
+                            val = val.transpose([time_index,]+additional_axes_data[idx])
+                            log_likelihood_fnc_args[idx] = val.to_numpy()
     
     return log_likelihood_fnc_args

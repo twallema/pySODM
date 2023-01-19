@@ -9,18 +9,18 @@ class ODE_influenza_model(ODEModel):
     """
     
     state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['beta','sigma','gamma', 'Nc']
+    parameter_names = ['beta','sigma','gamma', 'N']
     parameter_stratified_names = ['f_a']
-    stratification_names = ['age_group']
+    dimension_names = ['age_group']
 
     @staticmethod
-    def integrate(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, Nc, f_a):
+    def integrate(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
         
         # Calculate total population
         T = S+E+Ia+Im+R
         # Calculate differentials
-        dS = -beta*Nc@((Ia+Im)*S/T)
-        dE = beta*Nc@((Ia+Im)*S/T) - 1/sigma*E
+        dS = -beta*N@((Ia+Im)*S/T)
+        dE = beta*N@((Ia+Im)*S/T) - 1/sigma*E
         dIa = f_a*E/sigma - 1/gamma*Ia
         dIm = (1-f_a)/sigma*E - 1/gamma*Im
         dR = 1/gamma*(Ia+Im)
@@ -37,7 +37,7 @@ class SDE_influenza_model(SDEModel):
     state_names = ['S','E','Ia','Im','R','Im_inc']
     parameter_names = ['beta','sigma','gamma','N']
     parameter_stratified_names = ['f_a']
-    stratification_names = ['age_group']
+    dimension_names = ['age_group']
 
     @staticmethod
     def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
@@ -89,6 +89,8 @@ class make_contact_matrix_function():
 
     # Define a pySODM compatible wrapper with the social policies
     def contact_function(self, t, states, param, ramp_time):
+
+        t = pd.to_datetime(t)
 
         delay = pd.Timedelta(days=ramp_time)
 
