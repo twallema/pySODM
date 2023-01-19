@@ -13,8 +13,8 @@ import multiprocessing as mp
 from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date, list_to_dict
-from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_stratifications, \
-                                        validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_state_stratifications, \
+from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
+                                        validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_state_dimensions, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
 
@@ -111,16 +111,16 @@ class SDEModel:
         keyword argument, and should return the new parameter value for
         time `t`.
     coordinates: dictionary, optional
-        Specify for each 'stratification_name' the coordinates to be used.
+        Specify for each 'dimension_name' the coordinates to be used.
         These coordinates can then be used to acces data easily in the output xarray.
         Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
     state_names = None
     parameter_names = None
-    stratification_names = None
+    dimension_names = None
     parameter_stratified_names = None
-    state_stratifications = None
+    state_dimensions = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
@@ -131,22 +131,22 @@ class SDEModel:
         # Merge parameter_names and parameter_stratified_names
         self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
 
-        # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
+        # Duplicates in lists containing names of states/parameters/stratified parameters/dimensions?
         check_duplicates(self.state_names, 'state_names')
         check_duplicates(self.parameter_names, 'parameter_names')
         check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
-        if self.stratification_names:
-            check_duplicates(self.stratification_names, 'stratification_names')
+        if self.dimension_names:
+            check_duplicates(self.dimension_names, 'dimension_names')
 
-        # Validate and compute the stratification sizes
-        self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
+        # Validate and compute the dimension sizes
+        self.dimension_size = validate_dimensions(self.dimension_names, self.coordinates)
 
-        # Validate state_stratifications
-        if self.state_stratifications:
-            validate_state_stratifications(self.state_stratifications, self.coordinates, self.state_names)
+        # Validate state_dimensions
+        if self.state_dimensions:
+            validate_state_dimensions(self.state_dimensions, self.coordinates, self.state_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
-        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_stratifications)
+        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
         self.initial_states = validate_initial_states(self.state_shapes, states)
@@ -168,7 +168,7 @@ class SDEModel:
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
         if self.parameter_stratified_names:
-            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, self.parameters)
+            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.dimension_names, coordinates, self.parameters)
 
         # Call the compute_rates function, check if it works and check the sizes of the differentials in the output
         rates = validate_compute_rates(self.compute_rates, self.initial_states, self.state_shapes, self.parameter_names_merged, self.parameters)
@@ -571,16 +571,16 @@ class ODEModel:
         keyword argument, and should return the new parameter value for
         time `t`.
     coordinates: dictionary, optional
-        Specify for each 'stratification_name' the coordinates to be used.
+        Specify for each 'dimension_name' the coordinates to be used.
         These coordinates can then be used to acces data easily in the output xarray.
         Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
     state_names = None
     parameter_names = None
-    stratification_names = None
+    dimension_names = None
     parameter_stratified_names = None
-    state_stratifications = None
+    state_dimensions = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
@@ -591,22 +591,22 @@ class ODEModel:
         # Merge parameter_names and parameter_stratified_names
         self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
 
-        # Duplicates in lists containing names of states/parameters/stratified parameters/stratifications?
+        # Duplicates in lists containing names of states/parameters/stratified parameters/dimensions?
         check_duplicates(self.state_names, 'state_names')
         check_duplicates(self.parameter_names, 'parameter_names')
         check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
-        if self.stratification_names:
-            check_duplicates(self.stratification_names, 'stratification_names')
+        if self.dimension_names:
+            check_duplicates(self.dimension_names, 'dimension_names')
 
-        # Validate and compute the stratification sizes
-        self.stratification_size = validate_stratifications(self.stratification_names, self.coordinates)
+        # Validate and compute the dimension sizes
+        self.dimension_size = validate_dimensions(self.dimension_names, self.coordinates)
 
-        # Validate state_stratifications
-        if self.state_stratifications:
-            validate_state_stratifications(self.state_stratifications, self.coordinates, self.state_names)
+        # Validate state_dimensions
+        if self.state_dimensions:
+            validate_state_dimensions(self.state_dimensions, self.coordinates, self.state_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
-        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_stratifications)
+        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
         self.initial_states = validate_initial_states(self.state_shapes, states)
@@ -625,7 +625,7 @@ class ODEModel:
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
         if self.parameter_stratified_names:
-            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.stratification_names, coordinates, self.parameters)
+            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.dimension_names, coordinates, self.parameters)
 
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
         validate_integrate(self.initial_states, self.parameters, self._create_fun, self.state_shapes)

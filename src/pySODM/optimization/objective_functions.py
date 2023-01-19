@@ -24,7 +24,7 @@ def ll_gaussian(ymodel, ydata, sigma):
         data time series values to be matched with the model predictions
     sigma: float/list of floats/np.ndarray
         standard deviation(s) of the Gaussian distribution around the mean value 'ymodel'
-        Two options are possible: 1) one error per model stratification, applied uniformly to all datapoints corresponding to that stratification OR
+        Two options are possible: 1) one error per model dimension, applied uniformly to all datapoints corresponding to that dimension OR
         2) one error for every datapoint, corresponding to a weighted least-squares estimator
 
     Returns
@@ -348,7 +348,7 @@ class log_posterior_probability():
         self.aggregation_function = aggregation_function
 
         ############################################
-        ## Compare data and model stratifications ##
+        ## Compare data and model dimensions ##
         ############################################
 
         out = create_fake_xarray_output(model.state_dimensions, model.state_coordinates, model.initial_states, self.time_index)
@@ -495,7 +495,7 @@ def validate_dataset(data):
         - Correct datatype?
         - No Nan's?
         - Is the index level 'date'/'time present? (obligated)
-    Extracts and returns the additional stratifications in dataset besides the time axis.
+    Extracts and returns the additional dimensions in dataset besides the time axis.
 
     Parameters
     ----------
@@ -745,15 +745,15 @@ def get_coordinates_data_also_in_model(data_index_diff, i, model_coordinates, da
     tmp1=[]
     for data_dim in data_index_diff:
         tmp2=[]
-        # Model has no stratifications: data can only contain 'date' or 'time'
+        # Model has no dimensions: data can only contain 'date' or 'time'
         if not model_coordinates:
             raise Exception(
-                f"Your model has no stratifications. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
+                f"Your model has no dimensions. Remove all coordinates except 'time' or 'date' ({data_index_diff}) from dataset {i} by slicing or grouping."
             )
         # Verify the axes in additional_axes_data are valid model dimensions
         if data_dim not in list(model_coordinates.keys()):
             raise Exception(
-                f"{i}th dataset coordinate '{data_dim}' is not a model stratification. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
+                f"{i}th dataset coordinate '{data_dim}' is not a model dimension. Remove the coordinate '{data_dim}' from dataset {i} by slicing or grouping."
             )
         else:
             # Verify all coordinates in the dataset can be found in the model
@@ -762,7 +762,7 @@ def get_coordinates_data_also_in_model(data_index_diff, i, model_coordinates, da
             for coord in coords_data:
                 if coord not in coords_model:
                     raise Exception(
-                        f"coordinate '{coord}' of stratification '{data_dim}' in the {i}th dataset was not found in the model coordinates of stratification '{data_dim}': {coords_model}"
+                        f"coordinate '{coord}' of dimension '{data_dim}' in the {i}th dataset was not found in the model coordinates of dimension '{data_dim}': {coords_model}"
                         )
                 else:
                     tmp2.append(coord)
@@ -1037,7 +1037,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                     if isinstance(log_likelihood_fnc_args[idx], list):
                         if not len(df.index.get_level_values(additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                             raise ValueError(
-                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the stratification axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' ({len(log_likelihood_fnc_args[idx])}) must equal the length of the dimension axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                                 )
                     # np.ndarray
                     if isinstance(log_likelihood_fnc_args[idx], np.ndarray):
@@ -1047,7 +1047,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             )
                         elif not len(df.index.get_level_values(additional_axes_data[idx][0]).unique()) == len(log_likelihood_fnc_args[idx]):
                             raise ValueError(
-                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the stratification axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
+                                f"length of list/1D np.array containing arguments of the log likelihood function '{log_likelihood_fnc[idx]}' must equal the length of the dimension axes '{additional_axes_data[idx][0]}' ({len(df.index.get_level_values(additional_axes_data[idx][0]).unique())}) in the {idx}th dataset."
                             )
                     # pd.Series
                     if isinstance(log_likelihood_fnc_args[idx], pd.Series):

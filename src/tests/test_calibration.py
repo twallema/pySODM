@@ -23,7 +23,7 @@ n_datapoints = 20
 alpha = 0.05
 
 ###################################################################################
-## Dummy dataset consisting of two stratifications: age groups and spatial units ##
+## Dummy dataset consisting of two dimensions: age groups and spatial units ##
 ###################################################################################
 
 # Generate a multiindex dataframe with three index levels: time, age groups, spatial componenet
@@ -40,7 +40,7 @@ for age_group in age_groups:
         df.loc[slice(None), age_group, spatial_unit] = cases
 
 ##################################
-## Model without stratification ##
+## Model without dimension ##
 ##################################
 
 class SIR(ODEModel):
@@ -89,7 +89,7 @@ def test_weights():
     with pytest.raises(TypeError, match="Expected a list/1D np.array for input argument"):
         log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,'hey',labels=labels)
 
-def test_correct_approach_wo_stratification():
+def test_correct_approach_wo_dimension():
 
     # Define parameters and initial states
     parameters = {"beta": 0.1, "gamma": 0.2}
@@ -140,7 +140,7 @@ def test_correct_approach_wo_stratification():
         #Generate samples dict
         samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
-def break_stuff_wo_stratification():
+def break_stuff_wo_dimension():
 
     # Define parameters and initial states
     parameters = {"beta": 0.1, "gamma": 0.2}
@@ -178,7 +178,7 @@ def break_stuff_wo_stratification():
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(Exception, match="Your model has no stratifications."):
+    with pytest.raises(Exception, match="Your model has no dimensions."):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
     
@@ -221,7 +221,7 @@ def break_stuff_wo_stratification():
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
-def break_log_likelihood_functions_wo_stratification():
+def break_log_likelihood_functions_wo_dimension():
 
     # Define parameters and initial states
     parameters = {"beta": 0.1, "gamma": 0.2}
@@ -353,7 +353,7 @@ def test_calibration_nd_parameter():
                         processes=1, max_iter=20)[0]
 
 ###################################
-## Model with one stratification ##
+## Model with one dimension ##
 ###################################
 
 class SIRstratified(ODEModel):
@@ -362,7 +362,7 @@ class SIRstratified(ODEModel):
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
     parameter_stratified_names = ['beta']
-    stratification_names = ['age_groups']
+    dimension_names = ['age_groups']
 
     @staticmethod
     def integrate(t, S, I, R, gamma, beta):
@@ -375,7 +375,7 @@ class SIRstratified(ODEModel):
         return dS, dI, dR
 
 # Calibration of the two elements [beta_0, beta_1] of beta, to the respective timeseries per age group
-def test_correct_approach_with_one_stratification_0():
+def test_correct_approach_with_one_dimension_0():
 
     # Setup model
     parameters = {"gamma": 0.2, "beta": np.array([0.1, 0.1])}
@@ -410,7 +410,7 @@ def test_correct_approach_with_one_stratification_0():
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
 
-def break_stuff_with_one_stratification():
+def break_stuff_with_one_dimension():
 
     # Axes in data not present in model
     # Setup model
@@ -443,11 +443,11 @@ def break_stuff_with_one_stratification():
     # Define dataset with a coordinate not in the model
     data=[df,]
     # Setup objective function without priors and with negative weights 
-    with pytest.raises(Exception, match="coordinate '0-20' of stratification 'age_groups' in the 0th"):
+    with pytest.raises(Exception, match="coordinate '0-20' of dimension 'age_groups' in the 0th"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
 
-def break_log_likelihood_functions_with_one_stratification():
+def break_log_likelihood_functions_with_one_dimension():
 
     # Define parameters and initial states
     parameters = {"gamma": 0.2, "beta": np.array([0.1, 0.1])}
@@ -463,7 +463,7 @@ def break_log_likelihood_functions_with_one_stratification():
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
 
-    # Poisson log likelihood equals no stratification case (verified)
+    # Poisson log likelihood equals no dimension case (verified)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # Negative binomial log likelihood
@@ -497,7 +497,7 @@ def break_log_likelihood_functions_with_one_stratification():
                                 log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)        
 
 ####################################
-## Model with two stratifications ##
+## Model with two dimensions ##
 ####################################
 
 class SIRdoublestratified(ODEModel):
@@ -506,7 +506,7 @@ class SIRdoublestratified(ODEModel):
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
     parameter_stratified_names = [['beta'],[]]
-    stratification_names = ['age_groups', 'spatial_units']
+    dimension_names = ['age_groups', 'spatial_units']
 
     @staticmethod
     def integrate(t, S, I, R, gamma, beta):
@@ -519,7 +519,7 @@ class SIRdoublestratified(ODEModel):
         dR = gamma*I
         return dS, dI, dR
 
-def test_correct_approach_with_two_stratifications():
+def test_correct_approach_with_two_dimensions():
     # Setup model
     parameters = {"gamma": 0.2, "beta": np.array([0.1, 0.1])}
     initial_states = {"S": [[500_000 - 1, 500_000 - 1, 500_000 - 1],[500_000 - 1, 500_000 - 1, 500_000 - 1]], "I": [[1,1,1],[1,1,1]]}
@@ -584,7 +584,7 @@ def test_aggregation_function():
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
 
-def break_log_likelihood_functions_with_two_stratifications():
+def break_log_likelihood_functions_with_two_dimensions():
 
     # Setup model
     parameters = {"gamma": 0.2, "beta": np.array([0.1, 0.1])}
@@ -683,8 +683,8 @@ class ODE_SIR_SI(ODEModel):
     state_names = ['S', 'I', 'R', 'S_v', 'I_v']
     parameter_names = ['beta', 'gamma']
     parameter_stratified_names = ['alpha']
-    stratification_names = ['age_groups']
-    state_stratifications = [['age_groups'],['age_groups'],['age_groups'],[],[]]
+    dimension_names = ['age_groups']
+    state_dimensions = [['age_groups'],['age_groups'],['age_groups'],[],[]]
 
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):

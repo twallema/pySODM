@@ -95,60 +95,60 @@ def fill_initial_state_with_zero(state_names, initial_states):
             state_values = initial_states[state]
     return state_values
 
-def validate_stratifications(stratification_names, coordinates):
-    """Checks if the combination of the `stratification_names` in the model defenition is compatible with the `coordinates` provided when initializing the model. Returns the stratification size of every stratification.
+def validate_dimensions(dimension_names, coordinates):
+    """Checks if the combination of the `dimension_names` in the model defenition is compatible with the `coordinates` provided when initializing the model. Returns the dimension size of every dimension.
     """
-    # Validate stratification
-    if stratification_names:
+    # Validate dimension
+    if dimension_names:
         if not coordinates:
             raise ValueError(
-                "Stratification name provided in integrate function but no coordinates were given when model was initialised"
+                "dimension name provided in integrate function but no coordinates were given when model was initialised"
             )
         else:
-            if set(stratification_names) != set(coordinates.keys()):
+            if set(dimension_names) != set(coordinates.keys()):
                 raise ValueError(
-                    "`stratification_names` do not match coordinates dictionary keys.\n"
-                    "Missing stratification names: {0}. Redundant coordinates: {1}".format(set(stratification_names).difference(set(coordinates.keys())), set(coordinates.keys()).difference(set(stratification_names)))
+                    "`dimension_names` do not match coordinates dictionary keys.\n"
+                    "Missing dimension names: {0}. Redundant coordinates: {1}".format(set(dimension_names).difference(set(coordinates.keys())), set(coordinates.keys()).difference(set(dimension_names)))
                 )
             else:
-                stratification_size = []
+                dimension_size = []
                 for i, (key,value) in enumerate(coordinates.items()):
                     try:
-                        stratification_size.append(len(value))
+                        dimension_size.append(len(value))
                     except:
                         raise ValueError(
-                            f"Unable to deduce stratification length from '{value}' of coordinate '{key}'"
+                            f"Unable to deduce dimension length from '{value}' of coordinate '{key}'"
                         )
     else:
         if coordinates:
             raise ValueError(
-                f"You have provided a dictionary of coordinates with keys: {list(coordinates.keys())} upon model initialization but no variable 'stratification names' was found in the integrate function.\nDefine a variable 'stratification_names = {list(coordinates.keys())}' in the model definition."
+                f"You have provided a dictionary of coordinates with keys: {list(coordinates.keys())} upon model initialization but no variable 'dimension names' was found in the integrate function.\nDefine a variable 'dimension_names = {list(coordinates.keys())}' in the model definition."
             )
         else:
-            stratification_size = [1]
+            dimension_size = [1]
 
-    return stratification_size
+    return dimension_size
 
-def validate_state_stratifications(state_stratifications, coordinates, state_names):
-    """Valide if length of `state_stratifications` is equal to the length of `state_names`. Check if the stratifications provided for every model state are existing stratifications."""
+def validate_state_dimensions(state_dimensions, coordinates, state_names):
+    """Valide if length of `state_dimensions` is equal to the length of `state_names`. Check if the dimensions provided for every model state are existing dimensions."""
 
     # Length equal to state_names?   
-    if len(state_stratifications) != len(state_names):
+    if len(state_dimensions) != len(state_names):
         raise ValueError(
-            f"The length of `state_stratifications` ({len(state_stratifications)}) must match the length of `state_names` ({len(state_names)})"
+            f"The length of `state_dimensions` ({len(state_dimensions)}) must match the length of `state_names` ({len(state_names)})"
         )
     # Contains only valid coordinates?
     for i,state_name in enumerate(state_names):
-        if not all(x in coordinates.keys() for x in state_stratifications[i]):
+        if not all(x in coordinates.keys() for x in state_dimensions[i]):
             raise ValueError(
-                f"The stratification names of model state '{state_name}', specified in position {i} of `state_stratifications` contains invalid coordinate names. Redundant names: {set(state_stratifications[i]).difference(set(coordinates.keys()))}"
+                f"The dimension names of model state '{state_name}', specified in position {i} of `state_dimensions` contains invalid coordinate names. Redundant names: {set(state_dimensions[i]).difference(set(coordinates.keys()))}"
         )
 
-def build_state_sizes_dimensions(coordinates, state_names, state_stratifications):
+def build_state_sizes_dimensions(coordinates, state_names, state_dimensions):
     """A function returning three dictionaries: A dictionary containing, for every model state: 1) Its shape, 2) its dimensions, 3) its coordinates.
     """
 
-    if not state_stratifications:
+    if not state_dimensions:
         if not coordinates:
             return dict(zip(state_names, len(state_names)*[(1,),] )), dict(zip(state_names, len(state_names)*[[],] )), dict(zip(state_names, len(state_names)*[[],] ))
         else:
@@ -162,36 +162,36 @@ def build_state_sizes_dimensions(coordinates, state_names, state_stratifications
                     coordinate.append(value)
                 except:
                     raise ValueError(
-                            f"Unable to deduce stratification length from '{value}' of coordinate '{key}'"
+                            f"Unable to deduce dimension length from '{value}' of coordinate '{key}'"
                         )
             return dict(zip(state_names, len(state_names)*[tuple(shape),] )), dict(zip(state_names, len(state_names)*[dimension,])), dict(zip(state_names, len(state_names)*[coordinate,]))
     else:
         if not coordinates:
             raise ValueError(
-                "`state_stratifications` found in the model defenition, however you have not provided `coordinates` when initializing the model. "
+                "`state_dimensions` found in the model defenition, however you have not provided `coordinates` when initializing the model. "
             )
         else:
             shapes=[]
             coords=[]
             for i,state_name in enumerate(state_names):
-                stratifications = state_stratifications[i]
-                if not stratifications:
+                dimensions = state_dimensions[i]
+                if not dimensions:
                     shapes.append( (1,) )
                     coords.append( [] )
                 else:
                     shape=[]
                     coord=[]
-                    for stratification in stratifications:
+                    for dimension in dimensions:
                         try:
-                            shape.append(len(coordinates[stratification]))
-                            coord.append(coordinates[stratification])
+                            shape.append(len(coordinates[dimension]))
+                            coord.append(coordinates[dimension])
                         except:
                             raise ValueError(
-                                 f"Unable to deduce stratification length from '{coordinates[stratification]}' of coordinate '{stratification}'"
+                                 f"Unable to deduce dimension length from '{coordinates[dimension]}' of coordinate '{dimension}'"
                             )
                     shapes.append(tuple(shape))
                     coords.append(coord)
-            return dict(zip(state_names, shapes)), dict(zip(state_names, state_stratifications)),  dict(zip(state_names, coords))
+            return dict(zip(state_names, shapes)), dict(zip(state_names, state_dimensions)),  dict(zip(state_names, coords))
 
 def validate_parameter_function(func):
     # Validate the function passed to time_dependent_parameters
@@ -281,7 +281,7 @@ def check_initial_states_shape(values, desired_shape, name, object_name):
     """A function checking if the provided initial states have the correct shape
     """
 
-    # If the model doesn't have stratifications, initial states can be defined as: np.array([int/float]), [int/float], int or float
+    # If the model doesn't have dimensions, initial states can be defined as: np.array([int/float]), [int/float], int or float
     # However these still need to converted to a np.array internally
     if list(desired_shape) == [1]:
         if not isinstance(values, (list,int,float,np.int32,np.int64,np.float32,np.float64,np.ndarray)):
@@ -436,7 +436,7 @@ def validate_provided_parameters(all_params, parameters):
     
     return parameters
 
-def check_stratpar_size(values, name, object_name,stratification_names,desired_size):
+def check_stratpar_size(values, name, object_name,dimension_names,desired_size):
     """Checks the size of stratified parameters. Converts stratified parameters to a numpy array."""
     values = np.asarray(values)
     if values.ndim != 1:
@@ -448,29 +448,29 @@ def check_stratpar_size(values, name, object_name,stratification_names,desired_s
         )
     if len(values) != desired_size:
         raise ValueError(
-            "The coordinates provided for stratification '{stratification_names}' indicates a "
-            "stratification size of {desired_size}, but {obj} '{name}' "
+            "The coordinates provided for dimension '{dimension_names}' indicates a "
+            "dimension size of {desired_size}, but {obj} '{name}' "
             "has length {val}".format(
-                stratification_names=stratification_names, desired_size=desired_size,
+                dimension_names=dimension_names, desired_size=desired_size,
                 obj=object_name, name=name, val=len(values)
             )
         )
     return values
 
-def validate_parameter_stratified_sizes(parameter_stratified_names, stratification_names, coordinates, parameters):
+def validate_parameter_stratified_sizes(parameter_stratified_names, dimension_names, coordinates, parameters):
     """Check if the sizes of the stratified parameters are correct"""
 
     if not isinstance(parameter_stratified_names[0], list):
         if len(list(coordinates.keys())) > 1:
             raise ValueError(
                 f"The model has more than one dimension ({len(list(coordinates.keys()))}). I cannot deduce the dimension of your statified parameter from the provided `parameter_stratified_names`: {parameter_stratified_names}. "
-                f"Make sure `parameter_stratified_names` is a list, containing {len(list(coordinates.keys()))} (no. dimensions) sublists. Each sublist corresponds to a stratification in `stratification_names`. "
-                "Place your stratified parameter in the correct sublist so I know what model stratification to match it with. If a stratification has no stratified parameter, provide an empty list."
+                f"Make sure `parameter_stratified_names` is a list, containing {len(list(coordinates.keys()))} (no. dimensions) sublists. Each sublist corresponds to a dimension in `dimension_names`. "
+                "Place your stratified parameter in the correct sublist so I know what model dimension to match it with. If a dimension has no stratified parameter, provide an empty list."
             )
         else:
             for param in parameter_stratified_names:
                 parameters[param] = check_stratpar_size(
-                                        parameters[param], param, "stratified parameter",stratification_names[0],len(coordinates[stratification_names[0]])
+                                        parameters[param], param, "stratified parameter",dimension_names[0],len(coordinates[dimension_names[0]])
                                         )
     else:
         # Number of sublists equal to number of dimensions?
@@ -481,7 +481,7 @@ def validate_parameter_stratified_sizes(parameter_stratified_names, stratificati
         for j,stratified_names in enumerate(parameter_stratified_names):
             for param in stratified_names:
                 parameters[param] = check_stratpar_size(
-                                        parameters[param], param, "stratified parameter",stratification_names[j],len(coordinates[stratification_names[j]])
+                                        parameters[param], param, "stratified parameter",dimension_names[j],len(coordinates[dimension_names[j]])
                                         )
     return parameters
 

@@ -4,7 +4,7 @@ import numpy as np
 from pySODM.models.base import SDEModel
 
 ##################################
-## Model without stratification ##
+## Model without dimension ##
 ##################################
 
 class SIR(SDEModel):
@@ -207,7 +207,7 @@ def test_model_init_validation():
     SIR.parameter_names = ['beta', 'gamma']
 
 ###################################
-## Model with one stratification ##
+## Model with one dimension ##
 ###################################
 
 class SIRstratified(SDEModel):
@@ -216,7 +216,7 @@ class SIRstratified(SDEModel):
     state_names = ['S', 'I', 'R']
     parameter_names = ['gamma']
     parameter_stratified_names = ['beta']
-    stratification_names = ['age_groups']
+    dimension_names = ['age_groups']
 
     @staticmethod
     def compute_rates(t, S, I, R, gamma, beta):
@@ -274,7 +274,7 @@ def test_model_stratified_init_validation():
     #assert model.parameter_stratified_names == [['beta']] --> some weird ass shit happens here
 
     # forget coordinates
-    with pytest.raises(ValueError, match="Stratification name provided in integrate"):
+    with pytest.raises(ValueError, match="dimension name provided in integrate"):
         SIRstratified(initial_states, parameters)
 
     # unknown state
@@ -289,7 +289,7 @@ def test_model_stratified_init_validation():
 
     # stratified parameter of the wrong length
     parameters2 = {"gamma": 0.2, "beta": np.array([0.8, 0.9, 0.1])}
-    msg = "The coordinates provided for stratification 'age_groups' indicates a"
+    msg = "The coordinates provided for dimension 'age_groups' indicates a"
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters2, coordinates=coordinates)
 
@@ -326,7 +326,7 @@ def test_model_stratified_init_validation():
     SIRstratified.parameter_stratified_names = [["beta"]]
 
 #################################################################
-## A model with different stratifications for different states ##
+## A model with different dimensions for different states ##
 #################################################################
 
 class SIR_SI(SDEModel):
@@ -337,8 +337,8 @@ class SIR_SI(SDEModel):
     state_names = ['S', 'I', 'R', 'S_v', 'I_v']
     parameter_names = ['beta', 'gamma']
     parameter_stratified_names = ['alpha']
-    stratification_names = ['age_group']
-    state_stratifications = [['age_group'],['age_group'],['age_group'],[],[]]
+    dimension_names = ['age_group']
+    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def compute_rates(t, S, I, R, S_v, I_v, alpha, beta, gamma):
