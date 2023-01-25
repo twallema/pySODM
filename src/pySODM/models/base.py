@@ -356,7 +356,7 @@ class SDEModel:
                 # Deflatten y and reconstruct dictionary of states 
                 # ------------------------------------------------
 
-                states = list_to_dict(y, self.state_shapes)
+                states = list_to_dict(y, self.state_shapes, retain_floats=False)
 
                 # --------------------------------------
                 # update time-dependent parameter values
@@ -442,10 +442,10 @@ class SDEModel:
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
 
-        # Flatten the initial condition
-        y0 = list(itertools.chain(*self.initial_states.values()))
-        while np.array(y0).ndim > 1:
-            y0 = list(itertools.chain(*y0))
+        # Flatten initial states
+        y0=[]
+        for v in self.initial_states.values():
+            y0.extend(list(np.ravel(v)))
 
         # Run the time loop
         output = self._solve_discrete(fun, t_eval, np.asarray(y0), self.parameters)
@@ -628,7 +628,7 @@ class ODEModel:
             self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.dimension_names, coordinates, self.parameters)
 
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
-        validate_integrate(self.initial_states, self.parameters, self._create_fun, self.state_shapes)
+        validate_integrate(self.initial_states, dict(zip(self.parameter_names_merged,[self.parameters[k] for k in self.parameter_names_merged])), self.integrate, self.state_shapes)
 
     # Overwrite integrate class
     @staticmethod
@@ -689,19 +689,23 @@ class ODEModel:
 
     def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1):
         """"""
+
+        # Create scipy-compatible wrapper
         fun = self._create_fun(actual_start_date)
 
+        # Construct vector of timesteps
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
 
-        # Scipy can only take flattened list of states
-        y0 = list(itertools.chain(*self.initial_states.values()))
-        while np.array(y0).ndim > 1:
-            y0 = list(itertools.chain(*y0))
+        # Flatten initial states
+        y0=[]
+        for v in self.initial_states.values():
+            y0.extend(list(np.ravel(v)))
 
+        # Get output
         output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
 
-        # map to variable names
+        # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
 
     def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep):

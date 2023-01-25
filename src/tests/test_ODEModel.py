@@ -293,24 +293,26 @@ def test_stratified_SIR_init_validation():
     SIRstratified.parameter_names = ["gamma"]
     SIRstratified.parameter_stratified_names = [["beta"]]
 
-#################################################################
+############################################################
 ## A model with different dimensions for different states ##
-#################################################################
+############################################################
 
 class SIR_SI(ODEModel):
     """
-    An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
+    An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito) with a twist
+    The S states is higher-dimensional to test the possiblities
     """
 
     state_names = ['S', 'I', 'R', 'S_v', 'I_v']
     parameter_names = ['beta', 'gamma']
     parameter_stratified_names = ['alpha']
     dimension_names = ['age_group']
-    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
+    state_dimensions = [['age_group','age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):
-
+        # Make S state 1D again
+        S = np.mean(S,axis=1)
         # Calculate total mosquito population
         N = S + I + R
         N_v = S_v + I_v
@@ -321,8 +323,11 @@ class SIR_SI(ODEModel):
         # Calculate mosquito differentials
         dS_v = -np.sum(alpha*(I/N)*S_v) + (1/beta)*N_v - (1/beta)*S_v
         dI_v = np.sum(alpha*(I/N)*S_v) - (1/beta)*I_v
-
-        return dS, dI, dR, dS_v, dI_v
+        # Explode S state to 2D
+        dS_new = np.zeros([len(dS), len(dS)])
+        for i in range(len(dS)):
+            dS_new[i,:] = dS 
+        return dS_new, dI, dR, dS_v, dI_v
 
 def test_SIR_SI_state_shapes():
     """Validate the shapes of the states
@@ -330,7 +335,7 @@ def test_SIR_SI_state_shapes():
 
     # Define parameters and initial condition
     params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
-    init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+    init_states = {'S': np.array([[606938, 1328733, 7352492, 2204478],[606938, 1328733, 7352492, 2204478],[606938, 1328733, 7352492, 2204478],[606938, 1328733, 7352492, 2204478]]), 'S_v': 1e6, 'I_v': 1}
     # Define model coordinates
     age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
     coordinates={'age_group': age_groups}
@@ -340,7 +345,7 @@ def test_SIR_SI_state_shapes():
     output = model.sim([0, 50])
     # Assert state size
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
-    assert output["S"].values.shape == (4, 51)
+    assert output["S"].values.shape == (4, 4, 51)
     assert output["I"].values.shape == (4, 51)
     assert output["R"].values.shape == (4, 51)
     assert output["S_v"].values.shape == (51,)
@@ -351,7 +356,7 @@ def test_SIR_SI_automatic_filling_initial_states():
     """
     # Define parameters and initial condition
     params={'alpha': 10*np.array([0.005, 0.01, 0.02, 0.015]), 'gamma': 5, 'beta': 5}
-    init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 1}
+    init_states = {'S': np.array([[606938, 1328733, 7352492, 2204478],[606938, 1328733, 7352492, 2204478],[606938, 1328733, 7352492, 2204478],[606938, 1328733, 7352492, 2204478]]), 'S_v': 1e6, 'I_v': 1}
     # Define model coordinates
     age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
     coordinates={'age_group': age_groups}

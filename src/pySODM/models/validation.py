@@ -485,24 +485,27 @@ def validate_parameter_stratified_sizes(parameter_stratified_names, dimension_na
                                         )
     return parameters
 
-def validate_integrate(initial_states, parameters, _create_fun, state_shapes):
+def validate_integrate(initial_states, parameters, integrate, state_shapes):
     """ Call _create_fun to check if the integrate function (1) works, (2) the differentials have the correct shape
     """
 
-    fun = _create_fun(None)
-    y0 = list(itertools.chain(*initial_states.values()))
-    while np.array(y0).ndim > 1:
-        y0 = list(itertools.chain(*y0))
-    
-    result = fun(1, np.array(y0), parameters)
     try:
-        result = fun(1, np.array(y0), parameters)
+        # Call the integrate function
+        dstates = integrate(1, **initial_states, **parameters)
+        # Flatten
+        out=[]
+        for d in dstates:
+            out.extend(list(np.ravel(d)))
     except:
         raise ValueError(
             "An error was encountered while calling your integrate function."
         )
-
-    if len(result) != len(y0):
+    # Flatten initial states
+    y0=[]
+    for v in initial_states.values():
+        y0.extend(list(np.ravel(v)))
+    # Assert length equality
+    if len(out) != len(y0):
         raise ValueError(
             "The total length of the differentials returned by your `integrate()` function do not appear to have the correct length. "
             "Verify the differentials are in the same order as `state_names`. Verify every differential has the same size as the state it corresponds to. "
