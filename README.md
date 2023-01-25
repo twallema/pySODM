@@ -1,8 +1,10 @@
-## pySODM: Simulating and Optimising Dynamical Models in Python 3
+## pySODM
 
-![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg)![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg)
+*Simulating and Optimising Dynamical Models in Python 3*
 
 https://twallema.github.io/pySODM
+
+![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg)
 
 ### Aim & Scope
 
