@@ -628,7 +628,7 @@ class ODEModel:
             self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.dimension_names, coordinates, self.parameters)
 
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
-        validate_integrate(self.initial_states, self.parameters, self._create_fun, self.state_shapes)
+        validate_integrate(self.initial_states, dict(zip(self.parameter_names_merged,[self.parameters[k] for k in self.parameter_names_merged])), self.integrate, self.state_shapes)
 
     # Overwrite integrate class
     @staticmethod
