@@ -22,7 +22,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[develop]
-    - name: Run tests
+    - name: Build
       run: |
         pytest src/tests/test_ODEModel.py
         pytest src/tests/test_SDEModel.py
