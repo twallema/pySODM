@@ -30,7 +30,11 @@ def list_to_dict(y, shape_dictionary):
     offset=0
     for s in shape_dictionary.values():
         n = np.prod(s)
-        restoredArray.append(y[offset:(offset+n)].reshape(s))
+        # Reshape changes type of floats to np.ndarray which is not desirable
+        if n == 1:
+            restoredArray.append(y[offset])
+        else:
+            restoredArray.append(y[offset:(offset+n)].reshape(s))
         offset+=n
 
     return dict(zip(shape_dictionary.keys(), restoredArray))
