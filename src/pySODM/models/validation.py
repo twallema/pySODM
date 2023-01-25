@@ -501,9 +501,9 @@ def validate_integrate(initial_states, parameters, integrate, state_shapes):
             "An error was encountered while calling your integrate function."
         )
     # Flatten initial states
-    y0 = list(itertools.chain(*initial_states.values()))
-    while np.array(y0).ndim > 1:
-        y0 = list(itertools.chain(*y0))
+    y0=[]
+    for v in initial_states.values():
+        y0.extend(list(np.ravel(v)))
     # Assert length equality
     if len(out) != len(y0):
         raise ValueError(
