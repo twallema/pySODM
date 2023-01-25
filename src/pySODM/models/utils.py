@@ -6,9 +6,10 @@ def int_to_date(actual_start_date, t):
     return date
 
 
-def list_to_dict(y, shape_dictionary):
+def list_to_dict(y, shape_dictionary, retain_floats=True):
     """
-    A function to reconstruct a number of variables of different shapes, given a flat array of values and a dictionary with the variables name and desired shapes
+    A function to reconstruct model states, given a flat array of values and a dictionary with the variables name and desired shapes
+    Retains floats.
 
     Parameters
     ----------
@@ -19,6 +20,9 @@ def list_to_dict(y, shape_dictionary):
     shape_dictionary: dict
         A dictionary containing the desired names and shapes of the output dictionary
     
+    retain_floats: bool
+        If False, float/np.float are converted in a 0D np.ndarray. Default: True.
+
     Returns
     -------
 
@@ -31,7 +35,7 @@ def list_to_dict(y, shape_dictionary):
     for s in shape_dictionary.values():
         n = np.prod(s)
         # Reshape changes type of floats to np.ndarray which is not desirable
-        if n == 1:
+        if ((n == 1) & (retain_floats==True)):
             restoredArray.append(y[offset])
         else:
             restoredArray.append(y[offset:(offset+n)].reshape(s))

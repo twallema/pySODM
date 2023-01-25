@@ -356,7 +356,7 @@ class SDEModel:
                 # Deflatten y and reconstruct dictionary of states 
                 # ------------------------------------------------
 
-                states = list_to_dict(y, self.state_shapes)
+                states = list_to_dict(y, self.state_shapes, retain_floats=False)
 
                 # --------------------------------------
                 # update time-dependent parameter values
