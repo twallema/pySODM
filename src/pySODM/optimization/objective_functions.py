@@ -310,6 +310,8 @@ class log_posterior_probability():
         ## Construct expanded bounds, pars and labels ##
         ################################################
 
+        # Incorporate a test here to check if lower_bounds < upper_bounds
+
         # Expand parameter names 
         self.parameter_names_postprocessing = expand_parameter_names(self.parameter_shapes)
         # Expand bounds
@@ -440,7 +442,6 @@ class log_posterior_probability():
         """
 
         # Validate no thetas are out of bounds
-        # Prior to this, it must be validated that lower_bounds < upper_bound
         for i,theta in enumerate(thetas):
             if theta > self.expanded_bounds[i][1]:
                 thetas[i] = self.expanded_bounds[i][1]
