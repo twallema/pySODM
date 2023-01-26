@@ -52,7 +52,7 @@ def optimize(func, x_start, step,
             bounds = func.expanded_bounds
         except:
             raise Exception(
-                "Variable 'expanded_bounds' not found in object 'func'. Provide bounds directly to `pso.optimize()`. "
+                "'func' does not appear to be a pySODM model: 'expanded_bounds' not found. Provide bounds directly to `pso.optimize()`"
             )
 
     # Input check bounds
@@ -73,7 +73,7 @@ def optimize(func, x_start, step,
     # Check length of x_start
     assert len(x_start) == len(bounds), 'Length of starting estimate must be equal to the provided number of bounds'
 
-    # Checl length of step
+    # Check length of step
     assert len(x_start) == len(step), "Length of 'steps' must equal the number of parameters"
 
     # Construct objective function wrapper

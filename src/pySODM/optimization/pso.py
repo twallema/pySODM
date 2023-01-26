@@ -92,7 +92,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
             bounds = func.expanded_bounds
         except:
             raise Exception(
-                "Variable 'expanded_bounds' not found in object 'func'. Provide bounds directly to `pso.optimize()`. "
+                "'func' does not appear to be a pySODM model: 'expanded_bounds' not found. Provide bounds directly to `pso.optimize()`"
             )
 
     lb, ub = [], []

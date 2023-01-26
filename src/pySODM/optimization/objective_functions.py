@@ -439,6 +439,14 @@ class log_posterior_probability():
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
+        # Validate no thetas are out of bounds
+        # Prior to this, it must be validated that lower_bounds < upper_bound
+        for i,theta in enumerate(thetas):
+            if theta > self.expanded_bounds[i][1]:
+                thetas[i] = self.expanded_bounds[i][1]
+            elif theta < self.expanded_bounds[i][0]:
+                thetas[i] = self.expanded_bounds[i][0]
+
         # Unflatten thetas
         thetas_dict = list_to_dict(thetas, self.parameter_shapes)
 
@@ -456,7 +464,6 @@ class log_posterior_probability():
         if not self.initial_states:
             # Perform simulation only once
             out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
-
             # Loop over dataframes
             for idx,df in enumerate(self.data):
                 # Get aggregation function
