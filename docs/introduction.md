@@ -4,15 +4,23 @@
 
 ![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg)
 
+### Links
+
+Documentation: https://twallema.github.io/pySODM
+
+Manuscript: https://arxiv.org/abs/2301.10664
+
 ### Aim & Scope
 
-A modeling and simulation workflow will typically constitute the following steps,
-1. Build a system dynamical model to describe some real-world phenomenon.
+A modeling and simulation workflow will typically constitute the following steps (see [Villaverde et. al](https://doi.org/10.1093/bib/bbab387)),
+1. Build a system dynamical model to describe some real-world phenomenon. Assess structural identifiability.
 2. Calibrate the model to a set of experimental data.
 3. Extract knowledge from the calibrated parameter values. Perform additional sensitivity analyses to finetune the model structure.
 4. Use the model to make projections outside the calibrated range.
 
-The goal of pySODM is to reduce the time it takes to step through this workflow. pySODM allows users to build models with n-dimensional labeled states and calibrate them to n-dimensional datasets by automatically aligning data. It is not a high-level simulation interface, it is a mid-level interface leaving its users the freedom to build arbitrarily complex models. 
+The aim of pySODM is to reduce the time it takes to step through this workflow. pySODM is a template to construct, simulate and calibrate dynamical systems governed by differential equations. Models can have n-dimensional labeled states of different sizes and can be simulated deterministically and stochastically. Model parameters can be time-dependent by means of complex functions
+with arbitrary inputs. The labeled n-dimensional model states can be aligned with n-dimensional
+data to compute the posterior probability function, which can subsequently be optimised.
 
 ### Overview of features
 
@@ -36,4 +44,4 @@ The [quistart tutorial](quickstart.md) will teach you the basics of building and
 
 The [workflow](worfklow.md) tutorial provides a step-by-step introduction to a modeling and simulation workflow by inferring the distributions of the model parameters of a simple compartmental disease model using a synthetic dataset. 
 
-The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.md) case studies apply the modeling and simulation workflow to more advanced, real-world problems. In the enzyme kinetics case study, a 1D packed-bed reactor model is implemented in pySODM by reducing the PDEs to a set of coupled ODEs by using the method-of-lines. In the Influenza 17-18 case study, a stochastic, age-structured model for influenza is developped and calibrated to the Influenza incidence data reported by the Belgian Federal Institute of Public Health. These case studies mainly serve to demonstrate pySODM's capabilities across scientific disciplines and highlight the arbitrarily complex nature of the models that can be built with pySODM. For an academic description of pySODM and on the Enzyme Kinetics and Influenza 17-18 case studies, checkout our manuscript (*coming soon*).
+The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.md) case studies apply the modeling and simulation workflow to more advanced, real-world problems. In the enzyme kinetics case study, a 1D packed-bed reactor model is implemented in pySODM by reducing the PDEs to a set of coupled ODEs by using the method-of-lines. In the Influenza 17-18 case study, a stochastic, age-structured model for influenza is developped and calibrated to the Influenza incidence data reported by the Belgian Federal Institute of Public Health. These case studies mainly serve to demonstrate pySODM's capabilities across scientific disciplines and highlight the arbitrarily complex nature of the models that can be built with pySODM. For an academic description of pySODM and on the Enzyme Kinetics and Influenza 17-18 case studies, checkout our [manuscript](https://arxiv.org/abs/2301.10664).

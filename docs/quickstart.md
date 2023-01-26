@@ -185,7 +185,7 @@ Data variables:
 
 ## Set up a dimensionless SDE Model
 
-To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed description of implenting models using Gillespie's methods, we refer to the manuscript (*coming soon*). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings.
+To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed description of implenting models using Gillespie's methods, we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings.
 
 ```python
 # Import the ODEModel class
