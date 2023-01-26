@@ -11,8 +11,8 @@ Manuscript: https://arxiv.org/abs/2301.10664
 
 ### Aim & Scope
 
-A modeling and simulation workflow will typically constitute the following steps (see [Villaverde et. al (2021)](https://doi.org/10.1093/bib/bbab387),
-1. Build a system dynamical model to describe some real-world phenomenon.
+A modeling and simulation workflow will typically constitute the following steps (see [Villaverde et. al (2021)](https://doi.org/10.1093/bib/bbab387)),
+1. Build a system dynamical model to describe some real-world phenomenon. Assess structural identifiability.
 2. Calibrate the model to a set of experimental data.
 3. Extract knowledge from the calibrated parameter values (assess practical identifiability).
 4. Use the model to make projections outside the calibrated range.
