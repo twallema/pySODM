@@ -42,6 +42,7 @@
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#links">Links</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#aim-scope">Aim &amp; Scope</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#overview-of-features">Overview of features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting started</a></li>
@@ -99,6 +100,11 @@
 <h1>pySODM<a class="headerlink" href="#pysodm" title="Permalink to this heading">¶</a></h1>
 <p><em>Simulating and Optimising Dynamical Models in Python 3</em></p>
 <p><img alt="build" src="https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg" /> <img alt="docs" src="https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg" /></p>
+<section id="links">
+<h2>Links<a class="headerlink" href="#links" title="Permalink to this heading">¶</a></h2>
+<p>Documentation: https://twallema.github.io/pySODM</p>
+<p>Manuscript: https://arxiv.org/abs/2301.10664</p>
+</section>
 <section id="aim-scope">
 <h2>Aim &amp; Scope<a class="headerlink" href="#aim-scope" title="Permalink to this heading">¶</a></h2>
 <p>A modeling and simulation workflow will typically constitute the following steps,</p>
@@ -108,7 +114,9 @@
 <li><p>Extract knowledge from the calibrated parameter values. Perform additional sensitivity analyses to finetune the model structure.</p></li>
 <li><p>Use the model to make projections outside the calibrated range.</p></li>
 </ol>
-<p>The goal of pySODM is to reduce the time it takes to step through this workflow. pySODM allows users to build models with n-dimensional labeled states and calibrate them to n-dimensional datasets by automatically aligning data. It is not a high-level simulation interface, it is a mid-level interface leaving its users the freedom to build arbitrarily complex models.</p>
+<p>The aim of pySODM is to reduce the time it takes to step through this workflow. pySODM is a template to construct, simulate and calibrate dynamical systems governed by differential equations. Models can have n-dimensional labeled states of different sizes and can be simulated deterministically and stochastically. Model parameters can be time-dependent by means of complex functions
+with arbitrary inputs. The labeled n-dimensional model states can be aligned with n-dimensional
+data to compute the posterior probability function, which can subsequently be optimised.</p>
 </section>
 <section id="overview-of-features">
 <h2>Overview of features<a class="headerlink" href="#overview-of-features" title="Permalink to this heading">¶</a></h2>
