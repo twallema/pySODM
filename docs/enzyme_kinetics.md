@@ -289,7 +289,7 @@ In a reactor packed with immoblized enzymes, mass transfer processes are often a
 
 ![heterogeneous_catalyst](/_static/figs/enzyme_kinetics/massTransferCatalystPellet2.png)
 
-Luckily, the internal pores of the Novozyme 435 beads are quite large so internal diffusion can be ignored. This drastically simplifies our model, we only need to account for the mass transfer resistance between the free moving solvent and the surface of the catalyst. We will build a 1D model (along the axial dimension of the reactor) and assume our species are transported by diffusive and convenctive forces in the free moving solvent. The species can be transported through the liquid boundary layer to the catalyst particle surface where they can undergo the enzymatic reaction at a rate {math}`v^i`. This system is governed by the following equations (for a derivation, see the manuscript *coming soon*),
+Luckily, the internal pores of the Novozyme 435 beads are quite large so internal diffusion can be ignored. This drastically simplifies our model, we only need to account for the mass transfer resistance between the free moving solvent and the surface of the catalyst. We will build a 1D model (along the axial dimension of the reactor) and assume our species are transported by diffusive and convenctive forces in the free moving solvent. The species can be transported through the liquid boundary layer to the catalyst particle surface where they can undergo the enzymatic reaction at a rate {math}`v^i`. This system is governed by the following equations (for a derivation, see the [manuscript](https://arxiv.org/abs/2301.10664),
 
 ```{math}
 \begin{cases}
