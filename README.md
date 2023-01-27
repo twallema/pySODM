@@ -7,7 +7,7 @@
 ```
 pip install pySODM
 ```
-### Links
+### Resources
 
 Documentation: https://twallema.github.io/pySODM
 
@@ -23,7 +23,7 @@ A modeling and simulation workflow will typically constitute the following steps
 3. Extract knowledge from the calibrated parameter values (assess practical identifiability).
 4. Use the model to make projections outside the calibrated range.
 
-The aim of pySODM is to reduce the time it takes to step through this workflow. pySODM is a template to construct, simulate and calibrate dynamical systems governed by differential equations. Models can have n-dimensional labeled states of different sizes and can be simulated deterministically and stochastically. Model parameters can be time-dependent by means of complex functions
+The aim of pySODM is to reduce the time it takes to step through this workflow. pySODM provides a *template* to construct, simulate and calibrate dynamical systems governed by differential equations. Models can have n-dimensional labeled states of different sizes and can be simulated deterministically and stochastically. Model parameters can be time-dependent by means of complex functions
 with arbitrary inputs. The labeled n-dimensional model states can be aligned with n-dimensional
 data to compute the posterior probability function, which can subsequently be optimised.
 
@@ -31,7 +31,7 @@ data to compute the posterior probability function, which can subsequently be op
 
 | Workflow                     | Features                                                                                                                        |
 |------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| Building a model     | Solve coupled systems of equations deterministically (integration) or stochastically (Gillespie's SSA and Tau-Leaping)                  |
+| Building a model     | Solve coupled systems of differential equations deterministically (integration) or stochastically (Gillespie's SSA and Tau-Leaping)                  |
 |                              | n-Dimensional model states with coordinates. Different states can have different sizes.                                         |
 |                              | Easy indexing, manipulating, saving, and piping to third-party software of model output by formatting simulation output as `xarray.Dataset` |
 | Simulating a model   | Vary model parameters during the simulation in accordance with an arbitrarily complex function containing any input                     |
