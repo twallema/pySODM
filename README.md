@@ -49,6 +49,8 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
 
 - Version 0.2.0 (2023-01-19, PR #25)
     > Introduction of `state_dimensions` in model declaration, allowing the user to define models where states can have different sizes.
+    - Version 0.2.1 (2023-01-27, PR #30)
+        > Fixed bugs when using pySODM for the COVID-19 related models. More thorough checks on `bounds` in the log posterior probability function. Finished manuscript.
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODEModel, SDEModel and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
