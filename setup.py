@@ -10,6 +10,8 @@ setup(
     author_email='tijs.alleman@ugent.be',
     keywords='ODE PDE simulation calibration gillespie xarray emcee',
     url='https://github.com/twallema/pySODM',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     license='MIT',
     install_requires=[
         'scipy',
