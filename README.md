@@ -1,13 +1,19 @@
 ## pySODM
 *Simulating and Optimising Dynamical Models in Python 3*
 
-![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg)
+![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg) [![HitCount](https://hits.dwyl.com/twallema/pySODM.svg)](https://hits.dwyl.com/twallema/pySODM)
 
+### Quick installation 
+```
+pip install pySODM
+```
 ### Links
 
 Documentation: https://twallema.github.io/pySODM
 
 Manuscript: https://arxiv.org/abs/2301.10664
+
+pyPI: https://pypi.org/manage/project/pySODM/release/0.2.2/
 
 ### Aim & Scope
 
@@ -51,6 +57,8 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
     > Introduction of `state_dimensions` in model declaration, allowing the user to define models where states can have different sizes.
     - Version 0.2.1 (2023-01-27, PR #30)
         > Fixed bugs when using pySODM for the COVID-19 related models. More thorough checks on `bounds` in the log posterior probability function. Finished manuscript.
+    - Version 0.2.2 (2023-01-27, PR #31)
+        > Published on pyPI.
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODEModel, SDEModel and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
@@ -63,5 +71,3 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
     - First pySODM version. Obtained by splitting the generally applicable parts from the ad-hoc parts in UGentBiomath/COVID19-Model. Without documentation website. 
 - Pre-development (2020-05-01 - 2022-11-24)
     - Code developped to model the spread of SARS-CoV-2 in Belgium (UGentBiomath/COVID19-Model).
-
-[![HitCount](https://hits.dwyl.com/twallema/pySODM.svg)](https://hits.dwyl.com/twallema/pySODM)
