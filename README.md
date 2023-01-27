@@ -1,12 +1,12 @@
 ## pySODM
 *Simulating and Optimising Dynamical Models in Python 3*
 
-![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg)
+![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg) [![HitCount](https://hits.dwyl.com/twallema/pySODM.svg)](https://hits.dwyl.com/twallema/pySODM)
 
+### Installation 
 ```
 pip install pySODM
 ```
-
 ### Links
 
 Documentation: https://twallema.github.io/pySODM
@@ -71,5 +71,3 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
     - First pySODM version. Obtained by splitting the generally applicable parts from the ad-hoc parts in UGentBiomath/COVID19-Model. Without documentation website. 
 - Pre-development (2020-05-01 - 2022-11-24)
     - Code developped to model the spread of SARS-CoV-2 in Belgium (UGentBiomath/COVID19-Model).
-
-[![HitCount](https://hits.dwyl.com/twallema/pySODM.svg)](https://hits.dwyl.com/twallema/pySODM)
