@@ -2,8 +2,8 @@ from setuptools import find_packages, setup
 
 setup(
     name='pySODM',
-    packages=find_packages("src/pySODM", exclude=["*.tests"]),
-    package_dir={'': 'src/pySODM'},
+    packages=find_packages("src", exclude=["*.tests"]),
+    package_dir={'': 'src'},
     version='0.2.1',
     description='Simulating and Optimising Dynamical Models',
     author='Tijs Alleman, KERMIT, Ghent University',
