@@ -7,6 +7,9 @@ setup(
     version='0.2.1',
     description='Simulating and Optimising Dynamical Models',
     author='Tijs Alleman, KERMIT, Ghent University',
+    author_email='tijs.alleman@ugent.be',
+    keywords='ODE PDE simulation calibration gillespie xarray emcee',
+    url='https://github.com/twallema/pySODM',
     license='MIT',
     install_requires=[
         'scipy',
