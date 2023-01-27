@@ -314,8 +314,10 @@ class log_posterior_probability():
         self.parameter_names_postprocessing = expand_parameter_names(self.parameter_shapes)
         # Expand bounds
         if len(bounds) == len(parameter_names):
+            check_bounds(bounds)
             self.expanded_bounds = expand_bounds(parameter_sizes, bounds)
         elif len(bounds) == sum(parameter_sizes.values()):
+            check_bounds(bounds)
             self.expanded_bounds = bounds
         else:
             raise Exception(
@@ -439,6 +441,13 @@ class log_posterior_probability():
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
+        # Restrict thetas to user-provided bounds
+        for i,theta in enumerate(thetas):
+            if theta > self.expanded_bounds[i][1]:
+                thetas[i] = self.expanded_bounds[i][1]
+            elif theta < self.expanded_bounds[i][0]:
+                thetas[i] = self.expanded_bounds[i][0]
+
         # Unflatten thetas
         thetas_dict = list_to_dict(thetas, self.parameter_shapes)
 
@@ -456,7 +465,6 @@ class log_posterior_probability():
         if not self.initial_states:
             # Perform simulation only once
             out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
-
             # Loop over dataframes
             for idx,df in enumerate(self.data):
                 # Get aggregation function
@@ -649,8 +657,21 @@ def expand_parameter_names(parameter_shapes):
                 expanded_names.append(n)
     return expanded_names
 
+def check_bounds(bounds):
+    """
+    A function to check the elements in 'bounds': type(list/tuple), length (2), ub > lb
+    """
+    for i,bound in enumerate(bounds):
+        # Check type
+        assert isinstance(bound, (list,tuple)), f'parameter bound (position {i}) is not a list or tuple'
+        # Check length
+        assert len(bound)==2, f'parameter bound (position {i}) contains {len(bound)} entries instead of 2'
+        # Check ub > lb
+        assert bound[0] < bound[1], f'upper-bound value must be greater than lower-bound value (position {i})'
+
 def expand_bounds(parameter_sizes, bounds):
-    """A function to expand the bounds of parameters with multiple entries
+    """"
+    A function to expand the bounds of parameters with multiple elements
     """
     expanded_bounds = []
     for i, name in enumerate(parameter_sizes.keys()):

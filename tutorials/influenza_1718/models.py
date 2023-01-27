@@ -42,10 +42,6 @@ class SDE_influenza_model(SDEModel):
     @staticmethod
     def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
         
-        # Protect model against 'faulty' values of f_a
-        f_a = np.where(f_a < 0, 0, f_a)
-        f_a = np.where(f_a > 1, 1, f_a)
-
         # Calculate total population
         T = S+E+Ia+Im+R
 
