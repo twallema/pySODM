@@ -13,7 +13,7 @@ Documentation: https://twallema.github.io/pySODM
 
 Manuscript: https://arxiv.org/abs/2301.10664
 
-pyPI: https://pypi.org/manage/project/pySODM/release/0.2.2/
+pyPI: https://pypi.org/project/pySODM/ 
 
 ### Aim & Scope
 
