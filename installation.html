@@ -43,8 +43,10 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#get-the-code">Get the code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#install-python-conda-and-packages">Install Python (conda) and packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-and-dirty-installation">Quick and dirty installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#install-pysodm-in-a-conda-environment">Install pySODM in a conda environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#want-to-try-out-the-tutorials">Want to try out the tutorials?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#want-to-work-on-pysodm">Want to work on pySODM?</a></li>
 </ul>
 </li>
 </ul>
@@ -52,6 +54,9 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling and calibration workflow</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Case studies</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="enzyme_kinetics.html">Enzyme kinetics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="influenza_1718.html">Influenza 2017-2018</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
@@ -96,18 +101,15 @@
              
   <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h1>
-<section id="get-the-code">
-<h2>Get the code<a class="headerlink" href="#get-the-code" title="Permalink to this heading">¶</a></h2>
-<ul class="simple">
-<li><p>Create a <a class="reference external" href="https://github.com/"><code class="docutils literal notranslate"><span class="pre">github</span></code></a> account if you do not have one already.</p></li>
-<li><p>On the <a class="reference external" href="https://github.com/twallema/pySODM">pySODM Github repository page</a> click the <code class="docutils literal notranslate"><span class="pre">Fork</span></code> button.</p></li>
-<li><p>From your own repository page (your account) of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>, use <a class="reference external" href="https://git-scm.com/"><code class="docutils literal notranslate"><span class="pre">git</span></code></a> to download the code to your own computer. See the <a class="reference external" href="https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository">Github documentation</a> on how to clone/download a repository.</p></li>
-</ul>
-<p>When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>.</p>
+<section id="quick-and-dirty-installation">
+<h2>Quick and dirty installation<a class="headerlink" href="#quick-and-dirty-installation" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pySODM</span>
+</pre></div>
+</div>
 </section>
-<section id="install-python-conda-and-packages">
-<h2>Install Python (conda) and packages<a class="headerlink" href="#install-python-conda-and-packages" title="Permalink to this heading">¶</a></h2>
-<p>To use the code, make sure you have Python (conda) and the required dependency packages installed. We recommend using <code class="docutils literal notranslate"><span class="pre">Anaconda</span></code> to manage your Python packages. See the <a class="reference external" href="https://docs.anaconda.com/anaconda/install/">conda installation instructions</a> and make sure you have conda up and running. Next:</p>
+<section id="install-pysodm-in-a-conda-environment">
+<h2>Install pySODM in a conda environment<a class="headerlink" href="#install-pysodm-in-a-conda-environment" title="Permalink to this heading">¶</a></h2>
+<p>When making your own modeling and simulation project, we recommend storing your dependencies in a conda environment. Using a conda environment allows others to more quickly replicate your code. Make sure you have Python (conda) and the required dependency packages installed. We recommend using <code class="docutils literal notranslate"><span class="pre">Anaconda</span></code> to manage your Python packages. See the <a class="reference external" href="https://docs.anaconda.com/anaconda/install/">conda installation instructions</a> and make sure you have conda up and running. Next:</p>
 <ul>
 <li><p>Update conda after the installation to make sure your version is up-to-date,</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">update</span> <span class="n">conda</span>
@@ -138,17 +140,42 @@
 </div>
 <p>When creating or upating an environment, <em>solving the environment</em> can take very long if you have a lot of dependencies, so be wary of adding unnecessary dependencies.</p>
 </li>
-<li><p>Install the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> code inside the environment of your own project (in <code class="docutils literal notranslate"><span class="pre">-e</span></code> edit mode):</p>
+<li><p>Install the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> code inside the environment,</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">MY_ENVIRONMENT</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">pySODM</span>
 </pre></div>
 </div>
 <p><strong>Note:</strong> This step needs to be done in a terminal or command prompt. Use your favorite terminal or use the <a class="reference external" href="https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt">Anaconda Prompt</a>. Navigate with the <code class="docutils literal notranslate"><span class="pre">cd</span></code> command to the directory where you copied the <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> repository.</p>
 </li>
 </ul>
-<p><em>Optional</em>: To use the code, the general installation instruction outlined above suffice. When you’re planning to work on the documentation or <code class="docutils literal notranslate"><span class="pre">pySODM</span></code> source code itself, make sure to also install the development requirements:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">MY_ENVIRONMENT</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="s2">&quot;.[develop]&quot;</span>
+</section>
+<section id="want-to-try-out-the-tutorials">
+<h2>Want to try out the tutorials?<a class="headerlink" href="#want-to-try-out-the-tutorials" title="Permalink to this heading">¶</a></h2>
+<p>Installing pySODM from pyPI does not give you acces to the tutorials and case studies as these are on Github. To try them out,</p>
+<ul>
+<li><p>Download the source code from GitHub. When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>.</p></li>
+<li><p>All we need to do is setup the PYSODM environment inside <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> and install pySODM from source inside this environment,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">f</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">PYSODM</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="want-to-work-on-pysodm">
+<h2>Want to work on pySODM?<a class="headerlink" href="#want-to-work-on-pysodm" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Create a <a class="reference external" href="https://github.com/"><code class="docutils literal notranslate"><span class="pre">github</span></code></a> account if you do not have one already.</p></li>
+<li><p>On the <a class="reference external" href="https://github.com/twallema/pySODM">pySODM Github repository page</a> click the <code class="docutils literal notranslate"><span class="pre">Fork</span></code> button.</p></li>
+<li><p>From your own repository page (your account) of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>, use <a class="reference external" href="https://git-scm.com/"><code class="docutils literal notranslate"><span class="pre">git</span></code></a> to download the code to your own computer. See the <a class="reference external" href="https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository">Github documentation</a> on how to clone/download a repository.</p></li>
+</ul>
+<p>When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>. This folder contains an <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> file containing all the dependencies necessary to recreate the tutorials and case studies. Install pySODM in this environment with the development requirements (necessary to work on the documentation),</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span> ```
+ conda env create -f environment.yml
+ conda activate PYSODM
+ pip install -e &quot;.[develop]&quot;
+ ```
 </pre></div>
 </div>
 </section>
