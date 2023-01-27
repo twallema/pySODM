@@ -10,7 +10,7 @@
 
 * **model** (object) - An initialized ODEModel or SDEModel.
 * **parameter_names** (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
-* **bounds** (list) - Lower and upper bound of calibrated parameters provided as tuples. `[(lb_1, ub_1), ..., (lb_n, ub_n)]` 
+* **bounds** (list) - Lower and upper bound of calibrated parameters provided as lists/tuples containing lower and upper bound: example: `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. Values falling outside these bounds will be restricted to the provided ranges before simulating the model.
 * **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use `[dataset,]`. Must contain a time index named `time` or `date`. Additional axes must be implemented using a `pd.Multiindex` and must bear the names/contain the coordinates of a valid model dimension.
 * **states** (list) - Names of the model states (type: str) the respective datasets should be matched to.
 * **log_likelihood_fnc** (list) - Contains a log likelihood function for every provided dataset.
