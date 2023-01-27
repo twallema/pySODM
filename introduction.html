@@ -43,7 +43,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#quick-installation">Quick installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#links">Links</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#resources">Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#aim-scope">Aim &amp; Scope</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#overview-of-features">Overview of features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting started</a></li>
@@ -110,8 +110,8 @@
 </pre></div>
 </div>
 </section>
-<section id="links">
-<h2>Links<a class="headerlink" href="#links" title="Permalink to this heading">¶</a></h2>
+<section id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this heading">¶</a></h2>
 <p>Documentation: https://twallema.github.io/pySODM</p>
 <p>Manuscript: https://arxiv.org/abs/2301.10664</p>
 <p>pyPI: https://pypi.org/manage/project/pySODM/release/0.2.2/</p>
@@ -125,7 +125,7 @@
 <li><p>Extract knowledge from the calibrated parameter values. Perform additional sensitivity analyses to finetune the model structure.</p></li>
 <li><p>Use the model to make projections outside the calibrated range.</p></li>
 </ol>
-<p>The aim of pySODM is to reduce the time it takes to step through this workflow. pySODM is a template to construct, simulate and calibrate dynamical systems governed by differential equations. Models can have n-dimensional labeled states of different sizes and can be simulated deterministically and stochastically. Model parameters can be time-dependent by means of complex functions
+<p>The aim of pySODM is to reduce the time it takes to step through this workflow. pySODM provides a <em>template</em> to construct, simulate and calibrate dynamical systems governed by differential equations. Models can have n-dimensional labeled states of different sizes and can be simulated deterministically and stochastically. Model parameters can be time-dependent by means of complex functions
 with arbitrary inputs. The labeled n-dimensional model states can be aligned with n-dimensional
 data to compute the posterior probability function, which can subsequently be optimised.</p>
 </section>
@@ -139,7 +139,7 @@ data to compute the posterior probability function, which can subsequently be op
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Building a model</p></td>
-<td><p>Solve coupled systems of equations deterministically (integration) or stochastically (Gillespie’s SSA and Tau-Leaping)</p></td>
+<td><p>Solve coupled systems of differential equations deterministically (integration) or stochastically (Gillespie’s SSA and Tau-Leaping)</p></td>
 </tr>
 <tr class="row-odd"><td><p></p></td>
 <td><p>n-Dimensional model states with coordinates. Different states can have different sizes.</p></td>
