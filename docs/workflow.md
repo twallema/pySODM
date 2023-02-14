@@ -24,7 +24,7 @@ from matplotlib.pyplot import plt
 
 ### Load the dataset
 
-For the purpose of this tutorial, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Mathematically,
+For the purpose of this tutorial, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Alternatively, the output of the SIR model could be used to generate a dataset of disease cases. Mathematically,
 
 ```{math}
 n_{cases}(t) = \exp \Big( t *  \dfrac{\log 2}{t_d} \Big)
@@ -131,11 +131,11 @@ model = ODE_SIR(states=init_states={'S': 1000, 'I': 1}, parameters={'beta': 0.35
 
 #### The posterior probability 
 
-Before we can have our computer find a set of model parameters that aligns the model with the data, we must instruct it what deviations between the data and model prediction are tolerated. Such function is often referred to as an *objective function* or *likelihood function*. In all tutorials we will set up and attempt to maximize the *posterior probability* of our model's parameters in light of the data {math}`p(\theta | y_{\text{data}})`. It contrasts with the *likelihood function* {math}`p(y_{\text{data}} | \theta)`, which is the probability of the data given the model's parameters. The two are related as follows by Bayes' theorem,
+Before we can have our computer find a set of model parameters that aligns the model with the data, we must instruct it what deviations between the data and model prediction are tolerated. Such function is often referred to as an *objective function* or *likelihood function*. In all tutorials we will set up and attempt to maximize the *posterior probability* of our model's parameters in light of the data {math}`p(\theta | y_{\text{data}})`. It contrasts with the *likelihood function* {math}`p(y_{\text{data}} | \theta)`, which is the probability of the data given a fixed set of the model's parameter values. The two are related as follows by Bayes' theorem,
 
 $$ p (\theta | y_{\text{data}}) = \frac{p(y_{\text{data}} | \theta) p(\theta)}{p(y_{\text{data}})}. $$
 
-Here, {math}`p(y_{\text{data}})` is used for normalization and can be forgotten for all practical purposes. {math}`p(\theta)` is referred to as the *prior probability* of the model parameters and contains any prior beliefs about the probability density distribution of the parameters {math}`\theta`. What is really important to remember is that the *posterior probability* {math}`p(\theta | y_{\text{data}})` is proportional to the product of the *likelihood* {math}`p(y_{\text{data}} | \theta)` and the parameter *prior probability* {math}`p(\theta)`. We'll maximize the logarithm of the *posterior probability*, computed as the sum of the logarithm of the *prior probability* and the logarithm of the *likelihood*. For an introduction to Bayesian inference, I recommend reading the following [article](https://towardsdatascience.com/a-gentle-introduction-to-bayesian-inference-6a7552e313cb). I also recommend going through the following tutorial of [emcee](https://emcee.readthedocs.io/en/stable/tutorials/line/).
+Here, {math}`p(y_{\text{data}})` is used for normalization and can be ignored for all practical purposes. {math}`p(\theta)` is referred to as the *prior probability* of the model parameters and contains any prior beliefs about the probability density distribution of the parameters {math}`\theta`. What is really important to remember is that the *posterior probability* {math}`p(\theta | y_{\text{data}})` is proportional to the product of the *likelihood* {math}`p(y_{\text{data}} | \theta)` and the parameter *prior probability* {math}`p(\theta)`. We'll maximize the logarithm of the *posterior probability*, computed as the sum of the logarithm of the *prior probability* and the logarithm of the *likelihood*. For an introduction to Bayesian inference, I recommend reading the following [article](https://towardsdatascience.com/a-gentle-introduction-to-bayesian-inference-6a7552e313cb). I also recommend going through the following tutorial of [emcee](https://emcee.readthedocs.io/en/stable/tutorials/line/).
 
 Remember: LOG POSTERIOR = LOG PRIOR + LOG LIKELIHOOD
 
