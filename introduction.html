@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>pySODM &mdash; pySODM  documentation</title>
@@ -29,11 +29,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> pySODM
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pySODM
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -89,7 +93,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">pySODM</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/introduction.md.txt" rel="nofollow"> View page source</a>
@@ -131,45 +135,45 @@ data to compute the posterior probability function, which can subsequently be op
 </section>
 <section id="overview-of-features">
 <h2>Overview of features<a class="headerlink" href="#overview-of-features" title="Permalink to this heading">¶</a></h2>
-<table class="colwidths-auto docutils align-default">
+<table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Workflow</p></th>
 <th class="head"><p>Features</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Building a model</p></td>
-<td><p>Solve coupled systems of differential equations deterministically (integration) or stochastically (Gillespie’s SSA and Tau-Leaping)</p></td>
+<tr class="row-even"><td><p>Construct a dynamical model</p></td>
+<td><p>Implement coupled systems of differential equations</p></td>
 </tr>
 <tr class="row-odd"><td><p></p></td>
-<td><p>n-Dimensional model states with coordinates. Different states can have different sizes.</p></td>
+<td><p>States can be n-dimensional and of different sizes, allowing users to build models with subprocesses</p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
+<td><p>Allows n-dimensional model states to be labelled with coordinates and dimensions by using <code class="docutils literal notranslate"><span class="pre">xarray.Dataset}</span></code> to store simulation output</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
 <td><p>Easy indexing, manipulating, saving, and piping to third-party software of model output by formatting simulation output as <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p>Simulating a model</p></td>
-<td><p>Vary model parameters during the simulation in accordance with an arbitrarily complex function containing any input</p></td>
+<tr class="row-even"><td><p>Simulating the model</p></td>
+<td><p>Deterministic (<code class="docutils literal notranslate"><span class="pre">scipy.integrate</span></code>) or stochastic simulation (Gillespie’s Stochastic Simulation Algorithm or Tau-Leaping)</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p>Vary model parameters during the simulation generically using a complex function</p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
 <td><p>Use <em>draw functions</em> to perform repeated simulations for sensitivity analysis. With multiprocessing support</p></td>
 </tr>
-<tr class="row-odd"><td><p>Calibrating a model</p></td>
-<td><p>Calibration of n-dimensional model parameters</p></td>
+<tr class="row-odd"><td><p>Calibrate the model</p></td>
+<td><p>Construct and maximize a posterior probability function</p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
-<td><p>Construct a posterior probability function</p></td>
+<td><p>Automatic alignment of data and model forecast over timesteps and coordinates</p></td>
 </tr>
 <tr class="row-odd"><td><p></p></td>
-<td><p>Automatic alignment of data and model prediction over timesteps and dimensions</p></td>
+<td><p>Nelder-Mead Simplex and Particle Swarm Optimization for point estimation of model parameters</p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
-<td><p>Nelder-Mead Simplex and Particle Swarm Optimization for frequentist optimization</p></td>
-</tr>
-<tr class="row-odd"><td><p></p></td>
 <td><p>Pipeline to and backend for <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> to perform Bayesian inference of model parameters</p></td>
-</tr>
-<tr class="row-even"><td><p></p></td>
-<td><p>Analysis of the mean-variance ratio in count-based datasets to aid in the choice of an appropriate likelihood function</p></td>
 </tr>
 </tbody>
 </table>

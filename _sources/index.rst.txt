@@ -8,7 +8,7 @@ Welcome to pySODM's documentation
 
 .. toctree::
    :caption: Getting started
-   :maxdepth: 0
+   :maxdepth: 1
 
    Introduction <introduction.md>
    Installation <installation.md>
