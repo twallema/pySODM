@@ -24,7 +24,7 @@ from matplotlib.pyplot import plt
 
 ### Load the dataset
 
-For the purpose of this tutorial, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Mathematically,
+For the purpose of this tutorial, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Alternatively, the output of the SIR model could be used to generate a dataset of disease cases. Mathematically,
 
 ```{math}
 n_{cases}(t) = \exp \Big( t *  \dfrac{\log 2}{t_d} \Big)
