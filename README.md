@@ -31,17 +31,17 @@ data to compute the posterior probability function, which can subsequently be op
 
 | Workflow                     | Features                                                                                                                        |
 |------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| Building a model     | Solve coupled systems of differential equations deterministically (integration) or stochastically (Gillespie's SSA and Tau-Leaping)                  |
-|                              | n-Dimensional model states with coordinates. Different states can have different sizes.                                         |
-|                              | Easy indexing, manipulating, saving, and piping to third-party software of model output by formatting simulation output as `xarray.Dataset` |
-| Simulating a model   | Vary model parameters during the simulation in accordance with an arbitrarily complex function containing any input                     |
-|                              | Use *draw functions* to perform repeated simulations for sensitivity analysis. With multiprocessing support                     |
-| Calibrating a model  | Calibration of n-dimensional model parameters                                                                                           |
-|                              | Construct a posterior probability function                                                                                      |
-|                              | Automatic alignment of data and model prediction over timesteps and dimensions                                                  |
-|                              | Nelder-Mead Simplex and Particle Swarm Optimization for frequentist optimization                                                |
-|                              | Pipeline to and backend for `emcee.EnsembleSampler` to perform Bayesian inference of model parameters                           |
-|                              | Analysis of the mean-variance ratio in count-based datasets to aid in the choice of an appropriate likelihood function          |
+| Construct a dynamical model     | Implement coupled systems of differential equations            |
+|                                 | States can be n-dimensional and of different sizes, allowing users to build models with subprocesses                                       |
+|                                 | Allows n-dimensional model states to be labelled with coordinates and dimensions by using `xarray.Dataset}` to store simulation output |
+|                                 | Easy indexing, manipulating, saving, and piping to third-party software of model output by formatting simulation output as `xarray.Dataset` |
+| Simulating the model            | Deterministic (`scipy.integrate`) or stochastic simulation (Gillespie's Stochastic Simulation Algorithm or Tau-Leaping) |
+|                                 | Vary model parameters during the simulation generically using a complex function |
+|                                 | Use *draw functions* to perform repeated simulations for sensitivity analysis. With multiprocessing support |
+| Calibrate the model             | Construct and maximize a posterior probability function  |
+|                                 | Automatic alignment of data and model forecast over timesteps and coordinates  |
+|                                 | Nelder-Mead Simplex and Particle Swarm Optimization for point estimation of model parameters |
+|                                 | Pipeline to and backend for `emcee.EnsembleSampler` to perform Bayesian inference of model parameters                           |
 
 ### Getting started
 
