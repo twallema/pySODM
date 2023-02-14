@@ -122,7 +122,7 @@ Data variables:
 ```
 
 ## Set up an ODE model with multiple dimensions
-pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and they transmit a diseae to the humans. Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
+pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and they transmit a disease to the humans. Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
 
 ```python
 class ODE_SIR_SI(ODEModel):
@@ -159,7 +159,7 @@ Setting up and simulating the model,
 # Define parameters, initial states and coordinates
 params={'alpha': np.array([0.05, 0.1, 0.2, 0.15]), 'gamma': 5, 'beta': 7}
 init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 2}
-coordinates={'age_group': pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])}
+coordinates={'age_groups': ['0-5','5-15', '15-65','65-120']}
 # Initialize model
 model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
 # Simulate the model
@@ -173,7 +173,7 @@ results in the following `xarray.Dataset`. Here it can be seen that the S, I and
 <xarray.Dataset>
 Dimensions:    (age_group: 4, time: 121)
 Coordinates:
-  * age_group  (age_group) object (0, 5] (5, 15] (15, 65] (65, 120]
+  * age_group  (age_groups) <U6 '0-5' '5-15' '15-65' '65-120'
   * time       (time) int64 0 1 2 3 4 5 6 7 ... 113 114 115 116 117 118 119 120
 Data variables:
     S          (age_group, time) float64 6.069e+05 6.069e+05 ... 1.653e+06
