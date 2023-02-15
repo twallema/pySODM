@@ -122,7 +122,9 @@ Data variables:
 ```
 
 ## Set up an ODE model with multiple dimensions
-pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and they transmit a disease to the humans. Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
+pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and infected vectors are able to transmit a disease to the humans. In turn, infected humans can pass the disease back to the vector (see flowchart). Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
+
+<img src="./_static/figs/quickstart/quickstart_SIR_SI_flowchart.png" width="700" />
 
 ```python
 class ODE_SIR_SI(ODEModel):
@@ -185,7 +187,7 @@ Data variables:
 
 ## Set up a dimensionless SDE Model
 
-To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed description of implenting models using Gillespie's methods, we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings.
+To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed description of implenting models using Gillespie's methods, we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings. Further, the transitioning for state `I` is a float and this should be a `numpy.float`. I'm still figuring out if I want to introduce the overhead to check and correct this behavior (likely not).
 
 ```python
 # Import the ODEModel class
