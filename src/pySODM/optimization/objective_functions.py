@@ -1080,7 +1080,8 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                         else:
                             # Make sure time index is in first position
                             val = log_likelihood_fnc_args[idx].to_xarray()
-                            val = val.transpose([time_index,]+additional_axes_data[idx])
+                            dims = [time_index,]+additional_axes_data[idx]
+                            val = val.transpose(*dims)
                             log_likelihood_fnc_args[idx] = val.to_numpy()         
             else:
                 # Compute desired shape in case of one parameter per stratfication
@@ -1108,7 +1109,8 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                         else:
                             # Make sure time index is in first position
                             val = log_likelihood_fnc_args[idx].to_xarray()
-                            val = val.transpose([time_index,]+additional_axes_data[idx])
+                            dims = [time_index,]+additional_axes_data[idx]
+                            val = val.transpose(*dims)
                             log_likelihood_fnc_args[idx] = val.to_numpy()
     
     return log_likelihood_fnc_args
