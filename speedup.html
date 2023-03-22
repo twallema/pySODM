@@ -12,9 +12,6 @@
   <![endif]-->
   
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -110,7 +107,7 @@
 </section>
 <section id="jit-compilation">
 <h2>JIT compilation<a class="headerlink" href="#jit-compilation" title="Permalink to this heading">¶</a></h2>
-<p>Just-in-time compilation, made possible by <a class="reference external" href="https://numba.pydata.org/">numba</a>, can be used to speed up code. It is best applied to <code class="docutils literal notranslate"><span class="pre">integrate()</span></code> or time-dependent parameter functions. The amount of achievable speedup is different for every model. Generally speaking, models with for-loops in them, or models with large matrix computations will speed up quite nicely. Jit compiling the 1D PFR in the <a class="reference internal" href="enzyme_kinetics.html"><span class="doc std std-doc">enzyme kinetics</span></a> tutorial results in a 16-fold speedup, while jit compiling the PPBB enzyme kinetic model only speeds up the code by 6%.</p>
+<p>Just-in-time compilation, made possible by <a class="reference external" href="https://numba.pydata.org/">numba</a>, can be used to speed up code. It is best applied to <code class="docutils literal notranslate"><span class="pre">integrate()</span></code> or time-dependent parameter functions. The amount of achievable speedup is different for every model. Generally speaking, models with for-loops in them, or models with large matrix computations will speed up quite nicely. Jit compiling the 1D PFR in the <a class="reference internal" href="enzyme_kinetics.html"><span class="std std-doc">enzyme kinetics</span></a> tutorial results in a 16-fold speedup, while jit compiling the PPBB enzyme kinetic model only speeds up the code by 6%.</p>
 </section>
 <section id="avoid-large-inputs-in-time-dependent-parameter-functions">
 <h2>Avoid large inputs in time-dependent parameter functions<a class="headerlink" href="#avoid-large-inputs-in-time-dependent-parameter-functions" title="Permalink to this heading">¶</a></h2>
