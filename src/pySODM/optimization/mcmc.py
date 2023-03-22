@@ -241,6 +241,7 @@ def emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run
         print(f'Convergence: the chain is longer than 50 times the intergrated autocorrelation time.\nPreparing to save samples with thinning value {thin}.')
         sys.stdout.flush()
     except:
+        thin=1
         print('Warning: The chain is shorter than 50 times the integrated autocorrelation time.\nUse this estimate with caution and run a longer chain! Setting thinning to 1.\n')
         sys.stdout.flush()
 
