@@ -52,7 +52,7 @@ def optimize(func, x_start, step,
             bounds = func.expanded_bounds
         except:
             raise Exception(
-                "'func' does not appear to be a pySODM model: 'expanded_bounds' not found. Provide bounds directly to `pso.optimize()`"
+                "'func' does not appear to be a pySODM model: 'expanded_bounds' not found. Provide bounds directly to `nelder_mead.optimize()`"
             )
 
     # Input check bounds
