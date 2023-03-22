@@ -36,7 +36,11 @@ def ll_gaussian(ymodel, ydata, sigma):
     if not sigma.shape == ymodel.shape:
         # Expand first dimensions on 'alpha' to match the axes
         sigma = np.array(sigma)[np.newaxis, ...]   
-
+    # Check for zeros (TODO: move to a higher layer)
+    if len(sigma[sigma<=0]) != 0:
+        raise ValueError(
+            'argument `sigma` of `ll_gaussian` contains values smaller than or equal to zero'
+        )
     return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
 
 def ll_poisson(ymodel, ydata):
