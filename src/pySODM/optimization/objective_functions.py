@@ -892,14 +892,14 @@ def create_fake_xarray_output(state_dimensions, state_coordinates, initial_state
     new_state_dimensions={}
     for k,v in state_dimensions.items():
         v_acc = v.copy()
-        v_acc.append(time_index)
+        v_acc = [time_index,] + v_acc
         new_state_dimensions.update({k: v_acc})
 
     # Append the time coordinates
     new_state_coordinates={}
     for k,v in state_coordinates.items():
         v_acc=v.copy()
-        v_acc.append([0,])
+        v_acc = [[0,],] + v_acc
         new_state_coordinates.update({k: v_acc})
 
     # Build the xarray dataset
@@ -907,7 +907,7 @@ def create_fake_xarray_output(state_dimensions, state_coordinates, initial_state
     for var, arr in initial_states.items():
         if arr.ndim >= 1:
             if state_dimensions[var]:
-                arr = arr[..., np.newaxis]
+                arr = arr[np.newaxis, ...]
         xarr = xr.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
         data[var] = xarr
 
