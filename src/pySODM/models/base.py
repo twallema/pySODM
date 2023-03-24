@@ -88,7 +88,18 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
         xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
         data[var] = xarr
 
-    return xarray.Dataset(data)
+    # Place dimensions date/time in front (I've tried to do this in the reshape function of `list_to_dict` but this doesn't work with nD variables)
+    output = xarray.Dataset(data)
+    dims = list(output.dims.keys())
+    if actual_start_date is not None:
+        dims_no_date = [x for x in dims if x != "date"]
+        dims = ['date',] + dims_no_date
+    else:
+        dims_no_time = [x for x in dims if x != "time"]
+        dims = ['time',] + dims_no_time
+    output = output.transpose(*dims)
+
+    return output
 
 class SDEModel:
     """
