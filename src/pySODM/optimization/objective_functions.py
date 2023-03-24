@@ -445,6 +445,9 @@ class log_posterior_probability():
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
+        # Compute log prior probability 
+        lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
+
         # Restrict thetas to user-provided bounds
         for i,theta in enumerate(thetas):
             if theta > self.expanded_bounds[i][1]:
@@ -462,9 +465,6 @@ class log_posterior_probability():
 
         # Assign model parameters
         self.model.parameters.update(thetas_dict)
-
-        # Compute log prior probability 
-        lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
 
         if not self.initial_states:
             # Perform simulation only once
