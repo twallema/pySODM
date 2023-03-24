@@ -57,16 +57,20 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
         new_state_shapes.update({k: tuple(v)})
     output_flat = np.ravel(output["y"])
     data_variables = list_to_dict(output_flat, new_state_shapes)
+    # Move time axis to first position (yes, obviously I have tried this  with np.reshape in `list_to_dict` but this didn't work for n-D states)
+    for k,v in data_variables.items():
+        print(k, v)
+        data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
 
     # Append the time dimension
     new_state_dimensions={}
     for k,v in state_dimensions.items():
         v_acc = v.copy()
         if actual_start_date is not None:
-            v_acc.append('date')
+            v_acc = ['date',] + v_acc
             new_state_dimensions.update({k: v_acc})
         else:
-            v_acc.append('time')
+            v_acc = ['time',] + v_acc
             new_state_dimensions.update({k: v_acc})
 
     # Append the time coordinates
@@ -74,10 +78,10 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
     for k,v in state_coordinates.items():
         v_acc=v.copy()
         if actual_start_date is not None:
-            v_acc.append(actual_start_date + pd.to_timedelta(output["t"], unit='D'))
+            v_acc = [actual_start_date + pd.to_timedelta(output["t"], unit='D'),] + v_acc
             new_state_coordinates.update({k: v_acc})
         else:
-            v_acc.append(output["t"])
+            v_acc = [output["t"],] + v_acc
             new_state_coordinates.update({k: v_acc})
 
     # Build the xarray dataset

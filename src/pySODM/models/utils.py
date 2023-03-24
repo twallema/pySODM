@@ -40,5 +40,4 @@ def list_to_dict(y, shape_dictionary, retain_floats=True):
         else:
             restoredArray.append(y[offset:(offset+n)].reshape(s))
         offset+=n
-
     return dict(zip(shape_dictionary.keys(), restoredArray))

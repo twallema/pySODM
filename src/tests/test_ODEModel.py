@@ -35,8 +35,6 @@ def test_SIR_time():
 
     # Do it right
 
-    # Same starttime and stoptime
-    output = model.sim([0,0])
     # Simulate using a mixture of int/float
     time = [int(10), float(50.3)]
     output = model.sim(time)
@@ -60,10 +58,13 @@ def test_SIR_time():
     assert S.shape == (51, )
 
     # Do it wrong
-
     # Start before end
     with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
         model.sim([20,5])
+
+    # Start same as end
+    with pytest.raises(ValueError, match="Start of simulation is the same as the end of simulation"):
+        model.sim([0,0])
 
     # Wrong type
     with pytest.raises(TypeError, match="Input argument 'time' must be a"):
@@ -212,9 +213,9 @@ def test_stratified_SIR_output_shape():
     output = model.sim(time)
     # Assert state size
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
-    assert output["S"].values.shape == (2, 51)
-    assert output["I"].values.shape == (2, 51)
-    assert output["R"].values.shape == (2, 51)
+    assert output["S"].values.shape == (51, 2)
+    assert output["I"].values.shape == (51, 2)
+    assert output["R"].values.shape == (51, 2)
 
 def test_stratified_SIR_automatic_filling_initial_states():
     """Validate the initial states not defined are automatically filled with zeros
@@ -345,9 +346,9 @@ def test_SIR_SI_state_shapes():
     output = model.sim([0, 50])
     # Assert state size
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
-    assert output["S"].values.shape == (4, 4, 51)
-    assert output["I"].values.shape == (4, 51)
-    assert output["R"].values.shape == (4, 51)
+    assert output["S"].values.shape == (51, 4, 4)
+    assert output["I"].values.shape == (51, 4)
+    assert output["R"].values.shape == (51, 4)
     assert output["S_v"].values.shape == (51,)
     assert output["I_v"].values.shape == (51,)
 
