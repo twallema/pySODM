@@ -55,6 +55,11 @@ def validate_simulation_time(time, warmup):
         raise ValueError(
             "Start of simulation is chronologically after end of simulation"
         )
+    elif time[0] == time[1]:
+        # TODO: Might be usefull to just return the initial condition in this case?
+        raise ValueError(
+            "Start of simulation is the same as the end of simulation"
+        )
     return time, actual_start_date
 
 def validate_draw_function(draw_function, parameters, samples):
