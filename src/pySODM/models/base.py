@@ -59,7 +59,6 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
     data_variables = list_to_dict(output_flat, new_state_shapes)
     # Move time axis to first position (yes, obviously I have tried this  with np.reshape in `list_to_dict` but this didn't work for n-D states)
     for k,v in data_variables.items():
-        print(k, v)
         data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
 
     # Append the time dimension
