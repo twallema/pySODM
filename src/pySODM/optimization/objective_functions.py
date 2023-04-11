@@ -899,7 +899,10 @@ def create_fake_xarray_output(state_dimensions, state_coordinates, initial_state
     new_state_coordinates={}
     for k,v in state_coordinates.items():
         v_acc=v.copy()
-        v_acc = [[0,],] + v_acc
+        if time_index == 'time':
+            v_acc = [[0,],] + v_acc
+        elif time_index == 'date':
+            v_acc = [[pd.Timestamp('2000-01-01'),],] + v_acc
         new_state_coordinates.update({k: v_acc})
 
     # Build the xarray dataset
@@ -951,7 +954,6 @@ def compare_data_model_coordinates(output, data, calibration_state_names, aggreg
     for i, (state_name, df) in enumerate(zip(calibration_state_names, data)):
         # Call the aggregation function
         if aggregation_function:
-            
             new_output = aggregation_function[i](output[state_name])
         else:
             new_output = output[state_name]
