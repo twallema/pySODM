@@ -2,6 +2,7 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Packages
+import warnings
 import random
 import itertools
 import xarray
@@ -516,6 +517,10 @@ class SDEModel:
         if draw_function:
             validate_draw_function(draw_function, self.parameters, samples)
 
+        # Provinding 'N' but no draw function: wastefull
+        if ((N != 1) & (draw_function==None)):
+            raise ValueError('performing N={0} repeated simulations without a `draw_function` is mighty wastefull of computational resources'.format(N))
+
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
         # Construct list of drawn dictionaries
@@ -780,7 +785,11 @@ class ODEModel:
         # Input check on draw function
         if draw_function:
             validate_draw_function(draw_function, self.parameters, samples)
-           
+        
+        # Provinding 'N' but no draw function: wastefull
+        if ((N != 1) & (draw_function==None)):
+            raise ValueError('performing N={0} repeated simulations without a `draw_function` is mighty wastefull of computational resources'.format(N))
+
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
         # Construct list of drawn dictionaries
