@@ -695,8 +695,30 @@ class ODEModel:
 
         return func
 
-    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1):
-        """"""
+    def _solve_discrete(self, fun, tau, t_eval, y, args):
+        # Preparations
+        y = np.reshape(y, [len(y),1])
+        y_prev=y
+        # Simulation loop
+        t_lst=[t_eval[0]]
+        t = t_eval[0]
+        while t < t_eval[-1]:
+            out = fun(t, y_prev, args)
+            out = np.reshape(out,[len(out),1])*tau
+            y = np.append(y,y_prev+out,axis=1)
+            y_prev += out
+            t = t + tau
+            t_lst.append(t)
+        # Interpolate output y to times t_eval
+        y_eval = np.zeros([y.shape[0], len(t_eval)])
+        for row_idx in range(y.shape[0]):
+            y_eval[row_idx,:] = np.interp(t_eval, t_lst, y[row_idx,:])
+        return {'y': y_eval, 't': t_eval}
+
+    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1, tau=None):
+        """
+        Integrates the model over the interval time = [t0, t1] and builds the xarray output. Integration is either continuous (default) or discrete (tau != None).
+        """
 
         # Create scipy-compatible wrapper
         fun = self._create_fun(actual_start_date)
@@ -710,21 +732,23 @@ class ODEModel:
         for v in self.initial_states.values():
             y0.extend(list(np.ravel(v)))
 
-        # Get output
-        output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
+        if tau:
+            output = self._solve_discrete(fun, tau, t_eval, y0, args=self.parameters)
+        else:
+            output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
 
         # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
         """
         A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionary and runs `_sim_single`
         """
         self.parameters.update(drawn_parameters)
-        out = self._sim_single(time, actual_start_date, method, rtol, output_timestep)
+        out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', tau=None, output_timestep=1, rtol=1e-3, processes=None):
         """
         Run a model simulation for the given time period. Can optionally perform `N` repeated simulations of time days.
         Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
@@ -756,6 +780,9 @@ class ODEModel:
         method: str
             Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK23'.
         
+        tau: None
+            If tau != None, a discrete timestepper with timestep `tau` is used.
+
         output_timestep: int/flat
             Interpolate model output to every `output_timestep` time
             For datetimes: expressed in days
@@ -807,11 +834,11 @@ class ODEModel:
         # Run simulations
         if processes: # Needed 
             with mp.Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep), drawn_dictionaries)
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_dictionaries)
         else:
             output=[]
             for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep))
+                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
 
         # Append results
         out = output[0]
