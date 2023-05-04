@@ -817,7 +817,7 @@ class ODEModel:
         if tau != None:
             if not isinstance(tau, (int,float)):
                 raise TypeError(
-                "discrete timestep 'tau' must be of type int or float"
+                    "discrete timestep 'tau' must be of type int or float"
                 )
             print(f"performing discrete timestepping with tau = {tau}\n")
 
