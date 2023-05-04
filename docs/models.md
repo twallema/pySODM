@@ -30,7 +30,7 @@ Upon intialization of the model class, the following arguments must be provided.
 
 **Methods:**
 
-* **sim(time, N=1, draw_function=None, samples=None, processes=None, method='RK23', rtol=1e-3, output_timestep=1, warmup=0)**
+* **sim(time, N=1, draw_function=None, samples=None, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1, warmup=0)**
 
     Simulate a model over a given time period using `scipy.integrate.solve_ivp()`. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`.
 
@@ -43,6 +43,7 @@ Upon intialization of the model class, the following arguments must be provided.
     * **processes** - (int) - optional - Number of cores to use when {math}`N > 1`.
     * **method** - (str) - optional - Integration methods of `scipy.integrate.solve_ivp()` (read the [docs](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html)).
     * **rtol** - (int/float) - optional - Relative tolerance of `scipy.integrate.solve_ivp()` (read the [docs](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html)).
+    * **tau** - (int/float) - optional - If `tau != None`, the model is simulated using a simple discrete timestepper with fixed timestep `tau`. Overrides the `method` and `rtol` arguments. 
     * **output_timestep** - (int/float) - optional - Interpolate model output to every `output_timestep` timesteps. For datetimes: expressed in days.
     * **warmup** - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of "patient zero" and the collection of data is unkown. 
 

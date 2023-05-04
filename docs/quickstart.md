@@ -45,7 +45,7 @@ To initialize the model, provide a dictionary containing the initial values of t
 model = SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
-Simulate the model using the `sim()` method. The solver method and tolerance, as well as the timesteps in the output can be tailored. pySODM supports the use of `datetime` types as timesteps.
+Simulate the model using the `sim()` method. The solver method and tolerance of `scipy.solve_ivp()`, as well as the timesteps included in the output can be tailored. pySODM supports the use of `datetime` types as timesteps.
 
 ```python
 # Timesteps
@@ -53,6 +53,19 @@ out = model.sim(121)
 
 # Dates
 out = model.sim(['2022-12-01', '2023-05-01'])
+
+# Tailor method and tolerance of integrator
+out = model.sim(121, method='RK45', rtol='1e-4')
+```
+
+In some situations, the use of a discrete timestep with a fixed length may be preferred, 
+
+```python
+# Use a discrete timestepper with step size 1
+out = model.sim(121, tau=1)
+
+# Is equivalent to (`tau` overwrites `method`!):
+out = model.sim(121, method='RK45', rtol='1e-4', tau=1)
 ```
 
 Results are sent to an `xarray.Dataset`, for more information on indexing and selecting data using `xarray`, [see](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
