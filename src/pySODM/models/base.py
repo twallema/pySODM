@@ -417,7 +417,7 @@ class SDEModel:
 
     def _solve_discrete(self, fun, t_eval, y, args):
         # Preparations
-        y = np.reshape(y, [y.size,1])
+        y = np.reshape(y, [len(y),1])
         y_prev=y
         # Simulation loop
         t_lst=[t_eval[0]]
@@ -425,7 +425,7 @@ class SDEModel:
         while t < t_eval[-1]:
             out, tau = fun(t, y_prev, args)
             y_prev = out
-            out = np.reshape(out,[out.size,1])
+            out = np.reshape(out,[len(out),1])
             y = np.append(y,out,axis=1)
             t = t + tau
             t_lst.append(t)
@@ -720,6 +720,7 @@ class ODEModel:
         y_eval = np.zeros([y.shape[0], len(t_eval)])
         for row_idx in range(y.shape[0]):
             y_eval[row_idx,:] = np.interp(t_eval, t_lst, y[row_idx,:])
+            
         return {'y': y_eval, 't': t_eval}
 
     def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1, tau=None):
