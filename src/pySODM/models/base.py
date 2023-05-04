@@ -798,12 +798,18 @@ class ODEModel:
         # Input checks on solver settings
         if not isinstance(rtol, float):
             raise TypeError(
-                "Relative solver tolerance 'rtol' must be of type float"
-            )
+                "relative solver tolerance 'rtol' must be of type float"
+                )
         if not isinstance(method, str):
             raise TypeError(
-                "Solver method 'method' must be of type string"
-            )
+                "solver method 'method' must be of type string"
+                )
+        if tau != None:
+            if not isinstance(tau, (int,float)):
+                raise TypeError(
+                "discrete timestep 'tau' must be of type int or float"
+                )
+            print(f"performing discrete timestepping with tau = {tau}\n")
 
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
