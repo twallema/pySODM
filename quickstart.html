@@ -146,12 +146,23 @@ N &amp;=&amp; S + I + R, \\
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>Simulate the model using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method. The solver method and tolerance, as well as the timesteps in the output can be tailored. pySODM supports the use of <code class="docutils literal notranslate"><span class="pre">datetime</span></code> types as timesteps.</p>
+<p>Simulate the model using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method. The solver method and tolerance of <code class="docutils literal notranslate"><span class="pre">scipy.solve_ivp()</span></code>, as well as the timesteps included in the output can be tailored. pySODM supports the use of <code class="docutils literal notranslate"><span class="pre">datetime</span></code> types as timesteps.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timesteps</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
 
 <span class="c1"># Dates</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">([</span><span class="s1">&#39;2022-12-01&#39;</span><span class="p">,</span> <span class="s1">&#39;2023-05-01&#39;</span><span class="p">])</span>
+
+<span class="c1"># Tailor method and tolerance of integrator</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;RK45&#39;</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="s1">&#39;1e-4&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In some situations, the use of a discrete timestep with a fixed length may be preferred,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use a discrete timestepper with step size 1</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Is equivalent to (`tau` overwrites `method`!):</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;RK45&#39;</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="s1">&#39;1e-4&#39;</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Results are sent to an <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>, for more information on indexing and selecting data using <code class="docutils literal notranslate"><span class="pre">xarray</span></code>, <a class="reference external" href="https://docs.xarray.dev/en/stable/user-guide/indexing.html">see</a>.</p>

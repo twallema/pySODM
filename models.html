@@ -134,7 +134,7 @@
 </ul>
 <p><strong>Methods:</strong></p>
 <ul>
-<li><p><strong>sim(time, N=1, draw_function=None, samples=None, processes=None, method=’RK23’, rtol=1e-3, output_timestep=1, warmup=0)</strong></p>
+<li><p><strong>sim(time, N=1, draw_function=None, samples=None, processes=None, method=’RK23’, rtol=1e-3, tau=None, output_timestep=1, warmup=0)</strong></p>
 <p>Simulate a model over a given time period using <code class="docutils literal notranslate"><span class="pre">scipy.integrate.solve_ivp()</span></code>. Can optionally perform <code class="docutils literal notranslate"><span class="pre">N</span></code> repeated simulations. Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary <code class="docutils literal notranslate"><span class="pre">samples</span></code> using a function <code class="docutils literal notranslate"><span class="pre">draw_function</span></code>.</p>
 <p><strong>Parameters</strong></p>
 <ul class="simple">
@@ -145,6 +145,7 @@
 <li><p><strong>processes</strong> - (int) - optional - Number of cores to use when <span class="math notranslate nohighlight">\(N &gt; 1\)</span>.</p></li>
 <li><p><strong>method</strong> - (str) - optional - Integration methods of <code class="docutils literal notranslate"><span class="pre">scipy.integrate.solve_ivp()</span></code> (read the <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html">docs</a>).</p></li>
 <li><p><strong>rtol</strong> - (int/float) - optional - Relative tolerance of <code class="docutils literal notranslate"><span class="pre">scipy.integrate.solve_ivp()</span></code> (read the <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html">docs</a>).</p></li>
+<li><p><strong>tau</strong> - (int/float) - optional - If <code class="docutils literal notranslate"><span class="pre">tau</span> <span class="pre">!=</span> <span class="pre">None</span></code>, the model is simulated using a simple discrete timestepper with fixed timestep <code class="docutils literal notranslate"><span class="pre">tau</span></code>. Overrides the <code class="docutils literal notranslate"><span class="pre">method</span></code> and <code class="docutils literal notranslate"><span class="pre">rtol</span></code> arguments.</p></li>
 <li><p><strong>output_timestep</strong> - (int/float) - optional - Interpolate model output to every <code class="docutils literal notranslate"><span class="pre">output_timestep</span></code> timesteps. For datetimes: expressed in days.</p></li>
 <li><p><strong>warmup</strong> - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of “patient zero” and the collection of data is unkown.</p></li>
 </ul>
