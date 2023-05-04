@@ -18,81 +18,6 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
 
-def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
-    """
-    Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
-
-    Parameters
-    ----------
-
-    output: dict
-        Keys: "y" (states) and "t" (timesteps)
-        Size of `y`: (total number of states, number of timesteps)
-        Size of `t`: number of timesteps
-
-    state_shapes: dict
-        Keys: state names. Values: tuples with state shape
-
-    state_dimensions: dict
-        Keys: state names. Values: list containing dimensions associated with state
-
-    state_coordinates: dict
-        Keys: state names. Values: list containing coordinates of every dimension the state is associated with
-
-    actual_start_date: datetime
-        Used to determine if the time output should be returned as dates
-
-    Returns
-    -------
-
-    output: xarray.Dataset
-        Simulation results
-    """
-
-    # Convert scipy's output to a dictionary of states with the correct sizes
-    new_state_shapes={}
-    for k,v in state_shapes.items():
-        v=list(v)
-        v.append(len(output["t"]))
-        new_state_shapes.update({k: tuple(v)})
-    output_flat = np.ravel(output["y"])
-    data_variables = list_to_dict(output_flat, new_state_shapes)
-    # Move time axis to first position (yes, obviously I have tried this  with np.reshape in `list_to_dict` but this didn't work for n-D states)
-    for k,v in data_variables.items():
-        data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
-
-    # Append the time dimension
-    new_state_dimensions={}
-    for k,v in state_dimensions.items():
-        v_acc = v.copy()
-        if actual_start_date is not None:
-            v_acc = ['date',] + v_acc
-            new_state_dimensions.update({k: v_acc})
-        else:
-            v_acc = ['time',] + v_acc
-            new_state_dimensions.update({k: v_acc})
-
-    # Append the time coordinates
-    new_state_coordinates={}
-    for k,v in state_coordinates.items():
-        v_acc=v.copy()
-        if actual_start_date is not None:
-            v_acc = [actual_start_date + pd.to_timedelta(output["t"], unit='D'),] + v_acc
-            new_state_coordinates.update({k: v_acc})
-        else:
-            v_acc = [output["t"],] + v_acc
-            new_state_coordinates.update({k: v_acc})
-
-    # Build the xarray dataset
-    data = {}
-    for var, arr in data_variables.items():
-        if len(new_state_dimensions[var]) == 1:
-            arr = np.ravel(arr)
-        xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
-        data[var] = xarr
-
-    return xarray.Dataset(data)
-
 class SDEModel:
     """
     Initialise a stochastic differential equations model
@@ -865,3 +790,79 @@ class ODEModel:
         self.parameters = cp
 
         return out
+
+
+def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
+    """
+    Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
+
+    Parameters
+    ----------
+
+    output: dict
+        Keys: "y" (states) and "t" (timesteps)
+        Size of `y`: (total number of states, number of timesteps)
+        Size of `t`: number of timesteps
+
+    state_shapes: dict
+        Keys: state names. Values: tuples with state shape
+
+    state_dimensions: dict
+        Keys: state names. Values: list containing dimensions associated with state
+
+    state_coordinates: dict
+        Keys: state names. Values: list containing coordinates of every dimension the state is associated with
+
+    actual_start_date: datetime
+        Used to determine if the time output should be returned as dates
+
+    Returns
+    -------
+
+    output: xarray.Dataset
+        Simulation results
+    """
+
+    # Convert scipy's output to a dictionary of states with the correct sizes
+    new_state_shapes={}
+    for k,v in state_shapes.items():
+        v=list(v)
+        v.append(len(output["t"]))
+        new_state_shapes.update({k: tuple(v)})
+    output_flat = np.ravel(output["y"])
+    data_variables = list_to_dict(output_flat, new_state_shapes)
+    # Move time axis to first position (yes, obviously I have tried this  with np.reshape in `list_to_dict` but this didn't work for n-D states)
+    for k,v in data_variables.items():
+        data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
+
+    # Append the time dimension
+    new_state_dimensions={}
+    for k,v in state_dimensions.items():
+        v_acc = v.copy()
+        if actual_start_date is not None:
+            v_acc = ['date',] + v_acc
+            new_state_dimensions.update({k: v_acc})
+        else:
+            v_acc = ['time',] + v_acc
+            new_state_dimensions.update({k: v_acc})
+
+    # Append the time coordinates
+    new_state_coordinates={}
+    for k,v in state_coordinates.items():
+        v_acc=v.copy()
+        if actual_start_date is not None:
+            v_acc = [actual_start_date + pd.to_timedelta(output["t"], unit='D'),] + v_acc
+            new_state_coordinates.update({k: v_acc})
+        else:
+            v_acc = [output["t"],] + v_acc
+            new_state_coordinates.update({k: v_acc})
+
+    # Build the xarray dataset
+    data = {}
+    for var, arr in data_variables.items():
+        if len(new_state_dimensions[var]) == 1:
+            arr = np.ravel(arr)
+        xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        data[var] = xarr
+
+    return xarray.Dataset(data)
