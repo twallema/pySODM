@@ -2,7 +2,6 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Packages
-import warnings
 import random
 import itertools
 import xarray
@@ -463,15 +462,15 @@ class SDEModel:
         self.parameters.update(drawn_parameters)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, processes=None, method='tau_leap', tau=0.5, output_timestep=1):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
         Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
-
         Parameters
         ----------
+
         time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
@@ -482,32 +481,34 @@ class SDEModel:
             Number of days to simulate prior to start time or date
 
         N : int
-            Number of repeated simulations (useful for stochastic models). One by default.
+            Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function which takes as its input the dictionary of model parameters and a samples dictionary
-            and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
+            A function with as obligatory inputs the dictionary of model parameters and a dictionary of samples
+            The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
+            Usefull to propagate uncertainty, perform sensitivity analysis.
 
         samples : dictionary
-            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
+            Sample dictionary used by `draw_function`.
+
+        processes: int
+            Number of cores to distribute the `N` draws over
 
         method: str
-            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' (SSA), or its tau-leaping approximation (tau_leap).
-        
+            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap').
+    
         tau: int/float
-            Timestep used by the tau-leaping algorithm
+            Timestep used by the tau-leaping algorithm (default: 0.5)
 
         output_timestep: int/flat
             Interpolate model output to every `output_timestep` time
             For datetimes: expressed in days
 
-        processes: int
-            Number of cores to distribute the N draws over.
-
         Returns
         -------
-        xarray.Dataset
 
+        output: xarray.Dataset
+            Simulation output
         """
 
         # Input checks on supplied simulation time
@@ -748,13 +749,13 @@ class ODEModel:
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', tau=None, output_timestep=1, rtol=1e-3, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1):
         """
-        Run a model simulation for the given time period. Can optionally perform `N` repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
+        Run a model simulation for a given time period. Can optionally perform `N` repeated simulations with sampling of model parameters from a dictionary `samples` using a function `draw_function`. Can perform discrete timestepping if `tau != None`.
 
         Parameters
         ----------
+
         time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
@@ -765,35 +766,37 @@ class ODEModel:
             Number of days to simulate prior to start time or date
 
         N : int
-            Number of repeated simulations (useful for stochastic models). One by default.
+            Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function which takes as its input the dictionary of model parameters and a samples dictionary
-            and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
+            A function with as obligatory inputs the dictionary of model parameters and a dictionary of samples
+            The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
+            Usefull to propagate uncertainty, perform sensitivity analysis.
 
         samples : dictionary
-            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
+            Sample dictionary used by `draw_function`.
 
         processes: int
-            Number of cores to distribute the N draws over.
+            Number of cores to distribute the `N` draws over.
 
         method: str
             Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK23'.
+
+        rtol: float
+            Relative tolerance of Scipy `solve_ivp`. Default: 1e-3.
         
-        tau: None
-            If tau != None, a discrete timestepper with timestep `tau` is used.
+        tau: int/float
+            If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used. (default:None)
 
         output_timestep: int/flat
             Interpolate model output to every `output_timestep` time
             For datetimes: expressed in days
 
-        rtol: float
-            Relative tolerance of Scipy `solve_ivp`. Default: 1e-3. Quick and dirty: 5e-3.
-
         Returns
         -------
-        xarray.Dataset
 
+        output: xarray.Dataset
+            Simulation output
         """
 
         # Input checks on solver settings
