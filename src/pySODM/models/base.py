@@ -511,6 +511,16 @@ class SDEModel:
             Simulation output
         """
 
+        # Input checks on solution method and timestep
+        if not isinstance(method, str):
+            raise TypeError(
+                "solver method 'method' must be of type string"
+                )
+        if not isinstance(tau, (int,float)):
+            raise TypeError(
+                "discrete timestep 'tau' must be of type int or float"
+                )
+
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
 
