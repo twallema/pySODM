@@ -36,7 +36,7 @@ data to compute the posterior probability function, which can subsequently be op
 |                                 | States can be n-dimensional and of different sizes, allowing users to build models with subprocesses                                       |
 |                                 | Allows n-dimensional model states to be labelled with coordinates and dimensions by using `xarray.Dataset}` to store simulation output |
 |                                 | Easy indexing, manipulating, saving, and piping to third-party software of model output by formatting simulation output as `xarray.Dataset` |
-| Simulating the model            | Deterministic (`scipy.integrate`) or stochastic simulation (Gillespie's Stochastic Simulation Algorithm or Tau-Leaping) |
+| Simulating the model            | Continuous and discrete deterministic simulation or discrete stochastic simulation (Gillespie's Stochastic Simulation Algorithm or Tau-Leaping) |
 |                                 | Vary model parameters during the simulation generically using a complex function |
 |                                 | Use *draw functions* to perform repeated simulations for sensitivity analysis. With multiprocessing support |
 | Calibrate the model             | Construct and maximize a posterior probability function  |

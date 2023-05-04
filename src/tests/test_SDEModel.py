@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 from pySODM.models.base import SDEModel
 
-##################################
+#############################
 ## Model without dimension ##
-##################################
+#############################
 
 class SIR(SDEModel):
 
@@ -80,6 +80,14 @@ def test_SIR_time():
     # Combination of datetime and int/float
     with pytest.raises(ValueError, match="List-like input of simulation start and stop"):
         model.sim([0, pd.to_datetime('2020-03-15')])
+
+    # Wrong type for input argument `tau`
+    with pytest.raises(TypeError, match="discrete timestep 'tau' must be of type int or float"):
+         model.sim(50, tau='hello')
+
+    # Wrong type for input argument `method`
+    with pytest.raises(TypeError, match="solver method 'method' must be of type string"):
+         model.sim(50, method=3)
 
 def test_SIR_date():
     """ Test the use of str/datetime time indexing
@@ -208,9 +216,9 @@ def test_model_init_validation():
     SIR.state_names = ["S", "I", "R"]
     SIR.parameter_names = ['beta', 'gamma']
 
-###################################
+##############################
 ## Model with one dimension ##
-###################################
+##############################
 
 class SIRstratified(SDEModel):
 
@@ -327,9 +335,9 @@ def test_model_stratified_init_validation():
     SIRstratified.parameter_names = ["gamma"]
     SIRstratified.parameter_stratified_names = [["beta"]]
 
-#################################################################
+############################################################
 ## A model with different dimensions for different states ##
-#################################################################
+############################################################
 
 class SIR_SI(SDEModel):
     """

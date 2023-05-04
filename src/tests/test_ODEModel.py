@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 from pySODM.models.base import ODEModel
 
-##################################
+#############################
 ## Model without dimension ##
-##################################
+#############################
 
 class SIR(ODEModel):
     """A Simple SIR model without dimension
@@ -24,7 +24,7 @@ class SIR(ODEModel):
         return dS, dI, dR
 
 def test_SIR_time():
-    """Test the use of int/float/list time indexing
+    """ Test the use of int/float/list time indexing
     """
 
     # Define parameters and initial states
@@ -115,6 +115,37 @@ def test_SIR_date():
     # Simulate using a mixture of timestamp and string
     with pytest.raises(TypeError, match="You have only provided one date as input"):
         model.sim(pd.to_datetime('2020-01-01'))
+
+def test_SIR_discrete_stepper():
+    """ Test the use of the discrete timestepper, `_solve_discrete()`
+    """
+
+    # Define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 10], "I": [10], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+
+    # Do it right
+
+    # Simulate model
+    output = model.sim(50, tau=1)
+    # 'time' present in output
+    assert 'time' in list(output.dims.keys())
+    # Default (no specification output frequency): 0, 1, 2, 3, ..., 50
+    np.testing.assert_allclose(output["time"], np.arange(0, 51))
+    # Numerically speaking everything ok?
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10
+    assert S.shape == (51, )
+    assert S[-1] < 12000
+    I = output["I"].squeeze()
+    assert I[0] == 10
+    assert S.shape == (51, )
+
+    # Do it wrong
+    with pytest.raises(TypeError, match="discrete timestep 'tau' must be of type int or float"):
+         model.sim(50, tau='hello')
 
 def test_model_init_validation():
     # valid initialization: initial states as lists

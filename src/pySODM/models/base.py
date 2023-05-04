@@ -2,7 +2,6 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 # Packages
-import warnings
 import random
 import itertools
 import xarray
@@ -18,81 +17,6 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_state_dimensions, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
-
-def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
-    """
-    Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
-
-    Parameters
-    ----------
-
-    output: dict
-        Keys: "y" (states) and "t" (timesteps)
-        Size of `y`: (total number of states, number of timesteps)
-        Size of `t`: number of timesteps
-
-    state_shapes: dict
-        Keys: state names. Values: tuples with state shape
-
-    state_dimensions: dict
-        Keys: state names. Values: list containing dimensions associated with state
-
-    state_coordinates: dict
-        Keys: state names. Values: list containing coordinates of every dimension the state is associated with
-
-    actual_start_date: datetime
-        Used to determine if the time output should be returned as dates
-
-    Returns
-    -------
-
-    output: xarray.Dataset
-        Simulation results
-    """
-
-    # Convert scipy's output to a dictionary of states with the correct sizes
-    new_state_shapes={}
-    for k,v in state_shapes.items():
-        v=list(v)
-        v.append(len(output["t"]))
-        new_state_shapes.update({k: tuple(v)})
-    output_flat = np.ravel(output["y"])
-    data_variables = list_to_dict(output_flat, new_state_shapes)
-    # Move time axis to first position (yes, obviously I have tried this  with np.reshape in `list_to_dict` but this didn't work for n-D states)
-    for k,v in data_variables.items():
-        data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
-
-    # Append the time dimension
-    new_state_dimensions={}
-    for k,v in state_dimensions.items():
-        v_acc = v.copy()
-        if actual_start_date is not None:
-            v_acc = ['date',] + v_acc
-            new_state_dimensions.update({k: v_acc})
-        else:
-            v_acc = ['time',] + v_acc
-            new_state_dimensions.update({k: v_acc})
-
-    # Append the time coordinates
-    new_state_coordinates={}
-    for k,v in state_coordinates.items():
-        v_acc=v.copy()
-        if actual_start_date is not None:
-            v_acc = [actual_start_date + pd.to_timedelta(output["t"], unit='D'),] + v_acc
-            new_state_coordinates.update({k: v_acc})
-        else:
-            v_acc = [output["t"],] + v_acc
-            new_state_coordinates.update({k: v_acc})
-
-    # Build the xarray dataset
-    data = {}
-    for var, arr in data_variables.items():
-        if len(new_state_dimensions[var]) == 1:
-            arr = np.ravel(arr)
-        xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
-        data[var] = xarr
-
-    return xarray.Dataset(data)
 
 class SDEModel:
     """
@@ -418,7 +342,7 @@ class SDEModel:
 
     def _solve_discrete(self, fun, t_eval, y, args):
         # Preparations
-        y = np.reshape(y, [y.size,1])
+        y = np.reshape(y, [len(y),1])
         y_prev=y
         # Simulation loop
         t_lst=[t_eval[0]]
@@ -426,7 +350,7 @@ class SDEModel:
         while t < t_eval[-1]:
             out, tau = fun(t, y_prev, args)
             y_prev = out
-            out = np.reshape(out,[out.size,1])
+            out = np.reshape(out,[len(out),1])
             y = np.append(y,out,axis=1)
             t = t + tau
             t_lst.append(t)
@@ -463,15 +387,15 @@ class SDEModel:
         self.parameters.update(drawn_parameters)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='tau_leap', tau=0.5, output_timestep=1, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, processes=None, method='tau_leap', tau=0.5, output_timestep=1):
 
         """
         Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
         Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
 
-
         Parameters
         ----------
+
         time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
@@ -482,33 +406,45 @@ class SDEModel:
             Number of days to simulate prior to start time or date
 
         N : int
-            Number of repeated simulations (useful for stochastic models). One by default.
+            Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function which takes as its input the dictionary of model parameters and a samples dictionary
-            and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
+            A function with as obligatory inputs the dictionary of model parameters and a dictionary of samples
+            The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
+            Usefull to propagate uncertainty, perform sensitivity analysis.
 
         samples : dictionary
-            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
+            Sample dictionary used by `draw_function`.
+
+        processes: int
+            Number of cores to distribute the `N` draws over
 
         method: str
-            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' (SSA), or its tau-leaping approximation (tau_leap).
-        
+            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap').
+    
         tau: int/float
-            Timestep used by the tau-leaping algorithm
+            Timestep used by the tau-leaping algorithm (default: 0.5)
 
         output_timestep: int/flat
             Interpolate model output to every `output_timestep` time
             For datetimes: expressed in days
 
-        processes: int
-            Number of cores to distribute the N draws over.
-
         Returns
         -------
-        xarray.Dataset
 
+        output: xarray.Dataset
+            Simulation output
         """
+
+        # Input checks on solution method and timestep
+        if not isinstance(method, str):
+            raise TypeError(
+                "solver method 'method' must be of type string"
+                )
+        if not isinstance(tau, (int,float)):
+            raise TypeError(
+                "discrete timestep 'tau' must be of type int or float"
+                )
 
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
@@ -516,10 +452,6 @@ class SDEModel:
         # Input check on draw function
         if draw_function:
             validate_draw_function(draw_function, self.parameters, samples)
-
-        # Provinding 'N' but no draw function: wastefull
-        if ((N != 1) & (draw_function==None)):
-            raise ValueError('performing N={0} repeated simulations without a `draw_function` is mighty wastefull of computational resources'.format(N))
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
@@ -695,8 +627,31 @@ class ODEModel:
 
         return func
 
-    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1):
-        """"""
+    def _solve_discrete(self, fun, tau, t_eval, y, args):
+        # Preparations
+        y = np.reshape(y, [len(y),1])
+        y_prev=y
+        # Simulation loop
+        t_lst=[t_eval[0]]
+        t = t_eval[0]
+        while t < t_eval[-1]:
+            out = fun(t, y_prev, args)
+            out = np.reshape(out,[len(out),1])*tau
+            y = np.append(y,y_prev+out,axis=1)
+            y_prev += out
+            t = t + tau
+            t_lst.append(t)
+        # Interpolate output y to times t_eval
+        y_eval = np.zeros([y.shape[0], len(t_eval)])
+        for row_idx in range(y.shape[0]):
+            y_eval[row_idx,:] = np.interp(t_eval, t_lst, y[row_idx,:])
+            
+        return {'y': y_eval, 't': t_eval}
+
+    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1, tau=None):
+        """
+        Integrates the model over the interval time = [t0, t1] and builds the xarray output. Integration is either continuous (default) or discrete (tau != None).
+        """
 
         # Create scipy-compatible wrapper
         fun = self._create_fun(actual_start_date)
@@ -710,27 +665,29 @@ class ODEModel:
         for v in self.initial_states.values():
             y0.extend(list(np.ravel(v)))
 
-        # Get output
-        output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
+        if tau:
+            output = self._solve_discrete(fun, tau, t_eval, y0, args=self.parameters)
+        else:
+            output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
 
         # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
         """
         A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionary and runs `_sim_single`
         """
         self.parameters.update(drawn_parameters)
-        out = self._sim_single(time, actual_start_date, method, rtol, output_timestep)
+        out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, method='RK23', output_timestep=1, rtol=1e-3, processes=None):
+    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1):
         """
-        Run a model simulation for the given time period. Can optionally perform `N` repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
+        Run a model simulation for a given time period. Can optionally perform `N` repeated simulations with sampling of model parameters from a dictionary `samples` using a function `draw_function`. Can perform discrete timestepping if `tau != None`.
 
         Parameters
         ----------
+
         time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
@@ -741,43 +698,54 @@ class ODEModel:
             Number of days to simulate prior to start time or date
 
         N : int
-            Number of repeated simulations (useful for stochastic models). One by default.
+            Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function which takes as its input the dictionary of model parameters and a samples dictionary
-            and the dictionary of sampled parameter values and assings these samples to the model parameter dictionary ad random.
+            A function with as obligatory inputs the dictionary of model parameters and a dictionary of samples
+            The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
+            Usefull to propagate uncertainty, perform sensitivity analysis.
 
         samples : dictionary
-            Sample dictionary used by draw_function. Does not need to be supplied if samples_dict is not used in draw_function.
+            Sample dictionary used by `draw_function`.
 
         processes: int
-            Number of cores to distribute the N draws over.
+            Number of cores to distribute the `N` draws over.
 
         method: str
             Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK23'.
+
+        rtol: float
+            Relative tolerance of Scipy `solve_ivp`. Default: 1e-3.
         
+        tau: int/float
+            If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used. (default:None)
+
         output_timestep: int/flat
             Interpolate model output to every `output_timestep` time
             For datetimes: expressed in days
 
-        rtol: float
-            Relative tolerance of Scipy `solve_ivp`. Default: 1e-3. Quick and dirty: 5e-3.
-
         Returns
         -------
-        xarray.Dataset
 
+        output: xarray.Dataset
+            Simulation output
         """
 
         # Input checks on solver settings
         if not isinstance(rtol, float):
             raise TypeError(
-                "Relative solver tolerance 'rtol' must be of type float"
-            )
+                "relative solver tolerance 'rtol' must be of type float"
+                )
         if not isinstance(method, str):
             raise TypeError(
-                "Solver method 'method' must be of type string"
-            )
+                "solver method 'method' must be of type string"
+                )
+        if tau != None:
+            if not isinstance(tau, (int,float)):
+                raise TypeError(
+                    "discrete timestep 'tau' must be of type int or float"
+                )
+            print(f"performing discrete timestepping with tau = {tau}\n")
 
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
@@ -807,11 +775,11 @@ class ODEModel:
         # Run simulations
         if processes: # Needed 
             with mp.Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep), drawn_dictionaries)
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_dictionaries)
         else:
             output=[]
             for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep))
+                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
 
         # Append results
         out = output[0]
@@ -822,3 +790,79 @@ class ODEModel:
         self.parameters = cp
 
         return out
+
+
+def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
+    """
+    Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
+
+    Parameters
+    ----------
+
+    output: dict
+        Keys: "y" (states) and "t" (timesteps)
+        Size of `y`: (total number of states, number of timesteps)
+        Size of `t`: number of timesteps
+
+    state_shapes: dict
+        Keys: state names. Values: tuples with state shape
+
+    state_dimensions: dict
+        Keys: state names. Values: list containing dimensions associated with state
+
+    state_coordinates: dict
+        Keys: state names. Values: list containing coordinates of every dimension the state is associated with
+
+    actual_start_date: datetime
+        Used to determine if the time output should be returned as dates
+
+    Returns
+    -------
+
+    output: xarray.Dataset
+        Simulation results
+    """
+
+    # Convert scipy's output to a dictionary of states with the correct sizes
+    new_state_shapes={}
+    for k,v in state_shapes.items():
+        v=list(v)
+        v.append(len(output["t"]))
+        new_state_shapes.update({k: tuple(v)})
+    output_flat = np.ravel(output["y"])
+    data_variables = list_to_dict(output_flat, new_state_shapes)
+    # Move time axis to first position (yes, obviously I have tried this  with np.reshape in `list_to_dict` but this didn't work for n-D states)
+    for k,v in data_variables.items():
+        data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
+
+    # Append the time dimension
+    new_state_dimensions={}
+    for k,v in state_dimensions.items():
+        v_acc = v.copy()
+        if actual_start_date is not None:
+            v_acc = ['date',] + v_acc
+            new_state_dimensions.update({k: v_acc})
+        else:
+            v_acc = ['time',] + v_acc
+            new_state_dimensions.update({k: v_acc})
+
+    # Append the time coordinates
+    new_state_coordinates={}
+    for k,v in state_coordinates.items():
+        v_acc=v.copy()
+        if actual_start_date is not None:
+            v_acc = [actual_start_date + pd.to_timedelta(output["t"], unit='D'),] + v_acc
+            new_state_coordinates.update({k: v_acc})
+        else:
+            v_acc = [output["t"],] + v_acc
+            new_state_coordinates.update({k: v_acc})
+
+    # Build the xarray dataset
+    data = {}
+    for var, arr in data_variables.items():
+        if len(new_state_dimensions[var]) == 1:
+            arr = np.ravel(arr)
+        xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        data[var] = xarr
+
+    return xarray.Dataset(data)

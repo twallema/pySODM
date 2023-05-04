@@ -243,6 +243,7 @@ def validate_initial_states(state_shapes, initial_states):
     """
     A function to check the types and sizes of the model's initial states provided by the user.
     Automatically assumes non-specified states are equal to zero.
+    All allowed input types converted to np.float64.
 
     Parameters
     ----------
@@ -269,7 +270,7 @@ def validate_initial_states(state_shapes, initial_states):
                                         )
         else:
             # Fill with zeros
-            initial_states[state_name] = np.zeros(state_shape)
+            initial_states[state_name] = np.zeros(state_shape, dtype=np.float64)
 
     # validate the states (using `set` to ignore order)
     if set(initial_states.keys()) != set(state_shapes.keys()):
@@ -283,7 +284,8 @@ def validate_initial_states(state_shapes, initial_states):
     return initial_states
 
 def check_initial_states_shape(values, desired_shape, name, object_name):
-    """A function checking if the provided initial states have the correct shape
+    """ A function checking if the provided initial states have the correct shape
+        Converts all values of initial states to type np.float64
     """
 
     # If the model doesn't have dimensions, initial states can be defined as: np.array([int/float]), [int/float], int or float
@@ -296,7 +298,7 @@ def check_initial_states_shape(values, desired_shape, name, object_name):
         else:
             if isinstance(values,(int,float)):
                 values = np.asarray([values,])
-        values = np.asarray(values)
+        values = np.asarray(values, dtype=np.float64)
 
         if values.shape != desired_shape:
             raise ValueError(
@@ -306,7 +308,7 @@ def check_initial_states_shape(values, desired_shape, name, object_name):
                 )
             )
     else:
-        values = np.asarray(values)
+        values = np.asarray(values, dtype=np.float64)
         if values.shape != desired_shape:
             raise ValueError(
                 "The desired shape of model state '{name}' is {desired_shape}, but provided {obj} '{name}' "
