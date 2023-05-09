@@ -182,21 +182,20 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
     # Validation
     if len(theta) != len(pert):
         raise Exception('The parameter value array "theta" must have the same length as the perturbation value array "pert".')
-    if bounds and (len(bounds) != len(theta)):
+    if len(bounds) != len(theta):
         raise Exception('If bounds is not None, it must contain a tuple for every parameter in theta')
     # Convert theta to np.array
     theta = np.array(theta)
     # Define clipping values: perturbed value must not fall outside this range
-    if bounds:
-        lower_bounds = [bounds[i][0]/(1-pert[i]) for i in range(len(bounds))]
-        upper_bounds = [bounds[i][1]/(1+pert[i]) for i in range(len(bounds))]
+    lower_bounds = [bounds[i][0]/(1-pert[i]) for i in range(len(bounds))]
+    upper_bounds = [bounds[i][1]/(1+pert[i]) for i in range(len(bounds))]
     
     ndim = len(theta)
     nwalkers = ndim*multiplier
     cond_number=np.inf
     retry_counter=0
     while cond_number == np.inf:
-        if bounds and (retry_counter==0):
+        if retry_counter==0:
             theta = np.clip(theta, lower_bounds, upper_bounds)
         pos = theta + theta*pert*np.random.uniform(low=-1,high=1,size=(nwalkers,ndim))
         cond_number = np.linalg.cond(pos)

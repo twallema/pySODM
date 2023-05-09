@@ -129,7 +129,7 @@ def test_correct_approach_wo_dimension():
         # initialize objective function
         objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
         # Perturbate previously obtained estimate
-        ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=objective_function.expanded_bounds)
+        ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), bounds=objective_function.expanded_bounds, multiplier=multiplier_mcmc)
         # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
         settings={'start_calibration': 0, 'end_calibration': 50, 'n_chains': nwalkers,
                     'warmup': 0, 'labels': labels, 'parameters': pars, 'starting_estimate': list(theta)}
