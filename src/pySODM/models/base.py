@@ -745,7 +745,7 @@ class ODEModel:
                 raise TypeError(
                     "discrete timestep 'tau' must be of type int or float"
                 )
-            print(f"performing discrete timestepping with tau = {tau}\n")
+            #print(f"performing discrete timestepping with tau = {tau}\n")
 
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
