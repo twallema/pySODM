@@ -3,7 +3,7 @@ This script contains a calibration of an influenza model to 2017-2018 data.
 """
 
 __author__      = "Tijs Alleman & Wolf Demunyck"
-__copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
 
 ############################
 ## Load required packages ##

@@ -3,7 +3,7 @@ This script contains a calibration of a ping-pong bi-bi model to describe the en
 """
 
 __author__      = "Tijs Alleman"
-__copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
 
 
 ############################

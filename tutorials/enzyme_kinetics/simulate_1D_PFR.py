@@ -1,9 +1,9 @@
 """
-This script contains a calibration of a ping-pong bi-bi model to describe the enzymatic esterification reaction of D-Glucose and Lauric acid
+This script contains simulations of the enzymatic esterification reaction of D-Glucose and Lauric acid in a continuous flow reactor
 """
 
 __author__      = "Tijs Alleman"
-__copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
 
 
 ############################
