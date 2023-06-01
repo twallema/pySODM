@@ -101,17 +101,13 @@ contact_function = make_contact_matrix_function(N).contact_function
 ## Setup model ##
 #################
 
-delta_I = (df_influenza.loc[start_calibration+pd.Timedelta(weeks=1), slice(None)] - df_influenza.loc[start_calibration, slice(None)])
-print(delta_I)
-
-
 # Define model parameters
-params={'beta': 0.04, 'sigma': 1, 'f_a': np.zeros(4), 'gamma': 5, 'N': N['holiday']['week'], 'ramp_time': 0}
+params={'beta': 0.04, 'sigma': 1, 'f_a': 0.5*np.ones(4), 'gamma': 5, 'N': N['holiday']['week'], 'ramp_time': 0}
 # Define initial condition
 init_states = {'S': list(initN.values),
-               'E': list(np.rint((1/(1-params['f_a']))*delta_I)),
-               'Ia': list(np.rint((params['f_a']/(1-params['f_a']))*params['gamma']*delta_I)),
-               'Im': list(np.rint(params['gamma']*delta_I)),
+               'E': list(np.rint(7*(params['sigma']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
+               'Ia': list(np.rint(7*(params['f_a']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
+               'Im': list(np.rint(7*df_influenza.loc[start_calibration, slice(None)])),
                'Im_inc': list(np.rint(df_influenza.loc[start_calibration, slice(None)]))}
 # Define model coordinates
 coordinates={'age_group': age_groups}
@@ -148,9 +144,8 @@ if __name__ == '__main__':
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    #theta = pso.optimize(objective_function,
-    #                    swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
-    theta = [0.0411, 0.018, 0.60, 0.87, 0.71]
+    theta = pso.optimize(objective_function,
+                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
     # Nelder-mead
     step = len(expanded_bounds)*[0.10,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
