@@ -71,17 +71,24 @@ class SDE_influenza_model(SDEModel):
 class make_contact_matrix_function():
 
     # Initialize class with contact matrices
-    def __init__(self, N, N_holiday):
+    def __init__(self, N):
         self.N = N
-        self.N_holiday = N_holiday
 
     # Define a call function to return the right contact matrix
     @lru_cache()
     def __call__(self, t, holiday=False):
-        if not holiday:
-            return self.N
+
+        # Unpack holiday/no_holiday contact matrix
+        if holiday:
+            N = self.N['holiday']
         else:
-            return self.N_holiday
+            N = self.N['no_holiday']
+        
+        # Choose between weekday and weekendday
+        if ((t.weekday() == 5) | (t.weekday() == 6)):
+            return N['weekend']
+        else:
+            return N['week']
 
     # Define a pySODM compatible wrapper with the social policies
     def contact_function(self, t, states, param, ramp_time):
@@ -94,7 +101,7 @@ class make_contact_matrix_function():
             return self.__call__(t)
         # Christmass holiday
         elif pd.Timestamp('2017-12-20')+delay < t <= pd.Timestamp('2018-01-05')+delay:
-            return self.__call__(t, holiday=True).copy()
+            return self.__call__(t, holiday=True)
         # Christmass holiday --> Winter holiday
         elif pd.Timestamp('2018-01-05')+delay < t <= pd.Timestamp('2018-02-10')+delay:
             return self.__call__(t)

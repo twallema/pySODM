@@ -9,7 +9,7 @@ __copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOMATH, Ghent University
 ## Load required packages ##
 ############################
 
-import sys,os
+import os
 import emcee
 import random
 import datetime
@@ -19,9 +19,9 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
-from pySODM.optimization.utils import add_poisson_noise, add_negative_binomial_noise, assign_theta, variance_analysis
+from pySODM.optimization.utils import add_poisson_noise, assign_theta
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
-from pySODM.optimization.objective_functions import log_posterior_probability, ll_poisson, ll_negative_binomial
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_poisson
 # pySODM dependecies
 import corner
 
@@ -56,8 +56,7 @@ initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 220
 ## Settings ##
 ##############
 
-alpha = 0.03 # Overdispersion of data
-N = 10 # Repeated simulations
+n = 30 # Repeated simulations
 start_calibration = start_date 
 end_calibration = pd.Timestamp('2018-03-01')
 identifier = 'twallema_2018-03-01'
@@ -74,31 +73,45 @@ from models import SDE_influenza_model as influenza_model
 
 from models import make_contact_matrix_function
 
-# Physical contacts > 15 min
-N_noholiday = np.transpose(np.array([[2.60, 0.96, 3.73, 0.47],
-                                     [0.50, 5.87, 4.52, 0.35],
-                                     [0.33, 0.76, 5.65, 0.48],
-                                     [0.16, 0.22, 1.81, 1.09]]))
+# Define contacts
+N_noholiday_week = np.transpose(np.array([[3.62, 1.07, 3.85, 0.34],
+                                          [0.56, 7.14, 4.28, 0.27],
+                                          [0.34, 0.72, 5.57, 0.44],
+                                          [0.11, 0.17, 1.67, 1.04]]))
 
-N_holiday = np.transpose(np.array([[1.15, 0.74, 3.28, 0.26],
-                                   [0.38, 1.85, 3.58, 0.56],
-                                   [0.29, 0.60, 5.22, 0.60],
-                                   [0.09, 0.36, 2.27, 1.50]]))
+N_noholiday_weekend = np.transpose(np.array([[0.67, 0.68, 2.99, 0.60],
+                                             [0.36, 2.35, 5.25, 0.62],
+                                             [0.26, 0.89, 5.53, 0.53],
+                                             [0.20, 0.40, 2.01, 0.90]]))
+
+N_holiday_week = np.transpose(np.array([[1.35, 0.76, 3.39, 0.12],
+                                        [0.40, 1.65, 2.91, 0.54],
+                                        [0.30, 0.49, 5.09, 0.62],
+                                        [0.04, 0.34, 2.37, 1.74]]))
+
+N = {
+    'holiday': {'week': N_holiday_week, 'weekend': N_noholiday_weekend},
+    'no_holiday': {'week': N_noholiday_week, 'weekend': N_noholiday_weekend}
+}
 
 # Initialize contact function
-contact_function = make_contact_matrix_function(N_noholiday, N_holiday).contact_function
+contact_function = make_contact_matrix_function(N).contact_function
 
 #################
 ## Setup model ##
 #################
 
+delta_I = (df_influenza.loc[start_calibration+pd.Timedelta(weeks=1), slice(None)] - df_influenza.loc[start_calibration, slice(None)])
+print(delta_I)
+
+
 # Define model parameters
-params={'beta': 0.034, 'sigma': 1, 'f_a': np.array([0.02, 0.60, 0.87, 0.71]), 'gamma': 5, 'N': N_noholiday, 'ramp_time': 0}
+params={'beta': 0.04, 'sigma': 1, 'f_a': np.zeros(4), 'gamma': 5, 'N': N['holiday']['week'], 'ramp_time': 0}
 # Define initial condition
 init_states = {'S': list(initN.values),
-               'E': list(np.rint((1/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
-               'Ia': list(np.rint((params['f_a']/(1-params['f_a']))*params['gamma']*df_influenza.loc[start_calibration, slice(None)])),
-               'Im': list(np.rint(params['gamma']*df_influenza.loc[start_calibration, slice(None)])),
+               'E': list(np.rint((1/(1-params['f_a']))*delta_I)),
+               'Ia': list(np.rint((params['f_a']/(1-params['f_a']))*params['gamma']*delta_I)),
+               'Im': list(np.rint(params['gamma']*delta_I)),
                'Im_inc': list(np.rint(df_influenza.loc[start_calibration, slice(None)]))}
 # Define model coordinates
 coordinates={'age_group': age_groups}
@@ -123,8 +136,8 @@ if __name__ == '__main__':
     data=[df_influenza[start_calibration:end_calibration], ]
     states = ["Im_inc",]
     weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [4*[alpha,],]
+    log_likelihood_fnc = [ll_poisson,]
+    log_likelihood_fnc_args = [[],]
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
@@ -135,9 +148,9 @@ if __name__ == '__main__':
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
-    #theta = [0.0411, 0.018, 0.60, 0.87, 0.71]
+    #theta = pso.optimize(objective_function,
+    #                    swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]
+    theta = [0.0411, 0.018, 0.60, 0.87, 0.71]
     # Nelder-mead
     step = len(expanded_bounds)*[0.10,]
     theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso)[0]
@@ -149,9 +162,9 @@ if __name__ == '__main__':
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
     # Simulate model
-    out = model.sim([start_calibration, end_date], samples={}, N=N, output_timestep=0.1)
+    out = model.sim([start_calibration, end_date], samples={}, N=n, output_timestep=1)
     # Add poisson obervational noise
-    out = add_negative_binomial_noise(out, alpha)
+    out = add_poisson_noise(out)
     # Visualize
     fig, axs = plt.subplots(2, 2, sharex=True, figsize=(8,6))
     axs = axs.reshape(-1)
@@ -160,7 +173,7 @@ if __name__ == '__main__':
         axs[id].scatter(df_influenza[start_calibration:end_calibration].index.get_level_values('date').unique(), df_influenza.loc[slice(start_calibration,end_calibration), age_class], color='black', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='observed')
         axs[id].scatter(df_influenza[end_calibration:end_date].index.get_level_values('date').unique(), df_influenza.loc[slice(end_calibration,end_date), age_class], color='red', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='unobserved')
         # Model trajectories
-        for i in range(N):
+        for i in range(n):
             axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='blue', alpha=0.05, linewidth=1)
         # Format
         axs[id].set_title(age_class)
@@ -195,7 +208,7 @@ if __name__ == '__main__':
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)                           
     # Sample 5*n_mcmc more
-    for i in range(20):
+    for i in range(3):
         backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+identifier+'_BACKEND_'+run_date+'.hdf5'))
         sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
@@ -220,12 +233,12 @@ if __name__ == '__main__':
         # Sample model parameters
         idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
         param_dict['f_a'] = np.array([slice[idx] for slice in samples_dict['f_a']])
-        param_dict['ramp_time'] = np.random.normal(0,2)
+        param_dict['ramp_time'] = np.random.normal(0,3)
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date], N=N, output_timestep=0.5, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date], N=n, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add negative binomial observation noise
-    out = add_negative_binomial_noise(out, alpha)
+    out = add_poisson_noise(out)
 
     # Visualize
     markers=['^', 's', 'o', 'x']
