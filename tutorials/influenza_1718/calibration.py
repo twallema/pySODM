@@ -102,12 +102,12 @@ contact_function = make_contact_matrix_function(N).contact_function
 #################
 
 # Define model parameters
-params={'beta': 0.04, 'sigma': 1, 'f_a': 0.5*np.ones(4), 'gamma': 5, 'N': N['holiday']['week'], 'ramp_time': 0}
+params={'beta': 0.04, 'sigma': 1, 'f_a': 0.5*np.ones(4), 'gamma': 5, 'N': N['holiday']['week']}
 # Define initial condition
 init_states = {'S': list(initN.values),
-               'E': list(np.rint(7*(params['sigma']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
-               'Ia': list(np.rint(7*(params['f_a']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
-               'Im': list(np.rint(7*df_influenza.loc[start_calibration, slice(None)])),
+               'E': list(np.rint((params['sigma']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
+               'Ia': list(np.rint((params['f_a']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
+               'Im': list(np.rint(df_influenza.loc[start_calibration, slice(None)])),
                'Im_inc': list(np.rint(df_influenza.loc[start_calibration, slice(None)]))}
 # Define model coordinates
 coordinates={'age_group': age_groups}
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     # Calibated parameters and bounds
     pars = ['beta', 'f_a']
     labels = ['$\\beta$', '$f_a$']
-    bounds = [(1e-6,0.06), (0,0.99)]
+    bounds = [(1e-6,0.06), (1e-3,0.98)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Extract expanded bounds and labels
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     ##########
 
     # Variables
-    n_mcmc = 30
+    n_mcmc = 50
     multiplier_mcmc = 9
     print_n = 50
     discard = 30
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     settings={'start_calibration': start_calibration.strftime("%Y-%m-%d"), 'end_calibration': end_calibration.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': expanded_labels}
     # Sample n_mcmc iterations
-    sampler = run_EnsembleSampler(pos, 50, identifier, objective_function,
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)                           
     # Sample 5*n_mcmc more
@@ -228,7 +228,6 @@ if __name__ == '__main__':
         # Sample model parameters
         idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
         param_dict['f_a'] = np.array([slice[idx] for slice in samples_dict['f_a']])
-        param_dict['ramp_time'] = np.random.normal(0,3)
         return param_dict
     # Simulate model
     out = model.sim([start_date, end_date], N=n, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
