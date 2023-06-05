@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from functools import lru_cache
 from pySODM.models.base import ODEModel, SDEModel
 
 class ODE_influenza_model(ODEModel):
@@ -122,7 +121,7 @@ class make_contact_matrix_function():
         elif pd.Timestamp('2017-12-22') < t <= pd.Timestamp('2018-01-07'):
             return self.__call__(t, holiday=True)
         # Christmas holiday --> Winter holiday
-        elif pd.Timestamp('2018-01-07') < t <= pd.Timestamp('2018-02-10'):
+        elif pd.Timestamp('2018-01-07') < t <= pd.Timestamp('2018-02-12'):
             return self.__call__(t)
         # Winter holiday
         elif pd.Timestamp('2018-02-12') < t <= pd.Timestamp('2018-02-18'):
