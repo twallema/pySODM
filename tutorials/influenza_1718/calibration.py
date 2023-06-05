@@ -80,20 +80,36 @@ from models import SDE_influenza_model as influenza_model
 #####################################
 
 # Define contacts
-N_noholiday_week = np.transpose(np.array([[3.62, 1.07, 3.85, 0.34],
-                                          [0.56, 7.14, 4.28, 0.27],
-                                          [0.34, 0.72, 5.57, 0.44],
-                                          [0.11, 0.17, 1.67, 1.04]]))
+# N_noholiday_week = np.transpose(np.array([[3.62, 1.07, 3.85, 0.34],
+#                                           [0.56, 7.14, 4.28, 0.27],
+#                                           [0.34, 0.72, 5.57, 0.44],
+#                                           [0.11, 0.17, 1.67, 1.04]]))
 
-N_noholiday_weekend = np.transpose(np.array([[0.67, 0.68, 2.99, 0.60],
-                                             [0.36, 2.35, 5.25, 0.62],
-                                             [0.26, 0.89, 5.53, 0.53],
-                                             [0.20, 0.40, 2.01, 0.90]]))
+# N_noholiday_weekend = np.transpose(np.array([[0.67, 0.68, 2.99, 0.60],
+#                                              [0.36, 2.35, 5.25, 0.62],
+#                                              [0.26, 0.89, 5.53, 0.53],
+#                                              [0.20, 0.40, 2.01, 0.90]]))
 
-N_holiday_week = np.transpose(np.array([[1.35, 0.76, 3.39, 0.12],
-                                        [0.40, 1.65, 2.91, 0.54],
-                                        [0.30, 0.49, 5.09, 0.62],
-                                        [0.04, 0.34, 2.37, 1.74]]))
+# N_holiday_week = np.transpose(np.array([[1.35, 0.76, 3.39, 0.12],
+#                                         [0.40, 1.65, 2.91, 0.54],
+#                                         [0.30, 0.49, 5.09, 0.62],
+#                                         [0.04, 0.34, 2.37, 1.74]]))
+
+# Contact matrices integrated with contact duration (physical contact only)
+N_noholiday_week = np.transpose(np.array([[10.47, 3.16, 10.65, 0.55],
+                                         [1.65, 19.41, 11.79, 0.70],
+                                         [0.93, 1.98, 14.09, 0.96],
+                                         [0.18, 0.45, 3.67, 3.09]]))
+
+N_noholiday_weekend = np.transpose(np.array([[1.81,	2.46, 8.92,	1.52],
+                                            [1.28, 7.07, 14.76, 1.64],
+                                            [0.78, 2.49, 15.26, 1.17],
+                                            [0.51, 1.05, 4.45, 2.00]]))
+
+N_holiday_week = np.transpose(np.array([[4.54, 2.47, 10.86, 0.35],
+                                        [1.29, 5.76, 9.64, 1.47],
+                                        [0.96, 1.63, 13.08, 1.38],
+                                        [0.12, 0.94, 5.23, 5.10]]))
 
 N = {
     'holiday': {'week': N_holiday_week, 'weekend': N_noholiday_weekend},
@@ -108,7 +124,7 @@ contact_function = make_contact_matrix_function(N).contact_function
 #################
 
 # Define model parameters
-params={'beta': 0.04, 'sigma': 1, 'f_a': np.array([0.01, 0.67, 0.90, 0.75]), 'gamma': 5, 'N': N['holiday']['week']}
+params={'beta': 0.04, 'sigma': 1, 'f_a': np.array([0.01, 0.70, 0.90, 0.75]), 'gamma': 5, 'N': N['holiday']['week']}
 # Define initial condition
 init_states = {'S': list(initN.values),
                'E': list(np.rint(4*(1/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
