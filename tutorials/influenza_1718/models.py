@@ -7,64 +7,66 @@ class ODE_influenza_model(ODEModel):
     Simple SEIR model for influenza with undetected carriers
     """
     
-    state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['beta','sigma','gamma', 'N']
-    parameter_stratified_names = ['f_a']
+    state_names = ['S','E','Ip','Iud','Id','R','Im_inc']
+    parameter_names = ['alpha', 'beta', 'gamma', 'delta','N']
+    parameter_stratified_names = ['f_ud']
     dimension_names = ['age_group']
 
     @staticmethod
-    def integrate(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
+    def integrate(t, S, E, Ip, Iud, Id, R, Im_inc, alpha, beta, gamma, delta, N, f_ud):
         
         # Calculate total population
-        T = S+E+Ia+Im+R
+        T = S+E+Ip+Iud+Id+R
         # Calculate differentials
-        dS = -beta*N@((Ia+Im)*S/T)
-        dE = beta*N@((Ia+Im)*S/T) - 1/sigma*E
-        dIa = f_a*E/sigma - 1/gamma*Ia
-        dIm = (1-f_a)/sigma*E - 1/gamma*Im
-        dR = 1/gamma*(Ia+Im)
+        dS = -beta*N@((Ip+Iud+0.22*Id)*S/T)
+        dE = beta*N@((Ip+Iud+0.22*Id)*S/T) - 1/alpha*E
+        dIp = 1/alpha*E - 1/gamma*Ip
+        dIud = f_ud/gamma*Ip - 1/delta*Iud
+        dId = (1-f_ud)/gamma*Ip - 1/delta*Id
+        dR = 1/delta*(Iud+Id)
         # Calculate incidence mild disease
-        dIm_inc_new = (1-f_a)/sigma*E - Im_inc
+        dIm_inc_new = (1-f_ud)/gamma*Ip - Im_inc
 
-        return dS, dE, dIa, dIm, dR, dIm_inc_new
+        return dS, dE, dIp, dIud, dId, dR, dIm_inc_new
 
 class SDE_influenza_model(SDEModel):
     """
     Simple stochastic SEIR model for influenza with undetected carriers
     """
     
-    state_names = ['S','E','Ia','Im','R','Im_inc']
-    parameter_names = ['beta','sigma','gamma','N']
-    parameter_stratified_names = ['f_a']
+    state_names = ['S','E','Ip','Iud','Id','R','Im_inc']
+    parameter_names = ['alpha', 'beta', 'gamma', 'delta','N']
+    parameter_stratified_names = ['f_ud']
     dimension_names = ['age_group']
 
     @staticmethod
-    def compute_rates(t, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
+    def compute_rates(t, S, E, Ip, Iud, Id, R, Im_inc, alpha, beta, gamma, delta, N, f_ud):
         
         # Calculate total population
-        T = S+E+Ia+Im+R
-
+        T = S+E+Ip+Iud+Id+R
         # Compute rates per model state
         rates = {
-            'S': [beta*np.matmul(N, (Ia+Im)/T),],
-            'E': [f_a*(1/sigma), (1-f_a)*(1/sigma)],
-            'Ia': [(1/gamma)*np.ones(T.shape),],
-            'Im': [(1/gamma)*np.ones(T.shape),],
+            'S': [beta*np.matmul(N, (Ip+Iud+0.22*Id)/T),],
+            'E': [1/alpha*np.ones(T.shape),],
+            'Ip': [f_ud*(1/gamma), (1-f_ud)*(1/gamma)],
+            'Iud': [(1/delta)*np.ones(T.shape),],
+            'Id': [(1/delta)*np.ones(T.shape),],
         }
         
         return rates
 
     @staticmethod
-    def apply_transitionings(t, tau, transitionings, S, E, Ia, Im, R, Im_inc, beta, sigma, gamma, N, f_a):
+    def apply_transitionings(t, tau, transitionings, S, E, Ip, Iud, Id, R, Im_inc, alpha, beta, gamma, delta, N, f_ud):
 
         S_new  = S - transitionings['S'][0]
-        E_new = E + transitionings['S'][0] - transitionings['E'][0] - transitionings['E'][1]
-        Ia_new = Ia + transitionings['E'][0] - transitionings['Ia'][0]
-        Im_new = Im + transitionings['E'][1] - transitionings['Im'][0]
-        R_new = R + transitionings['Ia'][0] + transitionings['Im'][0]
-        Im_inc_new = transitionings['E'][1]
+        E_new = E + transitionings['S'][0] - transitionings['E'][0]
+        Ip_new = Ip + transitionings['E'][0] - transitionings['Ip'][0] - transitionings['Ip'][1]
+        Iud_new = Iud + transitionings['Ip'][0] - transitionings['Iud'][0]
+        Id_new = Id + transitionings['Ip'][1] - transitionings['Id'][0]
+        R_new = R + transitionings['Iud'][0] + transitionings['Id'][0]
+        Im_inc_new = transitionings['Ip'][1]
 
-        return S_new, E_new, Ia_new, Im_new, R_new, Im_inc_new
+        return S_new, E_new, Ip_new, Iud_new, Id_new, R_new, Im_inc_new
 
 
 class make_contact_matrix_function():
@@ -115,18 +117,24 @@ class make_contact_matrix_function():
         """
         t = pd.to_datetime(t)
 
-        if t <= pd.Timestamp('2017-12-22'):
+        if t <= pd.Timestamp('2017-10-30'):
             return self.__call__(t)
+        # Winter holiday
+        elif pd.Timestamp('2017-10-30') < t <= pd.Timestamp('2017-11-05'):
+            return self.__call__(t, holiday=True)
+        # Winter holiday --> Christmas holiday
+        elif pd.Timestamp('2017-11-05') < t <= pd.Timestamp('2017-12-22'):
+            return self.__call__(t)    
         # Christmas holiday
         elif pd.Timestamp('2017-12-22') < t <= pd.Timestamp('2018-01-07'):
             return self.__call__(t, holiday=True)
-        # Christmas holiday --> Winter holiday
+        # Christmas holiday --> Spring holiday
         elif pd.Timestamp('2018-01-07') < t <= pd.Timestamp('2018-02-12'):
             return self.__call__(t)
-        # Winter holiday
+        #Spring holiday
         elif pd.Timestamp('2018-02-12') < t <= pd.Timestamp('2018-02-18'):
             return self.__call__(t, holiday=True)
-        # Winter holiday --> Easter holiday
+        # Spring holiday --> Easter holiday
         elif pd.Timestamp('2018-02-18') < t <= pd.Timestamp('2018-04-02'):
             return self.__call__(t)
         # Easter holiday
