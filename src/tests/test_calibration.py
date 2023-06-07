@@ -39,9 +39,9 @@ for age_group in age_groups:
     for spatial_unit in spatial_units:
         df.loc[slice(None), age_group, spatial_unit] = cases
 
-##################################
+#############################
 ## Model without dimension ##
-##################################
+#############################
 
 class SIR(ODEModel):
 
