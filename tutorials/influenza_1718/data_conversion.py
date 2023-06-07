@@ -32,12 +32,12 @@ for i in range(len(data)):
     y=data['YEAR'][i]
     w=data['WEEK'][i]
     d = str(y)+'-W'+str(w)
-    r = datetime.datetime.strptime(d + '-1', "%Y-W%W-%w")
-    data['DATE'][i]=r
+    r = datetime.datetime.strptime(d + '-6', "%Y-W%W-%w")
+    data.loc[i,'DATE']=r
 
 age_groups = data['AGE'].unique()
 for id,age_group in enumerate(age_groups):
-    data['AGE'][data['AGE']==age_group]=desired_age_groups[id]
+    data.loc[data['AGE']==age_group, 'AGE'] = desired_age_groups[id]
 data = data.drop(columns=['YEAR','WEEK'])
 data = data.groupby(by=['DATE','AGE']).sum().squeeze()
 
@@ -46,7 +46,7 @@ new_DATE = data.index.get_level_values('DATE').unique() #pd.date_range(start=dat
 iterables=[new_DATE, data.index.get_level_values('AGE').unique()]
 names=['DATE', 'AGE']
 index = pd.MultiIndex.from_product(iterables, names=names)
-data_new = pd.Series(index=index, name='CASES_100K')
+data_new = pd.Series(index=index, name='CASES_100K', dtype=float)
 
 # Merge series with daily date and weekly date
 data = data.to_frame()/7
