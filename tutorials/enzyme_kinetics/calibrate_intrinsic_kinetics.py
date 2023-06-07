@@ -52,12 +52,14 @@ data = []
 states = []
 log_likelihood_fnc = []
 log_likelihood_fnc_args = []
+y_err = []
 initial_states=[]
 for name in names:
     df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'+name), index_col=0)
     data.append(df['Es'][1:]) # Cut out zero's!
     log_likelihood_fnc.append(ll_gaussian)
     log_likelihood_fnc_args.append(0.04*df['Es'][1:]) # 4% Relative noise
+    y_err.append(df['sigma'][1:])
     states.append('Es')
     initial_states.append(
         {'S': df.loc[0]['S'], 'A': df.loc[0]['A'], 'Es': df.loc[0]['Es'], 'W': df.loc[0]['W']}
@@ -156,7 +158,7 @@ if __name__ == '__main__':
         out = add_gaussian_noise(out, 0.04, relative=True)
         # Visualize
         fig,ax=plt.subplots(figsize=(6,2.5))
-        ax.errorbar(df.index, df, yerr=2*np.squeeze(log_likelihood_fnc_args[i]), capsize=10, color='black', linestyle='', marker='^', label='Data')
+        ax.errorbar(df.index, df, yerr=2*np.squeeze(y_err[i]), capsize=10, color='black', linestyle='', marker='^', label='Data')
         ax.plot(out['time'], out['Es'].mean(dim='draws'), color='black', linestyle='--', label='Model mean')
         ax.fill_between(out['time'], out['Es'].quantile(dim='draws', q=0.025), out['Es'].quantile(dim='draws', q=0.975), color='black', alpha=0.10, label='Model 95% CI')
         ax.legend()

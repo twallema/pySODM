@@ -3,8 +3,7 @@ This script contains simulations of the enzymatic esterification reaction of D-G
 """
 
 __author__      = "Tijs Alleman"
-__copyright__   = "Copyright (c) 2022 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
-
+__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
 
 ############################
 ## Load required packages ##
@@ -16,15 +15,26 @@ import math
 import random
 import pandas as pd
 import numpy as np
+import multiprocessing as mp
 import matplotlib.pyplot as plt
 from pySODM.optimization.utils import add_gaussian_noise
+
+##############
+## Settings ##
+##############
+
+processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
+n = processes # Number of repeated simulations
+end_sim = 8000 # End of simulation (s)
+nx = 25 # Number of spatial nodes
+
 
 ######################
 ## Load the samples ##
 ######################
 
 # Load samples
-f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2022-12-19.json'))
+f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-07.json'))
 samples_dict = json.load(f)
 
 # Define draw function
@@ -46,13 +56,6 @@ vary_flowrate = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data/1D_PFR
 ######################
 ## Model parameters ##
 ######################
-
-# Simulation variables
-# ~~~~~~~~~~~~~~~~~~~~
-
-N = 30 # Number of repeated simulations
-end_sim = 8000 # End of simulation (s)
-nx = 50 # Number of spatial nodes
 
 # Design variables
 # ~~~~~~~~~~~~~~~~
@@ -119,18 +122,16 @@ model = packed_PFR({'C_F': C_F, 'C_S': C_S}, params, coordinates)
 ## Concentration profile ##
 ###########################
 
-out = model.sim(end_sim, N=N, draw_function=draw_fcn, samples=samples_dict)
-# Add 5% observational noise
-out = add_gaussian_noise(out, 0.05, relative=True)
+out = model.sim(end_sim, N=n, draw_function=draw_fcn, samples=samples_dict, processes=processes)
+# Add 4% observational noise
+out = add_gaussian_noise(out, 0.04, relative=True)
 # Visualize 
 fig,ax=plt.subplots(figsize=(6,2.5))
 # Data
-y_error = [reactor_cutting['mean'] - reactor_cutting['lower'], reactor_cutting['upper'] - reactor_cutting['mean']]
+y_error = [2*(reactor_cutting['mean'] - reactor_cutting['lower']), 2*(reactor_cutting['upper'] - reactor_cutting['mean'])]
 ax.errorbar(reactor_cutting.index, reactor_cutting['mean'], yerr=y_error, capsize=10,
-            color='black', linestyle='', marker='^', label='Data')
+            color='black', linestyle='', marker='^', label='Data 95% CI')
 # Model prediction
-#for i in range(N):
-#    ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).isel(draws=i), alpha=0.10, color='black')
 ax.plot(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).mean(dim='draws'), color='black', linestyle='--', label='Model mean')
 ax.fill_between(coordinates['x'], out['C_F'].sel(species='Es').isel(time=-1).quantile(dim='draws', q=0.025), out['C_F'].sel(species='Es').isel(time=-1).quantile(dim='draws', q=0.975), color='black', alpha=0.10, label='Model 95% CI')
 
@@ -164,7 +165,7 @@ l = 0.6 # m
 
 # Loop over flowrates
 out=[]
-Q = np.linspace(start=0.05, stop=0.6, num=20)/60*10**-6  # Flow rate (m³/s)
+Q = np.linspace(start=0.05, stop=0.6, num=50)/60*10**-6  # Flow rate (m³/s)
 for q in Q:
     print(f'Computing flowrate: {q} m3/s')
     # Update derived variables
@@ -177,9 +178,9 @@ for q in Q:
     # Update model parameters
     model.parameters.update({'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/nx, 'u': u}) 
     # Simulate
-    out_tmp = model.sim(end_sim, N=N, draw_function=draw_fcn, samples=samples_dict)
-    # Add 5% observational noise and store
-    out.append(add_gaussian_noise(out_tmp, 0.05, relative=True))
+    out_tmp = model.sim(end_sim, N=n, draw_function=draw_fcn, samples=samples_dict, processes=processes)
+    # Add 4% observational noise and store
+    out.append(add_gaussian_noise(out_tmp, 0.04, relative=True))
 
 # Compute outlet concentrations
 mean_outlet=[]
@@ -193,8 +194,8 @@ for output in out:
 # Visualize results
 fig,ax=plt.subplots(figsize=(6,2.6))
 # Data
-y_error = [vary_flowrate['mean'] - vary_flowrate['lower'], vary_flowrate['upper'] - vary_flowrate['mean']]
-ax.errorbar(vary_flowrate.index, vary_flowrate['mean'], yerr=y_error, capsize=5,color='black', linestyle='', marker='^', label='Data')
+y_error = [2*(vary_flowrate['mean'] - vary_flowrate['lower']), 2*(vary_flowrate['upper'] - vary_flowrate['mean'])]
+ax.errorbar(vary_flowrate.index, vary_flowrate['mean'], yerr=y_error, capsize=5,color='black', linestyle='', marker='^', label='Data 95% CI')
 # Model prediction: outlet concentration
 ax.plot(Q*60*10**6, mean_outlet, color='black', linestyle='--', label='Model mean')
 ax.fill_between(Q*60*10**6, lower_outlet, upper_outlet, color='black', alpha=0.10, label='Model 95% CI' )
