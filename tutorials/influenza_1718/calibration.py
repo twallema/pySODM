@@ -36,13 +36,14 @@ tau = 0.50              # Timestep of Tau-Leaping algorithm
 alpha = 0.03            # Overdispersion factor (based on COVID-19)
 end_calibration = pd.Timestamp('2018-03-01')
 identifier = 'twallema_2018-03-01'
-n_pso = 20             # Number of PSO iterations
-multiplier_pso = 10     # PSO swarm size
-n_mcmc = 100             # Number of MCMC iterations
-multiplier_mcmc = 18     # Total number of Markov chains = number of parameters * multiplier_mcmc
-print_n = 50            # Print diagnostics every print_n iterations
-discard = 100            # Discard first `discard` iterations as burn-in
-n = 30                 # Repeated simulations used in visualisations
+n_pso = 30              # Number of PSO iterations
+multiplier_pso = 36     # PSO swarm size
+n_mcmc = 200            # Number of MCMC iterations
+multiplier_mcmc = 36    # Total number of Markov chains = number of parameters * multiplier_mcmc
+print_n = 100           # Print diagnostics every print_n iterations
+discard = 1000          # Discard first `discard` iterations as burn-in
+thin = 10               # Thinning factor emcee chains
+n = 100                 # Repeated simulations used in visualisations
 processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
 
 ###############
@@ -63,7 +64,7 @@ index = pd.MultiIndex.from_product(iterables, names=names)
 df_influenza = pd.Series(index=index, name='CASES', data=data.values)
 df_influenza_100K = pd.Series(index=index, name='CASES', data=data_100K.values)
 # Extract start and enddate
-start_date = df_influenza.index.get_level_values('date').unique()[2]
+start_date = df_influenza.index.get_level_values('date').unique()[8]
 end_date = df_influenza.index.get_level_values('date').unique()[-1] 
 start_calibration = start_date
 # Hardcode Belgian demographics
@@ -78,22 +79,6 @@ from models import SDE_influenza_model as influenza_model
 #####################################
 ## Define a social policy function ##
 #####################################
-
-# Define contacts
-# N_noholiday_week = np.transpose(np.array([[3.62, 1.07, 3.85, 0.34],
-#                                           [0.56, 7.14, 4.28, 0.27],
-#                                           [0.34, 0.72, 5.57, 0.44],
-#                                           [0.11, 0.17, 1.67, 1.04]]))
-
-# N_noholiday_weekend = np.transpose(np.array([[0.67, 0.68, 2.99, 0.60],
-#                                              [0.36, 2.35, 5.25, 0.62],
-#                                              [0.26, 0.89, 5.53, 0.53],
-#                                              [0.20, 0.40, 2.01, 0.90]]))
-
-# N_holiday_week = np.transpose(np.array([[1.35, 0.76, 3.39, 0.12],
-#                                         [0.40, 1.65, 2.91, 0.54],
-#                                         [0.30, 0.49, 5.09, 0.62],
-#                                         [0.04, 0.34, 2.37, 1.74]]))
 
 # Contact matrices integrated with contact duration (physical contact only)
 N_noholiday_week = np.transpose(np.array([[10.47, 3.16, 10.65, 0.55],
@@ -124,14 +109,14 @@ contact_function = make_contact_matrix_function(N).contact_function
 #################
 
 # Define model parameters
-params={'beta': 0.04, 'sigma': 1, 'f_a': np.array([0.01, 0.70, 0.90, 0.75]), 'gamma': 5, 'N': N['holiday']['week']}
+params={'alpha': 1, 'beta': 0.0174, 'gamma': 1, 'delta': 3,'f_ud': np.array([0.01, 0.64, 0.905, 0.60]), 'N': N['holiday']['week']}
 # Define initial condition
 init_states = {'S': list(initN.values),
-               'E': list(np.rint(4*(1/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
-               'Ia': list(np.rint(4*(params['f_a']/(1-params['f_a']))*df_influenza.loc[start_calibration, slice(None)])),
-               'Im': list(np.rint(4*df_influenza.loc[start_calibration, slice(None)])),
-               'Im_inc': list(np.rint(df_influenza.loc[start_calibration, slice(None)]))}
-
+              'E': list(np.rint((1/(1-params['f_ud']))*df_influenza.loc[start_calibration, slice(None)])),
+              'Ip': list(np.rint((1/(1-params['f_ud']))*df_influenza.loc[start_calibration, slice(None)])),
+              'Iud': list(np.rint((params['f_ud']/(1-params['f_ud']))*df_influenza.loc[start_calibration, slice(None)])),
+              'Id': list(np.rint(df_influenza.loc[start_calibration, slice(None)])),
+              'Im_inc': list(np.rint(df_influenza.loc[start_calibration, slice(None)]))}
 
 # Define model coordinates
 coordinates={'age_group': age_groups}
@@ -155,8 +140,8 @@ if __name__ == '__main__':
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [len(age_groups)*[alpha,],]
     # Calibated parameters and bounds
-    pars = ['beta', 'f_a']
-    labels = ['$\\beta$', '$f_a$']
+    pars = ['beta', 'f_ud']
+    labels = ['$\\beta$', '$f_{ud}$']
     bounds = [(1e-6,0.08), (1e-3,1-1e-3)]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
@@ -219,14 +204,14 @@ if __name__ == '__main__':
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)                           
     # Sample 5*n_mcmc more
-    for i in range(4):
+    for i in range(3):
         backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+identifier+'_BACKEND_'+run_date+'.hdf5'))
         sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, objective_function_kwargs={'simulation_kwargs': {'warmup': 0, 'tau':tau}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
                                     settings_dict=settings)                                                         
     # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
+    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard, thin=thin)
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
     fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=expanded_labels, **CORNER_KWARGS)
@@ -243,7 +228,7 @@ if __name__ == '__main__':
     def draw_fcn(param_dict, samples_dict):
         # Sample model parameters
         idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
-        param_dict['f_a'] = np.array([slice[idx] for slice in samples_dict['f_a']])
+        param_dict['f_ud'] = np.array([slice[idx] for slice in samples_dict['f_ud']])
         return param_dict
     # Simulate model
     out = model.sim([start_date, end_date], N=n, tau=tau, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
@@ -263,8 +248,8 @@ if __name__ == '__main__':
         axs[id].plot(df_influenza_100K[end_calibration-pd.Timedelta(days=7):end_date].index.get_level_values('date').unique(), df_influenza_100K.loc[slice(end_calibration-pd.Timedelta(days=7),end_date), age_class]*7, color='red', marker='o', label='Unobserved data')
         # Model trajectories
         axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).mean(dim='draws')/initN.loc[age_class]*100000*7, color='black', linestyle='--', alpha=0.7, linewidth=1, label='Model mean')
-        axs[id].fill_between(out_noise['date'].values,out_noise['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out_noise['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.10, label='Observation 95% CI')
-        axs[id].fill_between(out['date'].values,out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.20, label='Model 95% CI')
+        axs[id].fill_between(out_noise['date'].values,out_noise['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out_noise['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.15, label='Model 95% CI')
+        #axs[id].fill_between(out['date'].values,out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.20, label='Model 95% CI')
         # Format figure
         if id==3:
             axs[id].legend()      
