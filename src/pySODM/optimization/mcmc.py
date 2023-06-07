@@ -116,11 +116,11 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             # Update autocorrelation plot
             ax, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
                                             filename=fig_path+'/autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
-                                            plt_kwargs={'linewidth':2, 'color': 'red'})
+                                            plt_kwargs={})
             # Update traceplot
             traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
                         filename=fig_path+'/traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
-                        plt_kwargs={'linewidth':2,'color': 'red','alpha': 0.15})
+                        plt_kwargs={'linewidth': 1,'color': 'black','alpha': 0.2})
             # Garbage collection
             plt.close('all')
             gc.collect()
