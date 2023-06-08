@@ -40,6 +40,24 @@ thin = 10               # Thinning factor emcee chains
 n = 1000                # Repeated simulations used in visualisations
 processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
 
+################
+## Load model ##
+################
+
+from models import PPBB_model
+
+#################
+## Setup model ##
+#################
+
+# Define model parameters
+params={'c_enzyme': 10, 'Vf_Ks': 0.95/1000, 'R_AS': 0.75, 'R_AW': 1.40, # Forward rate parameters
+        'R_Es': 5.00, 'K_eq': 0.70}                                     # Backward rate parameters
+# Define an initial condition
+init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
+# Initialize model
+model = PPBB_model(init_states,params)
+
 ###############
 ## Load data ##
 ###############
@@ -64,24 +82,6 @@ for name in names:
     initial_states.append(
         {'S': df.loc[0]['S'], 'A': df.loc[0]['A'], 'Es': df.loc[0]['Es'], 'W': df.loc[0]['W']}
     )
-
-################
-## Load model ##
-################
-
-from models import PPBB_model
-
-#################
-## Setup model ##
-#################
-
-# Define model parameters
-params={'c_enzyme': 10, 'Vf_Ks': 0.95/1000, 'R_AS': 0.75, 'R_AW': 1.40, # Forward rate parameters
-        'R_Es': 5.00, 'K_eq': 0.70}                                     # Backward rate parameters
-# Define an initial condition
-init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
-# Initialize model
-model = PPBB_model(init_states,params)
 
 #####################
 ## Calibrate model ##
