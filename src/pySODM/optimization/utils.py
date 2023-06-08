@@ -9,22 +9,22 @@ def add_poisson_noise(output):
     Parameters
     ----------
 
-    output: xarray
+    output: xarray.Dataset
         Simulation output
 
     Returns
     -------
 
-    output: xarray
+    output: xarray.Dataset
         Simulation output, but every value was replaced with a poisson estimate.
     """
-
+    new_output = output.copy()
     # Loop over variables in xarray
-    for varname, da in output.data_vars.items():
+    for varname, da in new_output.data_vars.items():
         # Replace very value with a poison draw
         values = np.random.poisson(da.values)
-        output[varname].values = values
-    return output
+        new_output[varname].values = values
+    return new_output
 
 def add_gaussian_noise(output, sigma, relative=True):
     """A function to add absolute gaussian noise to a simulation result
@@ -32,7 +32,7 @@ def add_gaussian_noise(output, sigma, relative=True):
     Parameters
     ----------
 
-    output: xarray
+    output: xarray.Dataset
         Simulation output
 
     sigma: float
@@ -44,20 +44,20 @@ def add_gaussian_noise(output, sigma, relative=True):
     Returns
     -------
 
-    output: xarray
+    output: xarray.Dataset
         Simulation output, but every value was replaced with a gaussian estimate.
 
     """
-
+    new_output = output.copy()
     # Loop over variables in xarray
-    for varname, da in output.data_vars.items():
+    for varname, da in new_output.data_vars.items():
         # Replace very value with a normal draw
         if relative == False:
             values = np.random.normal(da.values, sigma)
         elif relative == True:
             values = np.random.normal(da.values, np.abs(sigma*da.values))
-        output[varname].values = values
-    return output
+        new_output[varname].values = values
+    return new_output
 
 def add_negative_binomial_noise(output, alpha):
     """A function to add negative binomial noise to a simulation result
@@ -65,7 +65,7 @@ def add_negative_binomial_noise(output, alpha):
     Parameters
     ----------
 
-    output: xarray
+    output: xarray.Dataset
         Simulation output
 
     alpha: float
@@ -74,17 +74,18 @@ def add_negative_binomial_noise(output, alpha):
     Returns
     -------
 
-    output: xarray
+    output: xarray.Dataset
         Simulation output, but every value was replaced with a negative binomial estimate.
     """
 
+    new_output = output.copy()
     # Loop over variables in xarray
-    for varname, da in output.data_vars.items():
+    for varname, da in new_output.data_vars.items():
         # Replace very value with a negative_binomial draw
         values = np.random.negative_binomial(
             1/alpha, (1/alpha)/(da.values + (1/alpha)))
-        output[varname].values = values
-    return output
+        new_output[varname].values = values
+    return new_output
 
 def assign_theta(param_dict, parameter_names, thetas):
     """ A generic function to assign the output of a PSO/Nelder-Mead calibration to the model parameters dictionary

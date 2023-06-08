@@ -18,6 +18,12 @@ First, by running the script `data_conversion.py`, the user converts the *raw* w
 
 ### Raw
 
++ `social_contacts_holiday_week.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Contacts Mon-Fri (holidays). Includes physical contacts longer than 15 minutes. An integration of the contacts with the contact duration is performed in the spreadsheet.
+
++ `social_contacts_noholiday_week.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Contacts Mon-Fri (excl. holidays). Includes physical contacts longer than 15 minutes. An integration of the contacts with the contact duration is performed in the spreadsheet.
+
++ `social_contacts_weekend.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Contacts Sat-Sun. Includes physical contacts longer than 15 minutes. An integration of the contacts with the contact duration is performed in the spreadsheet.
+
 + `Influenza 2017-2018 End of Season_NL.pdf`: End of Influenza season report of the Belgian Scientific Institute of Public Health (Sciensano). Retrieved from [Sciensano](https://www.sciensano.be/sites/default/files/influenza_2017-2018_end_of_season_nl.pdf) (accessed Nov. 9 2022).
 
 + `dataset_influenza_1718.csv`: Weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season. Data available for four age groups: [0,5(, [5,15(, [15,65(, [65,120(. Extracted from Fig. 2 in `Influenza 2017-2018 End of Season_NL.pdf` using [WebPlotDigitizer](https://automeris.io/WebPlotDigitizer/).

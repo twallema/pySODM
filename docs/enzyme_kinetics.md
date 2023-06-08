@@ -1,6 +1,6 @@
 # A model for the enzymatic esterification of D-glucose and Lauric acid in a continuous-flow reactor
 
-This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (unpublished master's thesis). Ghent University, Ghent, BE.
+This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (master dissertation). Ghent University, Ghent, BE.
 
 ## Introduction
 
@@ -8,7 +8,7 @@ Sugar fatty acid esters (SFAEs) are nonionic surfactants which play an important
 
 ![reaction](/_static/figs/enzyme_kinetics/reaction.png)
 
-The goal of this tutorial is to demonstrate how pySODM can be used to build a virtual prototype of a continuous flow reactor reactor packed with enzyme beads. First, an enzyme kinetic model is calibrated to time course data obtained in batch experiments. The calibrated kinetics can then be used to make predictions on how the yields in our continuous-flow reactor vary with the flow rate. I will attempt to provide a brief introduction to each of the models used in this tutorial. However, I shall cut several corners for the sake of shortening this demo (my master's thesis is over 60 pages long).
+The goal of this tutorial is to demonstrate how pySODM can be used to build a virtual prototype of a continuous flow reactor reactor packed with enzyme beads. First, an enzyme kinetic model is calibrated to time course data obtained in batch experiments. The calibrated kinetics can then be used to make predictions on how the yields in our continuous-flow reactor vary with the flow rate. I will attempt to provide a brief introduction to each of the models used in this tutorial. However, I shall cut several corners for the sake of shortening this demo (my master's thesis is 80 pages).
 
 In this tutorial pySODM is used to:
 1. Build an ODE model to describe the reaction course in a batch experiment.
@@ -18,7 +18,12 @@ In this tutorial pySODM is used to:
 
 ## Calibration of Intrinsic kinetics (ODE model)
 
-This part of the tutorial can be replicated using `~/tutorials/enzyme_kinetics/calibrate_intrinsic_kinetics.py`
+This part of the tutorial can be replicated by running
+
+```bash
+python calibrate_intrinsic_kinetics.py
+```
+located in `~/tutorials/enzyme_kinetics/`.
 
 ### Experiments and model equations
 
@@ -28,19 +33,19 @@ The experiments performed could be subdivided into two types:
 1. Initial rate experiments: The reaction course is only followed during the first minutes when very little product are formed. 
 2. Full time-course experiments. In this experiment, samples are withdrawn every few hours until the reaction mixture equillibrates.
 
-Typically, the calibration of a ping-pong bi-bi enzyme kinetic model is performed in two steps as the model equation is quite an ugly fellow (see [Flores et al., 2002](https://doi.org/10.1002/bit.10260)). First, the initial rate experiments are used to calibrate the parameters that govern the *forward* reaction. During an initial rate experiment, one can assume no products have been formed and thus all the terms containing products in the rate equation drop out. Second, the parameters of the *backward* reaction are calibrated to the full time-course experiments. For the sake of brevity, I shall glance over this two-step calibration. We will simply calibrate the following (simplified) ping-pong bi-bi kinetic model,
+Typically, the calibration of a ping-pong bi-bi enzyme kinetic model is performed in two steps as the model equation is quite ugly (see [Flores et al., 2002](https://doi.org/10.1002/bit.10260)). First, the initial rate experiments are used to calibrate the parameters that govern the *forward* reaction. During an initial rate experiment, one can assume no products have been formed and thus all the terms containing products in the rate equation drop out. Second, the parameters of the *backward* reaction are calibrated to the full time-course experiments. For the sake of brevity, I shall glance over this two-step calibration. We will simply calibrate the following (simplified) ping-pong bi-bi kinetic model,
 ```{math}
 \begin{eqnarray}
-\frac{dS}{dt} &=& - v, \\
-\frac{dA}{dt} &=& - v, \\
-\frac{dEs}{dt} &=& + v, \\
-\frac{dW}{dt} &=& + v, \\
+\frac{d[S]}{dt} &=& - v, \\
+\frac{d[A]}{dt} &=& - v, \\
+\frac{d[Es]}{dt} &=& + v, \\
+\frac{d[W]}{dt} &=& + v, \\
 \end{eqnarray}
 ```
 
 where,
 ```{math}
-\frac{v}{[E]_t} = \frac{{V_f}/{K_S} ([S] [A] - 1/K_{eq} [Es][W])}{[A] + R_{AS} [S] + R_{AW} [W] + R_{Es} [Es]}, \Bigg[\frac{mmol}{min . \text{g catalyst}} \Bigg],
+\frac{v}{[E]_t} = \frac{{V_f}/{K_S} ([S] [A] - (1/K_{eq}) [Es][W])}{[A] + R_{AS} [S] + R_{AW} [W] + R_{Es} [Es]}, \Bigg[\frac{mmol}{min . \text{g catalyst}} \Bigg],
 ```
 to data from three initial rate experiments, and five full time-course experiments. In the equation, {math}`[S]` denotes the concentration of D-glucose, {math}`[A]` denotes the concentration of Lauric Acid, {math}`[Es]` denotes the concentration of Glucose Laurate Ester, and {math}`[W]` denotes the concentration of water, all in millimolar (mM). The parameters {math}`R_{AS}`, {math}`R_{AW}` and {math}`R_{Es}` can be interpreted as inhibitory constants due to their appearance in the denominator of the rate equation. {math}`V_f/K_S` is typically treated as one parameter and has an impact on the initial reaction rate. {math}`K_{eq}` is the equillibrium coefficient, which determines if the reaction favor the reactants or the products.
 
@@ -86,10 +91,10 @@ init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
 model = PPBB_model(init_states,params)
 ```
 
-The next step is loading the experimental data from the `~/tutorials/enzyme_kinetics/data` folder and setting up our log posterior probability function for optimization. There are eight files, each containing data from one experiment. The data have the following structure,
+The next step is loading the experimental data from the `~/tutorials/enzyme_kinetics/data/intrinsic_kinetics` folder and setting up our log posterior probability function for optimization. There are eight files, each containing data from one experiment. The data have the following structure,
 
 ```python
-df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/exp_1.csv'), index_col=0)
+df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/exp_1.csv'), index_col=0)
 print(df)
 ```
 
@@ -108,35 +113,46 @@ time
 1440    NaN    NaN    NaN  21.02   0.25
 ```
 
-To perform an optimization of the parameters, a [log posterior probability function](optimization.md) must be setup. We'll load the datasets using a `for` statement and immediately extract three inputs to our log posterior probability function: 1) The Glucose Laurate Ester data as `data`, 2) the measurement error as the arguments of the log likelihood function `log_likelihood_fnc_args` and 3) the initial concentrations used in the experiment in `initial_states`. We will also construct the list of model states to match our datasets to (`states`), which is a list containing eight instances of the Ester state names `'Es'`. 
+To perform an optimization of the parameters, a [log posterior probability function](optimization.md) must be setup. As explained in the [simple SIR tutorial](workflow.md), the log posterior of the parameters is the sum of the log prior and log likelihood. In this example, we will not define the priors explictly and thus pySODM will revert to uniform priors. To choose an appropriate likelihood function, we start by analyzing the mean-variance relationship of the data from the eight experiments. Below is a visualisation of the measurement standard deviation (obtained by performing three measurements) versus the measured ester concentration. From the figure we can deduce that the measurement's standard deviation is 4% relative to the measurement's mean. The R-squared of 0.49 is quite low, but this is likely due to the presence of outliers at glucose laurate ester concentrations above 20 mM. I have personally gathered these data in the lab, and measuring higher concentrations of glucose laurate ester was challenging due to surface-active properties of the substance.
 
-For each measurement of the Glucose Laurate ester concentration an error is available. There is thus no need to analyze the mean-variance ratio as we did in the [simple SIR tutorial](workflow.md) to find an appropriate likelihood function. We'll use a Gaussian likelihood function and use the *sigma* column of our dataset as the arguments of the log likelihood function.
+![reaction](/_static/figs/enzyme_kinetics/mean-variance.png)
+
+In this example. we’ll use a Gaussian likelihood function, mathematically,
+```{math}
+\log p(y \mid \mathbf{\theta}) = -0.5 \sum_{i=0}^N \sum_{j=0}^T \Bigg[ \frac{(y_{i,j} - \hat{y}_{i,j}(\mathbf{\theta}))^2}{\sigma_{i,j}^2} + \log (2 \pi \sigma_{i,j}^2) \Bigg],
+```
+where the standard deviation of the measured concentration equals,
+```{math}
+\sigma_{i,j} = 0.04\ y_{i,j},
+```
+here {math}`y_{i,j}` is the glucose laurate ester concentration of the {math}`j`th timestep of the {math}`i`th experiment, and {math}`\hat{y}_{i,j}` is the estimated glucose laurate ester concentration. {math}`\sigma_{i,j}` is the standard deviation of the observations. Although it can be tempting to weigh the datapoints with the observed variability, this is generally not recommended when the number of replicates is low, as the deviation will vary considerably just by chance, potentially skewing the estimated model parameters.
+
+We'll load the datasets using a `for` statement and immediately extract two inputs to our log posterior probability function: 1) The glucose laurate ester observations as `data`, 2) The glucose laurate ester measurement error, computed as 4% relative to the glucose laurate ester observations and, 3) the initial concentrations used in the experiment in `initial_states`. We will also construct the list of model states to match our datasets to (`states`), which is a list containing eight instances of the Ester state names `'Es'`. 
 
 ```python
 from pySODM.optimization.objective_functions import ll_gaussian
 
 # Extract and sort the names
-names = os.listdir(os.path.join(os.path.dirname(__file__),'data/'))
+names = os.listdir(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'))
 names.sort()
-
-# Load data
+# Load data and prepare log likelihood function
 data = []
-log_likelihood_fnc_args = []
-initial_concentrations=[]
 states = []
 log_likelihood_fnc = []
+log_likelihood_fnc_args = []
+initial_states=[]
 for name in names:
-    df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/'+name), index_col=0)
-    data.append(df['Es'])
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'+name), index_col=0)
+    data.append(df['Es'][1:]) # Cut out zero's!
     log_likelihood_fnc.append(ll_gaussian)
-    log_likelihood_fnc_args.append(df['sigma'])
+    log_likelihood_fnc_args.append(0.04*df['Es'][1:]) # 4% Relative noise
     states.append('Es')
-    initial_concentrations.append(
+    initial_states.append(
         {'S': df.loc[0]['S'], 'A': df.loc[0]['A'], 'Es': df.loc[0]['Es'], 'W': df.loc[0]['W']}
     )
 ```
 
-All that is left is to define a list containing the five model parameters we'd like to calibrate: {math}`V_f/K_S`, {math}`R_{AS}`, {math}`R_{AW}`,{math}`R_{Es}`, {math}`K_{eq}`, and a list containing an upper and lower bound for every model parameter.  We'll use the optional argument `labels` so our MCMC diagnostic figures can use fancy {math}`\LaTeX` labels. Note how we didn't define `weights` to our dataset, so all datasets are weighted equally. We also didn't define prior probability functions for our parameters, this means pySODM will automatically use uniform priors using the provided bounds.
+All that is left is to define a list containing the five model parameters we'd like to calibrate: {math}`V_f/K_S`, {math}`R_{AS}`, {math}`R_{AW}`,{math}`R_{Es}`, {math}`K_{eq}`, and a list containing an upper and lower bound for every model parameter.  We'll use the optional argument `labels` so our MCMC diagnostic figures can use fancy {math}`\LaTeX` labels. Note how we didn't define `weights` to our dataset, so all datasets are weighted equally. We also didn't define prior probability functions for our parameters, this means pySODM will automatically default to uniform priors over the provided bounds.
 
 ```python
 from pySODM.optimization.objective_functions import log_posterior_probability
@@ -168,8 +184,8 @@ if __name__ == '__main__':
 ```
 
 We find the following estimates for our parameters,
-```bash
-theta = [7.13e-04, 1.00e-02, 2.40e+00, 1.00e-02, 6.33e-01]
+```python
+theta = [0.95/1000, 0.75, 1.40, 5.00, 0.70]
 ```
 
 Next, we'll use this estimate to initiate our Markov-Chain Monte-Carlo sampler which requires the help of two functions: [perturbate_theta](optimization.md) and [run_EnsembleSampler](optimization.md). We'll initiate 5 chains per calibrated parameter, so 25 chains in total, by. To do so, we'll first use `perturbate_theta` to perturbate our previously obtained estimate `theta` by 10%. The result is a np.ndarray `pos` of shape `(5, 25)`, which we'll then pass on to `run_EnsembleSampler`.
@@ -180,7 +196,7 @@ if __name__ == '__main__':
     from pySODM.optimization.mcmc import perturbate_theta
 
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.1, 0.1, 0.1, 0.1, 0.1], multiplier=5, bounds=bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=len(pars)*[0.10,], multiplier=5, bounds=bounds)
 ```
 
 Then, we'll setup and run the sampler using `run_EnsembleSampler` until the chains converge.
@@ -226,11 +242,11 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 ```
-On the cornerplot we can see that the values of {math}`R_{AS}` and {math}`R_{Es}` are quite small, meaning we can likely drop these parameters from the model without taking a big hit in terms of goodness-of-fit. {math}`R_{AW}` and {math}`V_f / K_S` correlate quite strongly but we can account for this when propagating the uncertainty. The equillibrium of this reaction is shifted towards the reactants, as indicated by an equillibrium constant of {math}`K_{eq} = 0.64 < 1`. It is thus likely that products such as water will have to be removed during or in between reactions to attain higher yields.
+The distribution of the parameters are shown below. The equillibrium of this reaction is shifted towards the reactants, as indicated by an equillibrium constant of {math}`K_{eq} = 0.70 < 1`. It is thus likely that products such as water will have to be removed during or in between reactions to attain higher yields.
 
-![corner](/_static/figs/enzyme_kinetics/corner.png)
+![corner](/_static/figs/enzyme_kinetics/enzyme_kinetics_corner.png)
 
-Finally, we can use the *draw functions* to propagate the parameter samples in our model and asses the goodness-of-fit. Simulating a model is performed using the [sim](models.md) function. All that is left after simulating the model is to add the observational noise to the model predictions. I've computed the relative magnitude of the error on the datapoints and these are roughly equal to 5%. Given how we've used a Gaussian log likelihood function, we'll use `add_gaussian_noise()` to add 5% (relative) noise to the model output.
+Finally, we can use the *draw functions* to propagate the parameter samples in our model and asses the goodness-of-fit. Simulating a model is performed using the [sim](models.md) function. All that is left after simulating the model is to add the 4% observational noise to the model predictions using `add_gaussian_noise(out, 0.04, relative=True)` to add 4% (relative) noise to the model output.
 
 ```python
 if __name__ == '__main__':
@@ -249,30 +265,28 @@ if __name__ == '__main__':
         # Update initial condition
         model.initial_states.update(initial_states[i])
         # Simulate model
-        out = model.sim(3000, N=N, draw_function=draw_fcn, samples=samples_dict)
-        # Add 5% observational noise
-        out = add_gaussian_noise(out, 0.05, relative=True)
+        out = model.sim(1600, N=n, draw_function=draw_fcn, samples=samples_dict)
+        # Add 4% observational noise
+        out = add_gaussian_noise(out, 0.04, relative=True)
         # Visualize
-        fig,ax=plt.subplots(figsize=(12,4))
-        ax.scatter(df.index, df.values, color='black', alpha=0.6, linestyle='None', facecolors='none', s=60, linewidth=2)
-        for i in range(N):
-            ax.plot(out['time'], out['S'].isel(draws=i), color='black', alpha=0.03, linewidth=0.2)
-            ax.plot(out['time'], out['Es'].isel(draws=i), color='red', alpha=0.03, linewidth=0.2)
-        #ax.errorbar(df.index, df.values, yerr=log_likelihood_fnc_args[i], fmt='x', color='black')
-        ax.legend(['data', 'D-glucose', 'Glucose laurate'])
-        ax.set_ylabel('species concentration (mM)')
-        ax.set_xlabel('time (min)')
+        fig,ax=plt.subplots(figsize=(6,2.5))
+        ax.errorbar(df.index, df, yerr=2*np.squeeze(y_err[i]), capsize=10, color='black', linestyle='', marker='^', label='Data')
+        ax.plot(out['time'], out['Es'].mean(dim='draws'), color='black', linestyle='--', label='Model mean')
+        ax.fill_between(out['time'], out['Es'].quantile(dim='draws', q=0.025), out['Es'].quantile(dim='draws', q=0.975), color='black', alpha=0.10, label='Model 95% CI')
+        ax.legend()
         ax.grid(False)
+        ax.set_ylabel('Glucose Laurate (mM)')
+        ax.set_xlabel('time (min)')
         plt.tight_layout()
         plt.show()
         plt.close()
 ```
 
-The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 40.5 mM D-glucose, 121.5 mM Lauric acid and 24.3 mM water present in the medium. After 16 hours, the reaction has equillibrated and {math}`23.0 \pm 2\ mM` (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of {math}`57\% \pm 5\%\ mM` (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields. To conclude this section, I visualize the yield on a 2D grid spanning the concentrations of D-Glucose and Lauric on the y-axis (given as the acid-to-sugar ratio with 40 mM of D-Glucose used), and the water concentration on the x-axis.
+The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 40 mM D-glucose, 121 mM Lauric acid and 24 mM water present in the medium. After 24 hours, the reaction has equillibrated and {math}`24 \pm 2\ mM` (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of {math}`60\% \pm 5\%\ mM` (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields. To conclude this section, I visualize the yield on a 2D grid spanning the concentrations of D-Glucose and Lauric on the y-axis (given as the acid-to-sugar ratio with 40 mM of D-Glucose used), and the water concentration on the x-axis.
 
-![fit_2](/_static/figs/enzyme_kinetics/fit_2.png)
+![fit_2](/_static/figs/enzyme_kinetics/enzyme_kinetics_fit.png)
 
-![yield](/_static/figs/enzyme_kinetics/yield.png)
+![yield](/_static/figs/enzyme_kinetics/enzyme_kinetics_vary_AS.png)
 
 
 ## Simulating a Packed-bed reactor (PDE model)
@@ -410,7 +424,7 @@ Next, we load our previously obtained samples of the kinetic parameters and defi
 
 ```python
 # Load samples
-f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2022-12-19.json'))
+f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-07.json'))
 samples_dict = json.load(f)
 
 # Define draw function
@@ -425,11 +439,11 @@ def draw_fcn(param_dict, samples_dict):
 
 A first experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 28 mM water. The reactants were pumped through the reactor at a flow rate of 0.2 mL/min, resulting in an average residence time of 13.5 minutes. After ten retention times, when the outlet concentration had stabilized, three samples were withdrawn at the outlet. Then, the reactor was cut short by 0.10 m, and again three samples were withdrawn at the outlet. In this way, the reactant profile acrosss the reactor length was obtained. I omit the code to replicate the following figures from this documentation as no new concepts are introduced beyond this point. Our packed-bed model does an adequate job at describing the data.
 
-![PFR_reactorcut](/_static/figs/enzyme_kinetics/PFR_reactorcut.png)
+![PFR_reactorcut](/_static/figs/enzyme_kinetics/enzyme_kinetics_cut_reactor.png)
 
 An second experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 18 mM water. The reaction was initiated at a flow rate of 0.5 mL/min, which corresponded to a retention time of 5.4 minutes. The flow rate was then lowered in 0.1 mL/min increments and samples were taken at the reactor outlet after a steady-state was reached. Here, our model seems to overestimate the amount of product formed at higher flow rates, with the error becoming smaller as the flow rate becomes lower. 
 
-![PFR_flowrate](/_static/figs/enzyme_kinetics/PFR_flowrate.png)
+![PFR_flowrate](/_static/figs/enzyme_kinetics/enzyme_kinetics_vary_flowrate.png)
 
 Because the enzyme beads are quite small compared to the tube's inner diamter, the radial porosity profile of the packed bed is not uniform but fluctuates. As an illustration, below is the radial porosity profile of the simulated packed bed shown earlier, especially near the wall of the reactor, the porosity approaches zero. This likely cause the solvent to *channel* through the high porosity regions, especially when the flow rate is increased. Our model does not include a radial dimension explictly and uses the radially averaged porosity, it can thus not account for this effect. 
 

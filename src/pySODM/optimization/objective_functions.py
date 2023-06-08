@@ -14,18 +14,17 @@ from pySODM.models.validation import validate_initial_states
 ##############################
 
 def ll_gaussian(ymodel, ydata, sigma):
-    """Loglikelihood of a Gaussian distribution (minus constant terms).
-    
+    """
+    Loglikelihood of a Gaussian distribution, can be used homoskedastically or heteroskedastically.
+
     Parameters
     ----------
     ymodel: np.ndarray
         mean values of the Gaussian distribution (i.e. "mu" values), as predicted by the model
     ydata: np.ndarray
-        data time series values to be matched with the model predictions
+        time series to be matched with the model predictions
     sigma: float/list of floats/np.ndarray
-        standard deviation(s) of the Gaussian distribution around the mean value 'ymodel'
-        Two options are possible: 1) one error per model dimension, applied uniformly to all datapoints corresponding to that dimension OR
-        2) one error for every datapoint, corresponding to a weighted least-squares estimator
+        Standard deviation of the Gaussian distribution around the mean value 'ymodel'
 
     Returns
     -------
@@ -33,13 +32,14 @@ def ll_gaussian(ymodel, ydata, sigma):
         Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
     """
 
+    # Expand first dimensions on 'alpha' to match the axes
+    sigma = np.array(sigma)
     if not sigma.shape == ymodel.shape:
-        # Expand first dimensions on 'alpha' to match the axes
-        sigma = np.array(sigma)[np.newaxis, ...]   
+        sigma = sigma[np.newaxis, ...]  
     # Check for zeros (TODO: move to a higher layer)
     if len(sigma[sigma<=0]) != 0:
         raise ValueError(
-            'argument `sigma` of `ll_gaussian` contains values smaller than or equal to zero'
+            'the standard deviation used in `ll_gaussian` contains values smaller than or equal to zero'
         )
     return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
 

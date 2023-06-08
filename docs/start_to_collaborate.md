@@ -6,7 +6,7 @@ First of all, thanks for considering contributing to pySODM! It's people like yo
 
 Using pySODM for a research project and writing a paper? Consider citing it:
 
-Tijs W. Alleman and Jan. M. Baetens. (2022). pySODM: Simulating and Optimising Dynamical Models in Python 3. Github. URL: https://github.com/twallema/pySODM
+Tijs W. Alleman, Christian Stevens and Jan. M. Baetens. (2023). pySODM: Simulating and Optimising Dynamical Models in Python 3. arXiv preprint. DOI: https://doi.org/10.48550/arXiv.2301.10664
 
 ### Ask a question
 

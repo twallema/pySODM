@@ -52,7 +52,7 @@ def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
     # Make figure
     fig,ax=plt.subplots(figsize=(10,4))
     # Autocorrelation
-    ax.plot(n, np.array(tau_vect))
+    ax.plot(n, np.array(tau_vect), **plt_kwargs)
     ax.plot(n, n/50, "--k")
     ax.set_xlim(0, n.max())
     ax.set_ylabel(r"$\hat{\tau}$");    
