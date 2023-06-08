@@ -21,8 +21,9 @@ In this tutorial pySODM is used to:
 This part of the tutorial can be replicated by running
 
 ```bash
-python ~/tutorials/enzyme_kinetics/calibrate_intrinsic_kinetics.py
+python calibrate_intrinsic_kinetics.py
 ```
+located in `~/tutorials/enzyme_kinetics/`.
 
 ### Experiments and model equations
 
@@ -118,7 +119,7 @@ To perform an optimization of the parameters, a [log posterior probability funct
 
 In this example. we’ll use a Gaussian likelihood function, mathematically,
 ```{math}
-\log p(y \mid \theta) = -0.5 \sum_{i=0}^N \sum_{j=0}^T \Bigg[ \frac{(y_{i,j} - \hat{y}_{i,j}(\theta))^2}{\sigma_{i,j}^2} + \log (2 \pi \sigma_{i,j}^2) \Bigg],
+\log p(y \mid \mathbf{\theta}) = -0.5 \sum_{i=0}^N \sum_{j=0}^T \Bigg[ \frac{(y_{i,j} - \hat{y}_{i,j}(\mathbf{\theta}))^2}{\sigma_{i,j}^2} + \log (2 \pi \sigma_{i,j}^2) \Bigg],
 ```
 where the standard deviation of the measured concentration equals,
 ```{math}
