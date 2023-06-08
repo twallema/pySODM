@@ -18,7 +18,11 @@ First, by running the script `data_conversion.py`, the user converts the *raw* w
 
 ### Raw
 
-+ `social_contacts.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Includes physical contacts longer than 15 minutes.
++ `social_contacts_holiday_week.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Contacts Mon-Fri (holidays). Includes physical contacts longer than 15 minutes. An integration of the contacts with the contact duration is performed in the spreadsheet.
+
++ `social_contacts_noholiday_week.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Contacts Mon-Fri (excl. holidays). Includes physical contacts longer than 15 minutes. An integration of the contacts with the contact duration is performed in the spreadsheet.
+
++ `social_contacts_weekend.xlsx`: Copy of the social contact data used in the Influenza model. Extracted using SOCRATES (http://www.socialcontactdata.org/socrates/). Contacts Sat-Sun. Includes physical contacts longer than 15 minutes. An integration of the contacts with the contact duration is performed in the spreadsheet.
 
 + `Influenza 2017-2018 End of Season_NL.pdf`: End of Influenza season report of the Belgian Scientific Institute of Public Health (Sciensano). Retrieved from [Sciensano](https://www.sciensano.be/sites/default/files/influenza_2017-2018_end_of_season_nl.pdf) (accessed Nov. 9 2022).
 
