@@ -1,1 +1,0 @@
-{"start_calibration": "2017-12-02", "end_calibration": "2018-04-01", "n_chains": 180, "starting_estimate": [0.01908679917177284, 0.001, 0.5850802192627605, 0.7801738287298394, 0.02837626554126482], "labels": ["$\\beta$", "$f_{ud}$_{0}", "$f_{ud}$_{1}", "$f_{ud}$_{2}", "$f_{ud}$_{3}"], "tau": 0.5, "calibrated_parameters_shapes": {"beta": [1], "f_ud": [4]}}
