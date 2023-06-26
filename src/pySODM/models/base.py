@@ -311,7 +311,7 @@ class SDEModel:
                 # compute rates
                 # -------------
 
-                rates = self.compute_rates(date, **states, **params)
+                rates = self.compute_rates(t, **states, **params)
 
                 # --------------
                 # Gillespie step
@@ -326,7 +326,7 @@ class SDEModel:
                 # update states 
                 # -------------
 
-                dstates = self.apply_transitionings(date, tau, transitionings, **states, **params)
+                dstates = self.apply_transitionings(t, tau, transitionings, **states, **params)
 
                 # -------
                 # Flatten
@@ -613,7 +613,7 @@ class ODEModel:
             # perform integration
             # -------------------
 
-            dstates = self.integrate(date, **states, **params)
+            dstates = self.integrate(t, **states, **params)
 
             # -------
             # Flatten
