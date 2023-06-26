@@ -1,9 +1,7 @@
 import copy
 import inspect
-import itertools
 import numpy as np
-import pandas as pd
-import datetime
+from datetime import datetime, timedelta
 from collections import OrderedDict
 
 def date_to_diff(actual_start_date, end_date):
@@ -11,7 +9,7 @@ def date_to_diff(actual_start_date, end_date):
     Convert date string to int (i.e. number of days since day 0 of simulation,
     which is warmup days before actual_start_date)
     """
-    return float((pd.to_datetime(end_date)-pd.to_datetime(actual_start_date))/pd.to_timedelta('1D'))
+    return float((end_date-actual_start_date)/timedelta(days=1))
 
 def validate_simulation_time(time, warmup):
     """Validates the simulation time of the sim() function. Various input types are converted to: time = [start_float, stop_float]"""
@@ -30,19 +28,19 @@ def validate_simulation_time(time, warmup):
                 time = [round(item) for item in time]
                 time[0] -= warmup
             # If they are all timestamps
-            elif all([isinstance(item, pd.Timestamp) for item in time]):
-                actual_start_date = time[0] - pd.Timedelta(days=warmup)
+            elif all([isinstance(item, datetime) for item in time]):
+                actual_start_date = time[0] - timedelta(days=warmup)
                 time = [0, date_to_diff(actual_start_date, time[1])]
-            # If they are all strings
+            # If they are all strings: assume format is YYYY-MM-DD and convert to a datetime
             elif all([isinstance(item, str) for item in time]):
-                time = [pd.Timestamp(item) for item in time]
-                actual_start_date = time[0] - pd.Timedelta(days=warmup)
+                time = [datetime.strptime(item,"%Y-%m-%d") for item in time]
+                actual_start_date = time[0] - timedelta(days=warmup)
                 time = [0, date_to_diff(actual_start_date, time[1])]
             else:
                 raise ValueError(
                     f"List-like input of simulation start and stop must contain either all int/float or all str/datetime, not a combination of the two "
                     )
-    elif isinstance(time, (str,datetime.datetime)):
+    elif isinstance(time, (str,datetime)):
         raise TypeError(
             "You have only provided one date as input 'time', how am I supposed to know when to start/end this simulation?"
         )
