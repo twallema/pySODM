@@ -9,7 +9,7 @@ import copy
 import numpy as np
 import numba as nb
 import multiprocessing as mp
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date, list_to_dict
@@ -295,6 +295,7 @@ class SDEModel:
                 if self.time_dependent_parameters:
                     if actual_start_date is not None:
                         date = int_to_date(actual_start_date, t)
+                        t = datetime.timestamp(date)
                     else:
                         date = t
                     for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
@@ -597,6 +598,7 @@ class ODEModel:
             if self.time_dependent_parameters:
                 if actual_start_date is not None:
                     date = int_to_date(actual_start_date, t)
+                    t = datetime.timestamp(date)
                 else:
                     date = t
                 for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
