@@ -248,7 +248,7 @@ class SDEModel:
             List containing the drawn transitionings of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
 
         """
-        
+
         # Step 1: flatten states and rates
         size = states.shape
         states = states.flatten()
@@ -257,7 +257,7 @@ class SDEModel:
         rates  = [rate.flatten() for rate in rates]
 
         # Step 2: loop + draw
-        for i, state in enumerate(states):
+        for i in range(len(states)):
             p=np.zeros(len(rates),np.float64)
             # Make a list with the transitioning probabilities
             for j in range(len(rates)):
@@ -265,12 +265,12 @@ class SDEModel:
             # Append the chance of no transitioning
             p = np.append(p, 1-np.sum(p))
             # Sample from a multinomial distribution and omit chance of no transition
-            samples = np.random.multinomial(int(state), p)[:-1]
+            samples = np.random.multinomial(int(states[i]), p)[:-1]
             # Assign to transitioning
-            for j,sample in enumerate(samples):
-                transitioning[j][i] = sample
+            for j in range(len(samples)):
+                transitioning[j][i] = samples[j]
         # Reshape transitioning
-        for j,trans in enumerate(transitioning):
+        for j in range(len(transitioning)):
             transitioning_out[j] = np.reshape(transitioning[j], size)
             
         return transitioning_out
