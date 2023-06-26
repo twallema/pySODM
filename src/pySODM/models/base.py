@@ -7,9 +7,9 @@ import itertools
 import xarray
 import copy
 import numpy as np
-import pandas as pd
 import numba as nb
 import multiprocessing as mp
+from datetime import timedelta
 from functools import partial
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date, list_to_dict
@@ -264,7 +264,7 @@ class SDEModel:
                 p[j] = 1 - np.exp(-tau*rates[j][i])
             # Append the chance of no transitioning
             p = np.append(p, 1-np.sum(p))
-            # Sample from a multinomial and omit chance of no transition
+            # Sample from a multinomial distribution and omit chance of no transition
             samples = np.random.multinomial(int(state), p)[:-1]
             # Assign to transitioning
             for j,sample in enumerate(samples):
@@ -396,7 +396,7 @@ class SDEModel:
         Parameters
         ----------
 
-        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
+        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of datetime.datetime or str of type '[YYYY-MM-DD, YYYY-MM-DD]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
             2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
@@ -427,7 +427,7 @@ class SDEModel:
 
         output_timestep: int/flat
             Interpolate model output to every `output_timestep` time
-            For datetimes: expressed in days
+            For datetimes: expressed in days by default
 
         Returns
         -------
@@ -688,7 +688,7 @@ class ODEModel:
         Parameters
         ----------
 
-        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of pd.Timestamp or str of type '[start_date, stop_date]',
+        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of datetime.datetime or str of type '[YYYY-MM-DD, YYYY-MM-DD]',
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
             2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
@@ -745,7 +745,6 @@ class ODEModel:
                 raise TypeError(
                     "discrete timestep 'tau' must be of type int or float"
                 )
-            #print(f"performing discrete timestepping with tau = {tau}\n")
 
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
@@ -790,7 +789,6 @@ class ODEModel:
         self.parameters = cp
 
         return out
-
 
 def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
     """
@@ -851,7 +849,7 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
     for k,v in state_coordinates.items():
         v_acc=v.copy()
         if actual_start_date is not None:
-            v_acc = [actual_start_date + pd.to_timedelta(output["t"], unit='D'),] + v_acc
+            v_acc = [[actual_start_date + timedelta(days=x) for x in output["t"]],] + v_acc
             new_state_coordinates.update({k: v_acc})
         else:
             v_acc = [output["t"],] + v_acc

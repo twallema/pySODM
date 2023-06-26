@@ -1,10 +1,9 @@
 import numpy as np
-import pandas as pd
+from datetime import timedelta
 
 def int_to_date(actual_start_date, t):
-    date = actual_start_date + pd.Timedelta(t, unit='D')
+    date = actual_start_date + timedelta(days=t)
     return date
-
 
 def list_to_dict(y, shape_dictionary, retain_floats=True):
     """
