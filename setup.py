@@ -17,7 +17,6 @@ setup(
         'scipy',
         'numpy',
         'pandas',
-        'numba',
         'matplotlib',
         'xarray',
         'emcee',
