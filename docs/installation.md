@@ -15,7 +15,7 @@ When making your own modeling and simulation project, we recommend storing your 
      conda update conda
      ```
 
-- Make an environment file `environment.yml` with the dependencies of your own project.
+- Make an environment file `environment.yml` with the dependencies of your own project. pySODM was validated on Python versions 3.9, 3.10 and 3.11.
 
      ```
      name: MY_ENVIRONMENT
@@ -23,7 +23,7 @@ When making your own modeling and simulation project, we recommend storing your 
      - defaults
      - conda-forge
      dependencies:
-     - python=3.10
+     - python=3.11
      - ...
      - ...
      ```
