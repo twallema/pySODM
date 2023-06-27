@@ -7,7 +7,6 @@ import itertools
 import xarray
 import copy
 import numpy as np
-import numba as nb
 import multiprocessing as mp
 from datetime import datetime, timedelta
 from functools import partial
@@ -220,12 +219,11 @@ class SDEModel:
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
-            transitionings[k] = self._draw_transitionings(states[k], nb.typed.List(rate), tau)
+            transitionings[k] = self._draw_transitionings(states[k], rate, tau)
 
         return transitionings, tau
 
     @staticmethod
-    @nb.jit(nopython=True)
     def _draw_transitionings(states, rates, tau):
         """
         Draw the transitionings from a multinomial distribution
