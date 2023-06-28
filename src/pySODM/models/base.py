@@ -189,6 +189,32 @@ class SDEModel:
 
         return transitionings, tau
 
+    @staticmethod
+    def _multinomial_rvs(count, p):
+        """
+        Sample from the multinomial distribution with multiple p vectors.
+
+        Retrieved from: https://stackoverflow.com/questions/55818845/fast-vectorized-multinomial-in-python
+
+        * count must be an (n-1)-dimensional numpy array.
+        * p must an n-dimensional numpy array, n >= 1.  The last axis of p
+        must hold the sequence of probabilities for a multinomial distribution.
+
+        The return value has the same shape as p.
+        """
+        out = np.zeros(p.shape, dtype=int)
+        ps = p.cumsum(axis=-1)
+        # Conditional probabilities
+        with np.errstate(divide='ignore', invalid='ignore'):
+            condp = p / ps
+        condp[np.isnan(condp)] = 0.0
+        for i in range(p.shape[-1]-1, 0, -1):
+            binsample = np.random.binomial(count, condp[..., i])
+            out[..., i] = binsample
+            count -= binsample
+        out[..., 0] = count
+        return out
+
     def _tau_leap(self, states, rates, tau):
         """
         Tau-leaping algorithm by Gillespie
@@ -219,60 +245,18 @@ class SDEModel:
 
         transitionings={k: v[:] for k, v in rates.items()}
         for k,rate in rates.items():
-            transitionings[k] = self._draw_transitionings(states[k], rate, tau)
+            p = 1 - np.exp(-tau*np.stack(rate, axis=-1, dtype=np.float64))
+            s=np.zeros(p.shape[:-1])
+            for i in range(p.shape[-1]-1):
+                s += p[...,i]
+            s = 1 - s
+            s = np.expand_dims(s, axis=-1)
+            p = np.concatenate((p,s), axis=-1)
+            trans = self._multinomial_rvs(np.array(states[k], np.int64), p)
+            transitionings[k] = [np.take(trans, i, axis = -1) for i in range(trans.shape[-1])]
 
         return transitionings, tau
-
-    @staticmethod
-    def _draw_transitionings(states, rates, tau):
-        """
-        Draw the transitionings from a multinomial distribution
-        The use of the multinomial distribution is necessary to avoid states with two transitionings from becoming negative
-
-        Inputs
-        ------
-        states: np.ndarray
-            n-dimensional matrix representing a given model state (passed down from `_tau_leap()`)
-
-        rates: list
-            List containing the transitioning rates of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
-
-        tau: int/float
-            Timestep
-
-        Returns
-        -------
-        Transitionings: list
-            List containing the drawn transitionings of the considered model state. Elements of rates are np.ndarrays with the same dimensions as states.
-
-        """
-
-        # Step 1: flatten states and rates
-        size = states.shape
-        states = states.flatten()
-        transitioning_out = rates
-        transitioning = [rate.flatten() for rate in rates]
-        rates  = [rate.flatten() for rate in rates]
-
-        # Step 2: loop + draw
-        for i in range(len(states)):
-            p=np.zeros(len(rates),np.float64)
-            # Make a list with the transitioning probabilities
-            for j in range(len(rates)):
-                p[j] = 1 - np.exp(-tau*rates[j][i])
-            # Append the chance of no transitioning
-            p = np.append(p, 1-np.sum(p))
-            # Sample from a multinomial distribution and omit chance of no transition
-            samples = np.random.multinomial(int(states[i]), p)[:-1]
-            # Assign to transitioning
-            for j in range(len(samples)):
-                transitioning[j][i] = samples[j]
-        # Reshape transitioning
-        for j in range(len(transitioning)):
-            transitioning_out[j] = np.reshape(transitioning[j], size)
-            
-        return transitioning_out
-
+ 
     def _create_fun(self, actual_start_date, method='SSA', tau_input=0.5):
         
         def func(t, y, pars={}):
