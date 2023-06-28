@@ -8,8 +8,8 @@ import xarray
 import copy
 import numpy as np
 import multiprocessing as mp
-from datetime import datetime, timedelta
 from functools import partial
+from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date, list_to_dict
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
