@@ -23,8 +23,8 @@ from pySODM.models.base import ODEModel
 # Define the model equations
 class SIR(ODEModel):
 
-    state_names = ['S','I','R']
-    parameter_names = ['beta','gamma']
+    states = ['S','I','R']
+    parameters = ['beta','gamma']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
@@ -85,7 +85,7 @@ The simulation above results in the following trajectories for the number of sus
 
 ## Set up an ODE model with a labeled dimension
 
-To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimension_names` keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.
+To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimensions` keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.
 
 ```python
 # Import the ODEModel class
@@ -94,9 +94,9 @@ from pySODM.models.base import ODEModel
 # Define the model equations
 class stratified_SIR(ODEModel):
     
-    state_names = ['S','I','R']
-    parameter_names = ['beta', 'gamma]
-    dimension_names = ['age_groups']
+    states = ['S','I','R']
+    parameters = ['beta', 'gamma]
+    dimensions = ['age_groups']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
@@ -145,10 +145,10 @@ class ODE_SIR_SI(ODEModel):
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """
 
-    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
-    parameter_names = ['beta', 'gamma']
-    parameter_stratified_names = ['alpha']
-    dimension_names = ['age_group']
+    states = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameters = ['beta', 'gamma']
+    stratified_parameters = ['alpha']
+    dimensions = ['age_group']
     state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
@@ -209,8 +209,8 @@ from pySODM.models.base import SDEModel
 # Define the model equations
 class SIR(SDEModel):
 
-    state_names = ['S','I','R']
-    parameter_names = ['beta','gamma']
+    states = ['S','I','R']
+    parameters = ['beta','gamma']
 
     @staticmethod
     def compute_rates(t, S, I, R, beta, gamma):

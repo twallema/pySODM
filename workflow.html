@@ -189,7 +189,7 @@ N &amp;=&amp; S + I + R, \\
 \end{eqnarray}\end{split}\]</div>
 <p>The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) <code class="docutils literal notranslate"><span class="pre">beta</span></code>, the rate of transmission and, 2) <code class="docutils literal notranslate"><span class="pre">gamma</span></code>, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> class from <code class="docutils literal notranslate"><span class="pre">~/src/models/base.by</span></code>. Then, the user must define his/her own class which must contain (minimally),</p>
 <ul class="simple">
-<li><p>A list containing the state names <code class="docutils literal notranslate"><span class="pre">state_names</span></code>,</p></li>
+<li><p>A list containing the state names <code class="docutils literal notranslate"><span class="pre">states</span></code>,</p></li>
 <li><p>A list containing the parameter names <code class="docutils literal notranslate"><span class="pre">parameter_names</span></code>,</p></li>
 <li><p>An <code class="docutils literal notranslate"><span class="pre">integrate()</span></code> function where the differentials of the model are computed,</p></li>
 </ul>
@@ -197,7 +197,7 @@ N &amp;=&amp; S + I + R, \\
 <ol class="arabic simple">
 <li><p>The integrate function must have the timestep <code class="docutils literal notranslate"><span class="pre">t</span></code> as its first input</p></li>
 <li><p>The model states and parameters must also be given as input, their order does not make a difference</p></li>
-<li><p>The integrate function must return a differential for every model state, arranged in the same order as the state names defined in <code class="docutils literal notranslate"><span class="pre">state_names</span></code></p></li>
+<li><p>The integrate function must return a differential for every model state, arranged in the same order as the state names defined in <code class="docutils literal notranslate"><span class="pre">states</span></code></p></li>
 <li><p>The integrate function must be a static method (include <code class="docutils literal notranslate"><span class="pre">&#64;staticmethod</span></code>)</p></li>
 </ol>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODEModel class</span>
@@ -209,7 +209,7 @@ N &amp;=&amp; S + I + R, \\
 <span class="sd">    Simple SIR model without dimensions</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
-    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
     <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
@@ -226,7 +226,7 @@ N &amp;=&amp; S + I + R, \\
 </pre></div>
 </div>
 <p>After defining our model, we’ll initialize it by supplying a dictionary of initial states and a dictionary of model parameters. In our example, we’ll assume the disease spreads in a relatively small population of 1000 individuals. At the start of the simulation we’ll assume there is one “patient zero”. We don’t have to define the number of recovered individuals as undefined states are automatically set to zero by pySODM.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">ODE_SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="n">init_states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">ODE_SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
 </pre></div>
 </div>
 </section>

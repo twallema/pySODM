@@ -126,8 +126,8 @@ N &amp;=&amp; S + I + R, \\
 <span class="c1"># Define the model equations</span>
 <span class="k">class</span> <span class="nc">SIR</span><span class="p">(</span><span class="n">ODEModel</span><span class="p">):</span>
 
-    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
-    <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
@@ -181,16 +181,16 @@ Data<span class="w"> </span>variables:
 </section>
 <section id="set-up-an-ode-model-with-a-labeled-dimension">
 <h2>Set up an ODE model with a labeled dimension<a class="headerlink" href="#set-up-an-ode-model-with-a-labeled-dimension" title="Permalink to this heading">¶</a></h2>
-<p>To transform all our SIR model’s states in 1D vectors, referred to as a <em>dimension</em> throughout the documentation, add the <code class="docutils literal notranslate"><span class="pre">dimension_names</span></code> keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.</p>
+<p>To transform all our SIR model’s states in 1D vectors, referred to as a <em>dimension</em> throughout the documentation, add the <code class="docutils literal notranslate"><span class="pre">dimensions</span></code> keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODEModel class</span>
 <span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODEModel</span>
 
 <span class="c1"># Define the model equations</span>
 <span class="k">class</span> <span class="nc">stratified_SIR</span><span class="p">(</span><span class="n">ODEModel</span><span class="p">):</span>
     
-    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
-    <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma]</span>
-    <span class="n">dimension_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;age_groups&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma]</span>
+    <span class="n">dimensions</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;age_groups&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
@@ -235,10 +235,10 @@ Data<span class="w"> </span>variables:
 <span class="sd">    An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">,</span> <span class="s1">&#39;S_v&#39;</span><span class="p">,</span> <span class="s1">&#39;I_v&#39;</span><span class="p">]</span>
-    <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
-    <span class="n">parameter_stratified_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
-    <span class="n">dimension_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;age_group&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">,</span> <span class="s1">&#39;S_v&#39;</span><span class="p">,</span> <span class="s1">&#39;I_v&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
+    <span class="n">stratified_parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+    <span class="n">dimensions</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;age_group&#39;</span><span class="p">]</span>
     <span class="n">state_dimensions</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;age_group&#39;</span><span class="p">],[</span><span class="s1">&#39;age_group&#39;</span><span class="p">],[</span><span class="s1">&#39;age_group&#39;</span><span class="p">],[],[]]</span>
 
     <span class="nd">@staticmethod</span>
@@ -294,8 +294,8 @@ Data<span class="w"> </span>variables:
 <span class="c1"># Define the model equations</span>
 <span class="k">class</span> <span class="nc">SIR</span><span class="p">(</span><span class="n">SDEModel</span><span class="p">):</span>
 
-    <span class="n">state_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
-    <span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">compute_rates</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>

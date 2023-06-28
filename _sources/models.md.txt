@@ -23,8 +23,8 @@ Upon intialization of the model class, the following arguments must be provided.
 
 **Parameters:**
 
-* **states_values** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
-* **parameters_values** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
+* **states** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
+* **parameters** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
 * **coordinates** (dict) - optional - Keys: names of dimensions (`dimension_names`). Values: desired coordinates for the dimension axis. Values provided here become the dimension's coordinates in the `xarray` Dataset.
 * **time_dependent_parameters** (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function. Time-dependent parameter functions must have `t` (simulation timestep), `states` (model states at timestep `t`) and `params` (model parameters dictionary) as the first three arguments.
 
@@ -71,8 +71,8 @@ Upon intialization of the model class, the following arguments must be provided.
 
 **Parameters:**
 
-* **states_values** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
-* **parameters_values** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
+* **states** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
+* **parameters** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
 * **coordinates** (dict) - optional - Keys: names of dimensions (`dimension_names`). Values: desired coordinates for the dimension axis. Values provided here become the dimension's coordinates in the `xarray` Dataset.
 * **time_dependent_parameters** (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function. Time-dependent parameter functions must have `t` (simulation timestep), `states` (model states at timestep `t`) and `params` (model parameters dictionary) as the first three arguments.
 
