@@ -198,16 +198,16 @@ Data variables:
     I_v        (time) float64 2.0 1.798 1.725 ... 1.292e+05 1.365e+05 1.438e+05
 ```
 
-## Set up a dimensionless SDE Model
+## Set up a dimensionless stochastic jump process Model
 
-To stochastically simulate the simple SIR model, the `SDEModel` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed description of implenting models using Gillespie's methods, we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings. Further, the transitioning for state `I` is a float and this should be a `numpy.float`. I'm still figuring out if I want to introduce the overhead to check and correct this behavior (likely not).
+To stochastically simulate the simple SIR model, the `JumpProcess` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed mathematical description of implenting models using Gillespie's tau-leaping method (example of a jump proces), we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings. Further, the transitioning for state `I` is a float and this should be a `numpy.float`. I'm still figuring out if I want to introduce the overhead to check and correct this behavior (likely not).
 
 ```python
 # Import the ODEModel class
-from pySODM.models.base import SDEModel
+from pySODM.models.base import JumpProcess
 
 # Define the model equations
-class SIR(SDEModel):
+class SIR(JumpProcess):
 
     states = ['S','I','R']
     parameters = ['beta','gamma']
@@ -238,7 +238,7 @@ class SIR(SDEModel):
 
 ### Draw function
 
-The `sim()` method of `ODEModel` and `SDEModel` can be used to perform {math}`N` repeated simulations (keyword `N`). Additionally a *draw function* can be used to update model parameters during every run. A draw function to randomly draw `gamma` from a uniform simulation before every run is implemented as follows,
+The `sim()` method of `ODEModel` and `JumpProcess` can be used to perform {math}`N` repeated simulations (keyword `N`). Additionally a *draw function* can be used to update model parameters during every run. A draw function to randomly draw `gamma` from a uniform simulation before every run is implemented as follows,
 
 ```python
 def draw_function(param_dict, samples_dict):

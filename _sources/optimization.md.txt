@@ -8,7 +8,7 @@
 
 **Parameters:**
 
-* **model** (object) - An initialized ODEModel or SDEModel.
+* **model** (object) - An initialized ODEModel or JumpProcess.
 * **parameter_names** (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
 * **bounds** (list) - Lower and upper bound of calibrated parameters provided as lists/tuples containing lower and upper bound: example: `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. Values falling outside these bounds will be restricted to the provided ranges before simulating the model.
 * **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use `[dataset,]`. Must contain a time index named `time` or `date`. Additional axes must be implemented using a `pd.Multiindex` and must bear the names/contain the coordinates of a valid model dimension.
@@ -266,7 +266,7 @@ Samples path, identifier and run_date are combined to find the right .hdf5 `emce
 >   Replace every value x in a simulation output with a realization from a Poisson distribution with expectation value x
 
 >    **Parameters:**
->    * **output** (xarray.Dataset) - Simulation output (obtained using the `sim()` function of `ODEModel` or `SDEModel`).
+>    * **output** (xarray.Dataset) - Simulation output (obtained using the `sim()` function of `ODEModel` or `JumpProcess`).
 
 >    **Returns:**
 >    * **output** (xarray.Dataset) - Simulation output
@@ -276,7 +276,7 @@ Samples path, identifier and run_date are combined to find the right .hdf5 `emce
 >   Replace every value x in a simulation output with a realization from a normal distribution with average x and standard deviation `sigma` (relative=False) or x*`sigma` (relative=True)
 
 >    **Parameters:**
->    * **output** (xarray.Dataset) - Simulation output (obtained using the `sim()` function of `ODEModel` or `SDEModel`).
+>    * **output** (xarray.Dataset) - Simulation output (obtained using the `sim()` function of `ODEModel` or `JumpProcess`).
 >    * **sigma** (float) - Standard deviation. Must be larger than or equal to 0.
 >    * **relative** (bool) - Add noise relative to magnitude of simulation output.
 
@@ -288,7 +288,7 @@ Samples path, identifier and run_date are combined to find the right .hdf5 `emce
 >   Replace every value x in a simulation output with a realization from a negative binomial distribution with expectation value x and overdispersion `alpha`
 
 >    **Parameters:**
->    * **output** (xarray.Dataset) - Simulation output (obtained using the `sim()` function of `ODEModel` or `SDEModel`).
+>    * **output** (xarray.Dataset) - Simulation output (obtained using the `sim()` function of `ODEModel` or `JumpProcess`).
 >    * **alpha** (float) - Overdispersion factor. Must be larger than or equal to 0. Reduces to Poisson noise for alpha --> 0.
 
 >    **Returns:**

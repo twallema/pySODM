@@ -116,7 +116,7 @@
 <p><strong><em>class</em> log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)</strong></p>
 <p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>model</strong> (object) - An initialized ODEModel or SDEModel.</p></li>
+<li><p><strong>model</strong> (object) - An initialized ODEModel or JumpProcess.</p></li>
 <li><p><strong>parameter_names</strong> (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).</p></li>
 <li><p><strong>bounds</strong> (list) - Lower and upper bound of calibrated parameters provided as lists/tuples containing lower and upper bound: example: <code class="docutils literal notranslate"><span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>. Values falling outside these bounds will be restricted to the provided ranges before simulating the model.</p></li>
 <li><p><strong>data</strong> (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use <code class="docutils literal notranslate"><span class="pre">[dataset,]</span></code>. Must contain a time index named <code class="docutils literal notranslate"><span class="pre">time</span></code> or <code class="docutils literal notranslate"><span class="pre">date</span></code>. Additional axes must be implemented using a <code class="docutils literal notranslate"><span class="pre">pd.Multiindex</span></code> and must bear the names/contain the coordinates of a valid model dimension.</p></li>
@@ -479,7 +479,7 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>output</strong> (xarray.Dataset) - Simulation output (obtained using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function of <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> or <code class="docutils literal notranslate"><span class="pre">SDEModel</span></code>).</p></li>
+<li><p><strong>output</strong> (xarray.Dataset) - Simulation output (obtained using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function of <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> or <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code>).</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -495,7 +495,7 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>output</strong> (xarray.Dataset) - Simulation output (obtained using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function of <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> or <code class="docutils literal notranslate"><span class="pre">SDEModel</span></code>).</p></li>
+<li><p><strong>output</strong> (xarray.Dataset) - Simulation output (obtained using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function of <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> or <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code>).</p></li>
 <li><p><strong>sigma</strong> (float) - Standard deviation. Must be larger than or equal to 0.</p></li>
 <li><p><strong>relative</strong> (bool) - Add noise relative to magnitude of simulation output.</p></li>
 </ul>
@@ -513,7 +513,7 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>output</strong> (xarray.Dataset) - Simulation output (obtained using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function of <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> or <code class="docutils literal notranslate"><span class="pre">SDEModel</span></code>).</p></li>
+<li><p><strong>output</strong> (xarray.Dataset) - Simulation output (obtained using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function of <code class="docutils literal notranslate"><span class="pre">ODEModel</span></code> or <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code>).</p></li>
 <li><p><strong>alpha</strong> (float) - Overdispersion factor. Must be larger than or equal to 0. Reduces to Poisson noise for alpha –&gt; 0.</p></li>
 </ul>
 </div></blockquote>

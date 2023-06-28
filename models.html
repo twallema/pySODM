@@ -62,7 +62,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Models</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#base-py">base.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#class-odemodel"><em>class</em> ODEModel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#class-sdemodel"><em>class</em> SDEModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#class-jumpprocess"><em>class</em> JumpProcess</a></li>
 </ul>
 </li>
 </ul>
@@ -104,7 +104,7 @@
              
   <section id="models">
 <h1>Models<a class="headerlink" href="#models" title="Permalink to this heading">¶</a></h1>
-<p>Standard usage of pySODM involves building an ODE or SDE model. For practical examples of initializing models, we refer to the <a class="reference internal" href="quickstart.html"><span class="std std-doc">tutorials</span></a>.</p>
+<p>Standard usage of pySODM involves building an ODE or stochastic jump process model. For practical examples of initializing models, we refer to the <a class="reference internal" href="quickstart.html"><span class="std std-doc">tutorials</span></a>.</p>
 <section id="base-py">
 <h2>base.py<a class="headerlink" href="#base-py" title="Permalink to this heading">¶</a></h2>
 <section id="class-odemodel">
@@ -156,9 +156,9 @@
 </li>
 </ul>
 </section>
-<section id="class-sdemodel">
-<h3><em>class</em> SDEModel<a class="headerlink" href="#class-sdemodel" title="Permalink to this heading">¶</a></h3>
-<p>The SDEModel class inherits several attributes from the model class defined by the user.</p>
+<section id="class-jumpprocess">
+<h3><em>class</em> JumpProcess<a class="headerlink" href="#class-jumpprocess" title="Permalink to this heading">¶</a></h3>
+<p>The JumpProcess class inherits several attributes from the model class defined by the user.</p>
 <p><strong>Inherits from model declaration:</strong></p>
 <ul class="simple">
 <li><p><strong>states</strong> (list) - Names of the model’s states. Internally converted to variable <code class="docutils literal notranslate"><span class="pre">states_names</span></code> upon model initialisation.</p></li>

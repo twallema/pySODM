@@ -2,11 +2,11 @@
 
 ### Quick-and-dirty: solver accuracy
 
-When using ODE models, using a lower grade algorithm (RK23 < RK45 < DOP853) and/or a lower relative tolerance of the solver is the easiest way to achieve speedups. Be aware, the default solver settings of `RK23` with a tolerance of `5e-03` is already quite "quick-and-dirty". When using SDE models with the tau-leaping method, try increasing the tau-leap size to speed up your models.
+When using ODE models, using a lower grade algorithm (RK23 < RK45 < DOP853) and/or a lower relative tolerance of the solver is the easiest way to achieve speedups. Be aware, the default solver settings of `RK23` with a tolerance of `5e-03` is already quite "quick-and-dirty". When using stochastic jump process models with the tau-leaping method, try increasing the tau-leap size to speed up your models.
 
 ### JIT compilation
 
-Just-in-time compilation, made possible by [numba](https://numba.pydata.org/), can be used to speed up code. It is best applied to the `integrate()` function of the `ODEModel` class. The amount of achievable speedup is different for every model. Generally speaking, models with for-loops in them, or models with large matrix computations will speed up quite nicely. Jit compiling the 1D PFR in the [enzyme kinetics](enzyme_kinetics.md) tutorial results in a 16-fold speedup, while jit compiling the PPBB enzyme kinetic model only speeds up the code by 6%. Because the `compute_rates()` function of the `SDEModel` class has a dictionary as its output, it is very hard (impossible?) to use numba on stochastic models for now. 
+Just-in-time compilation, made possible by [numba](https://numba.pydata.org/), can be used to speed up code. It is best applied to the `integrate()` function of the `ODEModel` class. The amount of achievable speedup is different for every model. Generally speaking, models with for-loops in them, or models with large matrix computations will speed up quite nicely. Jit compiling the 1D PFR in the [enzyme kinetics](enzyme_kinetics.md) tutorial results in a 16-fold speedup, while jit compiling the PPBB enzyme kinetic model only speeds up the code by 6%. Because the `compute_rates()` function of the `JumpProcess` class has a dictionary as its output, it is very hard (impossible?) to use numba on stochastic models for now. 
 
 ### Avoid large inputs in time-dependent parameter functions
 
