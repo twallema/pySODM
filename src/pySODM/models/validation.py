@@ -522,7 +522,7 @@ def validate_compute_rates(compute_rates, initial_states, states_shape, paramete
 
     # Throw TDPF parameters out of parameters dictionary
     parameters_wo_TDPF_pars={k:v for k, v in parameters.items() if k in parameter_names_merged}
-    # 'func' in class 'SDEModel' of 'base.py' automatically converts states to np.array
+    # 'func' in class 'JumpProcess' of 'base.py' automatically converts states to np.array
     # However, we do not wish to validate the output of 'func' but rather of its consituent functions: compute_rates, apply_transitionings
     initial_states_copy={k: v[:] for k, v in initial_states.items()}
     for k,v in initial_states.items():

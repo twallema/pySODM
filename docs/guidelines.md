@@ -51,7 +51,7 @@ Always keep in mind additional dependencies lower `pySODM`'s life expectancy. Co
 
 ### Tests
 
-Three test scripts are defined in `~/src/tests/`: 1) `test_ODEModel.py` to test the initializiation and simulation of ODE models, 2) `test_SDEModel.py`, similar but for SDE models and 3) `test_calibration.py`, to test the common calibration workflow. Testing these routines is usefull to verify that modifications made to the `pySODM` code do not break code. Or alternatively, if the code does break, to see where it breaks. The test routines must pass when performing a PR to Github. To run a test locally,
+Three test scripts are defined in `~/src/tests/`: 1) `test_ODEModel.py` to test the initializiation and simulation of ODE models, 2) `test_JumpProcess.py`, similar but for stochastic jump process models and 3) `test_calibration.py`, to test the common calibration workflow. Testing these routines is usefull to verify that modifications made to the `pySODM` code do not break code. Or alternatively, if the code does break, to see where it breaks. The test routines must pass when performing a PR to Github. To run a test locally,
 ```
 conda activate pySODM
 pytest test_calibration.py

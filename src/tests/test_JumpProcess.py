@@ -1,13 +1,13 @@
 import pytest
 import pandas as pd
 import numpy as np
-from pySODM.models.base import SDEModel
+from pySODM.models.base import JumpProcess
 
 #############################
 ## Model without dimension ##
 #############################
 
-class SIR(SDEModel):
+class SIR(JumpProcess):
 
     # state variables and parameters
     states = ['S', 'I', 'R']
@@ -220,7 +220,7 @@ def test_model_init_validation():
 ## Model with one dimension ##
 ##############################
 
-class SIRstratified(SDEModel):
+class SIRstratified(JumpProcess):
 
     # state variables and parameters
     states = ['S', 'I', 'R']
@@ -339,7 +339,7 @@ def test_model_stratified_init_validation():
 ## A model with different dimensions for different states ##
 ############################################################
 
-class SIR_SI(SDEModel):
+class SIR_SI(JumpProcess):
     """
     A stochastic, age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """

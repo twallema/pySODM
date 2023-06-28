@@ -1,6 +1,6 @@
 # Models
 
-Standard usage of pySODM involves building an ODE or SDE model. For practical examples of initializing models, we refer to the [tutorials](quickstart.md).
+Standard usage of pySODM involves building an ODE or stochastic jump process model. For practical examples of initializing models, we refer to the [tutorials](quickstart.md).
 
 ## base.py
 
@@ -51,9 +51,9 @@ Upon intialization of the model class, the following arguments must be provided.
 
     * **out** - (xarray.Dataset) - Simulation output. Consult the xarray documentation [here](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset). `xarray.Dataset.data_vars` are the model states. `xarray.Dataset.dimensions` are the time dimension plus the model's dimensions. The time dimension is named `time` if timesteps were numbers, the time dimension is named `date` if timesteps were dates. When {math}`N > 1` an additional dimension `draws` is added to the output accomodate the repeated simulations.
 
-### *class* SDEModel
+### *class* JumpProcess
 
-The SDEModel class inherits several attributes from the model class defined by the user.
+The JumpProcess class inherits several attributes from the model class defined by the user.
 
 **Inherits from model declaration:**
 

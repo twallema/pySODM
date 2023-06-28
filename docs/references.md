@@ -6,4 +6,6 @@ In addition to the tutorials listed on the documentation website, we've used pyS
 
 - Alleman T.W., Vergeynst J., De Visscher L., Rollier M., Torfs E., Nopens I., Baetens J.M. (2021). Assessing the effects of non-pharmaceutical interventions on SARS-CoV-2 transmission in Belgium by means of an extended SEIQRD model and public mobility data. *Epidemics*, 37(9). https://doi.org/10.1016/j.epidem.2021.100505
 
-- Alleman T.W., Rollier M., Vergeynst J., Baetens J.M. (2022). A Mobility-Driven Spatially Explicit SEIQRD COVID-19 Model with VOCs, vaccines and seasonality. *arXiv.* https://doi.org/10.48550/ARXIV.2207.03717
+- Alleman T.W., Rollier M., Vergeynst J., Baetens J.M. (2022). A Mobility-Driven Spatially Explicit SEIQRD COVID-19 Model with VOCs, vaccines and seasonality. *Accepted for publication in Applied Mathematical Modeling*. https://doi.org/10.48550/ARXIV.2207.03717
+
+- Alleman T.W., Schoors K., Baetens J.M. (2023). Validating a dynamic input-output model for the propagation of supply and demand shocks during the COVID-19 pandemic in Belgium. *arXiv*. https://arxiv.org/abs/2305.16377

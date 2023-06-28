@@ -458,5 +458,5 @@ I hope this tutorial has demonstrated the workflow pySODM can speedup. However, 
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | Enzyme kinetics: intrinsic kinetics            | Dimensionless ODE model. Calibration to multiple datasets with changing initial conditions.       |
 | Enzyme kinetics: 1D Plug-Flow Reactor          | Use the method of lines to discretise a PDE model into an ODE model with one dimension.           |
-| Influenza 2017-2018                            | SDE model with one dimension. Calibration of a 1D model parameters on a 1D dataset.               |
+| Influenza 2017-2018                            | stochastic jump process model with one dimension. Calibration of a 1D model parameters on a 1D dataset.               |
 | SIR-SI Model (see `~/tutorials/SIR_SI/`)       | ODE model where states have different dimensions and thus different shapes.                       |
