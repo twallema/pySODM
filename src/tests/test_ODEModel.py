@@ -155,8 +155,8 @@ def test_model_init_validation():
     assert model.initial_states == initial_states
     assert model.parameters == parameters
     # model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['beta', 'gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['beta', 'gamma']
 
     # valid initialization: initial states as int
     initial_states = {"S": 1_000_000 - 10, "I": 10, "R": 0}
@@ -164,8 +164,8 @@ def test_model_init_validation():
     assert model.initial_states == initial_states
     assert model.parameters == parameters
     # model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['beta', 'gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['beta', 'gamma']
 
     # valid initialization: initial states as np.array
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
@@ -173,8 +173,8 @@ def test_model_init_validation():
     assert model.initial_states == initial_states
     assert model.parameters == parameters
     # model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['beta', 'gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['beta', 'gamma']
 
     # wrong length initial states
     initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
@@ -269,9 +269,9 @@ def test_stratified_SIR_init_validation():
 
     assert model.initial_states == initial_states
     assert model.parameters == parameters
-    assert model.parameter_stratified_names == ['beta']
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['gamma']
+    assert model.parameters_stratified_names == ['beta']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['gamma']
 
     # forget coordinates
     with pytest.raises(ValueError, match="dimension name provided in integrate"):
