@@ -6,10 +6,10 @@ class SDE_SIR_SI(SDEModel):
     A stochastic, age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """
 
-    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
-    parameter_names = ['beta', 'gamma']
-    parameter_stratified_names = ['alpha']
-    dimension_names = ['age_group']
+    states = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameters = ['beta', 'gamma']
+    stratified_parameters = ['alpha']
+    dimensions = ['age_group']
     state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
@@ -44,10 +44,10 @@ class ODE_SIR_SI(ODEModel):
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """
 
-    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
-    parameter_names = ['beta', 'gamma']
-    parameter_stratified_names = ['alpha']
-    dimension_names = ['age_group']
+    states = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameters = ['beta', 'gamma']
+    stratified_parameters = ['alpha']
+    dimensions = ['age_group']
     state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
