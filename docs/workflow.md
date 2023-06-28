@@ -85,14 +85,14 @@ N &=& S + I + R, \\
 ```
 
 The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the `ODEModel` class from `~/src/models/base.by`. Then, the user must define his/her own class which must contain (minimally),
-- A list containing the state names `state_names`,
+- A list containing the state names `states`,
 - A list containing the parameter names `parameter_names`,
 - An `integrate()` function where the differentials of the model are computed,
 
 and take the `ODEModel` class as its input. Checkout the documentation of the ODEModel class [here](models.md). There are some important formatting requirements to the integrate function, which are verified when the model is initialized,
 1. The integrate function must have the timestep `t` as its first input
 2. The model states and parameters must also be given as input, their order does not make a difference
-3. The integrate function must return a differential for every model state, arranged in the same order as the state names defined in `state_names`
+3. The integrate function must return a differential for every model state, arranged in the same order as the state names defined in `states`
 4. The integrate function must be a static method (include `@staticmethod`)
 
 ```
@@ -105,7 +105,7 @@ class ODE_SIR(ODEModel):
     Simple SIR model without dimensions
     """
     
-    state_names = ['S','I','R']
+    states = ['S','I','R']
     parameter_names = ['beta','gamma']
 
     @staticmethod
@@ -124,7 +124,7 @@ class ODE_SIR(ODEModel):
 After defining our model, we'll initialize it by supplying a dictionary of initial states and a dictionary of model parameters. In our example, we'll assume the disease spreads in a relatively small population of 1000 individuals. At the start of the simulation we'll assume there is one "patient zero". We don't have to define the number of recovered individuals as undefined states are automatically set to zero by pySODM.
 
 ```
-model = ODE_SIR(states=init_states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
+model = ODE_SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
 ### Calibrating the model

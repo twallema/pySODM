@@ -36,7 +36,7 @@ tau = 0.50              # Timestep of Tau-Leaping algorithm
 alpha = 0.03            # Overdispersion factor (based on COVID-19)
 end_calibration = pd.Timestamp('2018-03-01')
 identifier = 'twallema_2018-03-01'
-n_pso = 30              # Number of PSO iterations
+n_pso = 3              # Number of PSO iterations
 multiplier_pso = 36     # PSO swarm size
 n_mcmc = 200            # Number of MCMC iterations
 multiplier_mcmc = 36    # Total number of Markov chains = number of parameters * multiplier_mcmc
@@ -121,7 +121,7 @@ init_states = {'S': list(initN.values),
 # Define model coordinates
 coordinates={'age_group': age_groups}
 # Initialize model
-model = influenza_model(init_states,params,coordinates,time_dependent_parameters={'N': contact_function})
+model = influenza_model(states=init_states,parameters=params,coordinates=coordinates,time_dependent_parameters={'N': contact_function})
 
 #####################
 ## Calibrate model ##

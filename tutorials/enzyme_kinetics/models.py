@@ -9,10 +9,10 @@ class packed_PFR(ODEModel):
     S + A <--> Es + W
     """
 
-    state_names = ['C_F', 'C_S']
-    parameter_names = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
-    parameter_stratified_names = [['kL_a', 'D_ax'],[]]
-    dimension_names = ['species', 'x']
+    states = ['C_F', 'C_S']
+    parameters = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
+    stratified_parameters = [['kL_a', 'D_ax'],[]]
+    dimensions = ['species', 'x']
 
     @staticmethod
     @njit
@@ -56,8 +56,8 @@ class PPBB_model(ODEModel):
     S + A <--> Es + W
     """
     
-    state_names = ['S','A','Es','W']
-    parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
+    states = ['S','A','Es','W']
+    parameters = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
 
     @staticmethod
     @njit

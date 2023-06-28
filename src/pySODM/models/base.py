@@ -43,63 +43,72 @@ class SDEModel:
         Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
-    state_names = None
-    parameter_names = None
-    dimension_names = None
-    parameter_stratified_names = None
+    states = None
+    parameters = None
+    stratified_parameters = None
+    dimensions = None
     state_dimensions = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+
+        # Add a suffix _names to all user-defined name declarations 
+        self.states_names = self.states
+        self.parameters_names = self.parameters
+        self.parameters_stratified_names = self.stratified_parameters
+        self.dimensions_names = self.dimensions
+        
+        self.states = states
+        parameters = parameters
 
         # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
         # Merge parameter_names and parameter_stratified_names
-        self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
+        self.parameters_names_merged = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/dimensions?
-        check_duplicates(self.state_names, 'state_names')
-        check_duplicates(self.parameter_names, 'parameter_names')
-        check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
-        if self.dimension_names:
-            check_duplicates(self.dimension_names, 'dimension_names')
+        check_duplicates(self.states_names, 'state_names')
+        check_duplicates(self.parameters_names, 'parameter_names')
+        check_duplicates(self.parameters_names_merged, 'parameter_names + parameter_stratified_names')
+        if self.dimensions_names:
+            check_duplicates(self.dimensions_names, 'dimension_names')
 
         # Validate and compute the dimension sizes
-        self.dimension_size = validate_dimensions(self.dimension_names, self.coordinates)
+        self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
 
         # Validate state_dimensions
         if self.state_dimensions:
-            validate_state_dimensions(self.state_dimensions, self.coordinates, self.state_names)
+            validate_state_dimensions(self.state_dimensions, self.coordinates, self.states_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
-        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
+        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.state_dimensions)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states = validate_initial_states(self.state_shapes, states)
+        self.initial_states = validate_initial_states(self.state_shapes, self.states)
 
         # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
-            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
+            self._function_parameters = validate_time_dependent_parameters(self.parameters_names, self.parameters_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
 
         # Verify the signature of the compute_rates function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameter_names_merged, self.state_names, self._function_parameters)
+        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameters_names_merged, self.states_names, self._function_parameters)
 
         # Verify the signature of the apply_transitionings function
-        validate_apply_transitionings_signature(self.apply_transitionings, self.parameter_names_merged, self.state_names)
+        validate_apply_transitionings_signature(self.apply_transitionings, self.parameters_names_merged, self.states_names)
 
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters)
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
-        if self.parameter_stratified_names:
-            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.dimension_names, coordinates, self.parameters)
+        if self.parameters_stratified_names:
+            self.parameters = validate_parameter_stratified_sizes(self.parameters_stratified_names, self.dimensions_names, coordinates, self.parameters)
 
         # Call the compute_rates function, check if it works and check the sizes of the differentials in the output
-        rates = validate_compute_rates(self.compute_rates, self.initial_states, self.state_shapes, self.parameter_names_merged, self.parameters)
-        validate_apply_transitionings(self.apply_transitionings, rates, self.initial_states, self.state_shapes, self.parameter_names_merged, self.parameters)
+        rates = validate_compute_rates(self.compute_rates, self.initial_states, self.state_shapes, self.parameters_names_merged, self.parameters)
+        validate_apply_transitionings(self.apply_transitionings, rates, self.initial_states, self.state_shapes, self.parameters_names_merged, self.parameters)
 
     # Overwrite integrate class
     @staticmethod
@@ -287,7 +296,7 @@ class SDEModel:
                 #  throw parameters of TDPFs out of model parameters dictionary
                 # -------------------------------------------------------------
 
-                params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameter_names_merged))}
+                params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameters_names_merged))}
 
                 # -------------
                 # compute rates
@@ -498,59 +507,67 @@ class ODEModel:
         Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
-    state_names = None
-    parameter_names = None
-    dimension_names = None
-    parameter_stratified_names = None
+    states = None
+    parameters = None
+    stratified_parameters = None
+    dimensions = None
     state_dimensions = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+
+        # Add a suffix _names to all user-defined name declarations 
+        self.states_names = self.states
+        self.parameters_names = self.parameters
+        self.parameters_stratified_names = self.stratified_parameters
+        self.dimensions_names = self.dimensions
+        self.states = states
+        parameters = parameters
 
         # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
         # Merge parameter_names and parameter_stratified_names
-        self.parameter_names_merged = merge_parameter_names_parameter_stratified_names(self.parameter_names, self.parameter_stratified_names)
+        self.parameters_names_merged = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/dimensions?
-        check_duplicates(self.state_names, 'state_names')
-        check_duplicates(self.parameter_names, 'parameter_names')
-        check_duplicates(self.parameter_names_merged, 'parameter_names + parameter_stratified_names')
-        if self.dimension_names:
-            check_duplicates(self.dimension_names, 'dimension_names')
+        check_duplicates(self.states_names, 'state_names')
+        check_duplicates(self.parameters_names, 'parameter_names')
+        check_duplicates(self.parameters_names_merged, 'parameter_names + parameter_stratified_names')
+        if self.dimensions_names:
+            check_duplicates(self.dimensions_names, 'dimension_names')
 
         # Validate and compute the dimension sizes
-        self.dimension_size = validate_dimensions(self.dimension_names, self.coordinates)
+        self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
 
         # Validate state_dimensions
         if self.state_dimensions:
-            validate_state_dimensions(self.state_dimensions, self.coordinates, self.state_names)
+            validate_state_dimensions(self.state_dimensions, self.coordinates, self.states_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
-        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
+        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.state_dimensions)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states = validate_initial_states(self.state_shapes, states)
+        self.initial_states = validate_initial_states(self.state_shapes, self.states)
 
         # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
-            self._function_parameters = validate_time_dependent_parameters(self.parameter_names, self.parameter_stratified_names, self.time_dependent_parameters)
+            self._function_parameters = validate_time_dependent_parameters(self.parameters_names, self.parameters_stratified_names, self.time_dependent_parameters)
         else:
             self._function_parameters = []
 
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.integrate, self.parameter_names_merged, self.state_names, self._function_parameters)
+        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_merged, self.states_names, self._function_parameters)
 
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters)
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
-        if self.parameter_stratified_names:
-            self.parameters = validate_parameter_stratified_sizes(self.parameter_stratified_names, self.dimension_names, coordinates, self.parameters)
+        if self.parameters_stratified_names:
+            self.parameters = validate_parameter_stratified_sizes(self.parameters_stratified_names, self.dimensions_names, coordinates, self.parameters)
 
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
-        validate_integrate(self.initial_states, dict(zip(self.parameter_names_merged,[self.parameters[k] for k in self.parameter_names_merged])), self.integrate, self.state_shapes)
+        validate_integrate(self.initial_states, dict(zip(self.parameters_names_merged,[self.parameters[k] for k in self.parameters_names_merged])), self.integrate, self.state_shapes)
 
     # Overwrite integrate class
     @staticmethod
@@ -590,7 +607,7 @@ class ODEModel:
             #  throw parameters of TDPFs out of model parameters dictionary
             # -------------------------------------------------------------
 
-            params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameter_names_merged))}
+            params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameters_names_merged))}
 
             # -------------------
             # perform integration

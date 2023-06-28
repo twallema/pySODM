@@ -10,8 +10,8 @@ from pySODM.models.base import SDEModel
 class SIR(SDEModel):
 
     # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['beta', 'gamma']
+    states = ['S', 'I', 'R']
+    parameters = ['beta', 'gamma']
 
     @staticmethod
     def compute_rates(t, S, I, R, beta, gamma):
@@ -158,8 +158,8 @@ def test_model_init_validation():
     assert model.initial_states == initial_states
     assert model.parameters == parameters
     # model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['beta', 'gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['beta', 'gamma']
 
     # valid initialization: initial states as int
     initial_states = {"S": 1_000_000 - 10, "I": 10, "R": 0}
@@ -167,8 +167,8 @@ def test_model_init_validation():
     assert model.initial_states == initial_states
     assert model.parameters == parameters
     # model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['beta', 'gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['beta', 'gamma']
 
     # valid initialization: initial states as np.array
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
@@ -176,8 +176,8 @@ def test_model_init_validation():
     assert model.initial_states == initial_states
     assert model.parameters == parameters
     # model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['beta', 'gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['beta', 'gamma']
 
     # wrong length initial states
     initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
@@ -197,24 +197,24 @@ def test_model_init_validation():
 
     # validate model class itself
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
-    SIR.state_names = ["S", "R"]
+    SIR.states = ["S", "R"]
     with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
         SIR(initial_states, parameters)
 
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
-    SIR.state_names = ["S", "II", "R"]
+    SIR.states = ["S", "II", "R"]
     with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
         SIR(initial_states, parameters)
 
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
-    SIR.state_names = ["S", "I", "R"]
-    SIR.parameter_names = ['beta', 'alpha']
+    SIR.states = ["S", "I", "R"]
+    SIR.parameters = ['beta', 'alpha']
     with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function."):
         SIR(initial_states, parameters)
 
     # ensure to set back to correct ones
-    SIR.state_names = ["S", "I", "R"]
-    SIR.parameter_names = ['beta', 'gamma']
+    SIR.states = ["S", "I", "R"]
+    SIR.parameters = ['beta', 'gamma']
 
 ##############################
 ## Model with one dimension ##
@@ -223,10 +223,10 @@ def test_model_init_validation():
 class SIRstratified(SDEModel):
 
     # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['gamma']
-    parameter_stratified_names = ['beta']
-    dimension_names = ['age_groups']
+    states = ['S', 'I', 'R']
+    parameters = ['gamma']
+    stratified_parameters = ['beta']
+    dimensions = ['age_groups']
 
     @staticmethod
     def compute_rates(t, S, I, R, gamma, beta):
@@ -279,8 +279,8 @@ def test_model_stratified_init_validation():
     #assert model.initial_states == initial_states --> some weird ass shit happens here
     assert model.parameters == parameters
     # assert model state/parameter names didn't change
-    assert model.state_names == ['S', 'I', 'R']
-    assert model.parameter_names == ['gamma']
+    assert model.states_names == ['S', 'I', 'R']
+    assert model.parameters_names == ['gamma']
     #assert model.parameter_stratified_names == [['beta']] --> some weird ass shit happens here
 
     # forget coordinates
@@ -321,19 +321,19 @@ def test_model_stratified_init_validation():
 
     # validate model class itself
     msg = "The provided state names and parameters don't match the parameters and states of the"
-    SIRstratified.parameter_names = ["gamma", "alpha"]
+    SIRstratified.parameters = ["gamma", "alpha"]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
 
-    SIRstratified.parameter_names = ["gamma"]
-    SIRstratified.parameter_stratified_names = [["beta", "alpha"]]
+    SIRstratified.parameters = ["gamma"]
+    SIRstratified.stratified_parameters = [["beta", "alpha"]]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
 
     # ensure to set back to correct ones
-    SIRstratified.state_names = ["S", "I", "R"]
-    SIRstratified.parameter_names = ["gamma"]
-    SIRstratified.parameter_stratified_names = [["beta"]]
+    SIRstratified.states = ["S", "I", "R"]
+    SIRstratified.parameters = ["gamma"]
+    SIRstratified.stratified_parameters = [["beta"]]
 
 ############################################################
 ## A model with different dimensions for different states ##
@@ -344,10 +344,10 @@ class SIR_SI(SDEModel):
     A stochastic, age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """
 
-    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
-    parameter_names = ['beta', 'gamma']
-    parameter_stratified_names = ['alpha']
-    dimension_names = ['age_group']
+    states = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameters = ['beta', 'gamma']
+    stratified_parameters = ['alpha']
+    dimensions = ['age_group']
     state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
@@ -388,7 +388,7 @@ def test_SIR_SI_state_shapes():
     age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
     coordinates={'age_group': age_groups}
     # Initialize model
-    model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    model = SIR_SI(init_states, params, coordinates=coordinates)
     # Simulate
     output = model.sim([0, 50])
     # Assert state size
@@ -409,7 +409,7 @@ def test_SIR_SI_automatic_filling_initial_states():
     age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
     coordinates={'age_group': age_groups}
     # Initialize model
-    model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    model = SIR_SI(init_states, params, coordinates=coordinates)
     assert model.initial_states["I"].tolist() == [0, 0, 0, 0]
     assert model.initial_states["R"].tolist() == [0, 0, 0, 0]
 
@@ -490,7 +490,7 @@ def test_TDPF_nonstratified():
 
     # simulate model
     model = SIRstratified(initial_states, parameters, coordinates=coordinates,
-                          time_dependent_parameters={'beta': compliance_func})
+                            time_dependent_parameters={'beta': compliance_func})
     output = model.sim(time)
 
     # without the rise in time to recovery, the infected pool will be larger over the first 10 timesteps

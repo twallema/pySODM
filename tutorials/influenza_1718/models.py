@@ -7,10 +7,10 @@ class ODE_influenza_model(ODEModel):
     Simple SEIR model for influenza with undetected carriers
     """
     
-    state_names = ['S','E','Ip','Iud','Id','R','Im_inc']
-    parameter_names = ['alpha', 'beta', 'gamma', 'delta','N']
-    parameter_stratified_names = ['f_ud']
-    dimension_names = ['age_group']
+    states = ['S','E','Ip','Iud','Id','R','Im_inc']
+    parametes = ['alpha', 'beta', 'gamma', 'delta','N']
+    stratified_parameters = ['f_ud']
+    dimensions = ['age_group']
 
     @staticmethod
     def integrate(t, S, E, Ip, Iud, Id, R, Im_inc, alpha, beta, gamma, delta, N, f_ud):
@@ -34,10 +34,10 @@ class SDE_influenza_model(SDEModel):
     Simple stochastic SEIR model for influenza with undetected carriers
     """
     
-    state_names = ['S','E','Ip','Iud','Id','R','Im_inc']
-    parameter_names = ['alpha', 'beta', 'gamma', 'delta','N']
-    parameter_stratified_names = ['f_ud']
-    dimension_names = ['age_group']
+    states = ['S','E','Ip','Iud','Id','R','Im_inc']
+    parameters = ['alpha', 'beta', 'gamma', 'delta','N']
+    stratified_parameters = ['f_ud']
+    dimensions = ['age_group']
 
     @staticmethod
     def compute_rates(t, S, E, Ip, Iud, Id, R, Im_inc, alpha, beta, gamma, delta, N, f_ud):

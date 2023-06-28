@@ -62,8 +62,8 @@ class PPBB_model(ODEModel):
     S + A <--> Es + W
     """
     
-    state_names = ['S','A','Es','W']
-    parameter_names = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
+    states = ['S','A','Es','W']
+    parameters = ['c_enzyme', 'Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']
 
     @staticmethod
     def integrate(t, S, A, Es, W, c_enzyme, Vf_Ks, R_AS, R_AW, R_Es, K_eq):
@@ -354,7 +354,7 @@ We'll start by coding the 1D packed PFR model in our `models.py`. Our model has 
 - {math}`C_{F}^{i,j}` : The concentration of species {math}`i` at axial location {math}`j` in the freestreaming liquid.
 - {math}`C_{S}^{i,j}` : The concentration of species {math}`i` at axial location {math}`j` at the catalyst surface.
 
-We'll use the concept of *dimensions* to implement these two-dimensional numpy arrays. We'll do this by defining `dimension_names = ['species', 'x']`. At this point, we only need to provide a good name for our dimension, the coordinates are provided later when we initialize the model model. Additionally, we have a mass transfer coefficient {math}`k_La^{i}` and an axial dispersion coefficient {math}`D_{ax}^i` for every species. We can optionally assign these parameters as *stratified parameters* of the species axis in our model declaration by defining `parameter_stratified_names = [['kL_a', 'D_ax'],]`. This is not necessary, but the length of *stratified parameters* are contrasted to the dimension's coordinates when the model is initialized, providing a fail safe.
+We'll use the concept of *dimensions* to implement these two-dimensional numpy arrays. We'll do this by defining `dimensions = ['species', 'x']`. At this point, we only need to provide a good name for our dimension, the coordinates are provided later when we initialize the model model. Additionally, we have a mass transfer coefficient {math}`k_La^{i}` and an axial dispersion coefficient {math}`D_{ax}^i` for every species. We can optionally assign these parameters as *stratified parameters* of the species axis in our model declaration by defining `stratified_parameters = [['kL_a', 'D_ax'],]`. This is not necessary, but the length of *stratified parameters* are contrasted to the dimension's coordinates when the model is initialized, providing a fail safe.
 
 The derivatives are pre-initialized as zeros and their computation is done by looping over every reacting species and then looping over all spatial nodes except the inlet node ({math}`j=0`). An exception is coded at the outlet, whwere the no-flux boundary approximation is substituted in the system of equations. Stepping through these loops slows the code down and thus we decorate the `integrate()` function with the [numba](https://numba.pydata.org/) `@njit` decorator. Doing so speeds the code up by a factor 16.
 
@@ -368,10 +368,10 @@ class packed_PFR(ODEModel):
     S + A <--> Es + W
     """
 
-    state_names = ['C_F', 'C_S']
-    parameter_names = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
-    dimension_names = ['species', 'x']
-    parameter_stratified_names = [['kL_a', 'D_ax'],]
+    states = ['C_F', 'C_S']
+    parameters = ['delta_x', 'epsilon', 'u', 'rho_B','Vf_Ks', 'R_AS', 'R_AW', 'K_eq', 'R_Es']
+    dimensions = ['species', 'x']
+    stratified_parameters = [['kL_a', 'D_ax'],]
 
     @staticmethod
     @njit
@@ -410,7 +410,7 @@ class packed_PFR(ODEModel):
         return dC_F, dC_S
 ```
 
-Because the model is stratified, a dictionary containing the coordinates of every dimension must be provided when initializing the model. The keys of the dictionary must match the names provided previously in `dimension_names`. We define the names of our four species as coordinates of the species dimension. To define a reactor of 1 m, discretized in 100 parts, we define `np.linspace(start=0, stop=1, num=100)` as the coordinates of the spatial axis. In the model, the states are `np.ndarrays` of size `(4,100)`.
+Because the model is stratified, a dictionary containing the coordinates of every dimension must be provided when initializing the model. The keys of the dictionary must match the names provided previously in `dimensions`. We define the names of our four species as coordinates of the species dimension. To define a reactor of 1 m, discretized in 100 parts, we define `np.linspace(start=0, stop=1, num=100)` as the coordinates of the spatial axis. In the model, the states are `np.ndarrays` of size `(4,100)`.
 
 ```python
 # Define coordinates
