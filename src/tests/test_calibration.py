@@ -46,8 +46,8 @@ for age_group in age_groups:
 class SIR(ODEModel):
 
     # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['beta', 'gamma']
+    states = ['S', 'I', 'R']
+    parameters = ['beta', 'gamma']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
@@ -311,8 +311,8 @@ def test_xarray_datasets():
 class SIR_nd_beta(ODEModel):
 
     # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['beta', 'gamma']
+    states = ['S', 'I', 'R']
+    parameters = ['beta', 'gamma']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
@@ -359,10 +359,10 @@ def test_calibration_nd_parameter():
 class SIRstratified(ODEModel):
 
     # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['gamma']
-    parameter_stratified_names = ['beta']
-    dimension_names = ['age_groups']
+    states = ['S', 'I', 'R']
+    parameters = ['gamma']
+    stratified_parameters = ['beta']
+    dimensions = ['age_groups']
 
     @staticmethod
     def integrate(t, S, I, R, gamma, beta):
@@ -503,10 +503,10 @@ def break_log_likelihood_functions_with_one_dimension():
 class SIRdoublestratified(ODEModel):
 
     # state variables and parameters
-    state_names = ['S', 'I', 'R']
-    parameter_names = ['gamma']
-    parameter_stratified_names = [['beta'],[]]
-    dimension_names = ['age_groups', 'spatial_units']
+    states = ['S', 'I', 'R']
+    parameters = ['gamma']
+    stratified_parameters = [['beta'],[]]
+    dimensions = ['age_groups', 'spatial_units']
 
     @staticmethod
     def integrate(t, S, I, R, gamma, beta):
@@ -540,7 +540,7 @@ def test_correct_approach_with_two_dimensions():
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
     # Extract formatted parameter_names, bounds and labels
-    pars_postprocessing = objective_function.parameter_names_postprocessing
+    pars_postprocessing = objective_function.parameters_names_postprocessing
     labels = objective_function.expanded_labels 
     bounds = objective_function.expanded_bounds
     # PSO
@@ -680,10 +680,10 @@ class ODE_SIR_SI(ODEModel):
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """
 
-    state_names = ['S', 'I', 'R', 'S_v', 'I_v']
-    parameter_names = ['beta', 'gamma']
-    parameter_stratified_names = ['alpha']
-    dimension_names = ['age_groups']
+    states = ['S', 'I', 'R', 'S_v', 'I_v']
+    parameters = ['beta', 'gamma']
+    stratified_parameters = ['alpha']
+    dimensions = ['age_groups']
     state_dimensions = [['age_groups'],['age_groups'],['age_groups'],[],[]]
 
     @staticmethod
@@ -715,7 +715,7 @@ def test_SIR_SI():
     age_groups = ['0-20','20-120']
     coordinates={'age_groups': age_groups}
     # Initialize model
-    model = ODE_SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+    model = ODE_SIR_SI(init_states, params, coordinates=coordinates)
 
     # Variables that don't really change
     states = ["I","I_v"]
