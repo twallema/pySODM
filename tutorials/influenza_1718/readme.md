@@ -1,6 +1,6 @@
 # Contents
 
-The files in this demo illustrate how a simple ODE or SDE model can be setup and calibrated to data.
+The files in this demo illustrate how a simple ODE or stochastic jump process model can be setup and calibrated to data.
 
 # What happens in this tutorial?
 
@@ -9,7 +9,7 @@ First, by running the script `data_conversion.py`, the user converts the *raw* w
 # Files
 
 + `data_conversion.py`: Converts the raw dataset into the interim dataset.
-+ `models.py`: Contains the definition of the SEIR-like ODE and SDE model for Influenza.
++ `models.py`: Contains the definition of the SEIR-like ODE and stochastic jump process model for Influenza.
 + `calibration.py`: Calibrates the SEIR-like ODE model for Influenza to incidence data.
 
 ## Data

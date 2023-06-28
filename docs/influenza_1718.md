@@ -1,9 +1,9 @@
-# An SDE Model for the 2017-2018 Influenza Season in Belgium
+# An stochastic jump process model for the 2017-2018 Influenza Season in Belgium
 
 In this tutorial, we'll set up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional charateristics of seasonal Influenza and we'll use the concept of *dimensions* to include four age groups in our model. Opposed to the simple SIR tutorial, where changes in the number of social contacts were not considered, we'll use a *time-dependent parameter function* to include the effects of school closures during school holidays in our Influenza model. Finally, we'll calibrate two of the model's parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge at our disposal. One of the calibrated model parameters is a 1D vector, pySODM allows users to easily calibrate n-dimensional model parameters.
 
 This tutorial introduces the following concepts,
-- Building a stochastic model and simulate it with Gillespie's Tau-Leaping method
+- Building a stochastic model and simulate it with Gillespie's Tau-Leaping method (which is a form of jump process)
 - Adding age groups to a dynamic transmission model of disease
 - Calibrating n-D parameters to n-D datasets
 
@@ -100,12 +100,12 @@ and the population basic reproduction number is computed as the weighted average
 
 ### The model
 
-Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `dimensions` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `stratified_parameters`. **As dimension name, we use the same name as the age dimension in the dataset: `'age_group'`. The coordinates of the dimension will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
+Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an stochastic jump process model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `dimensions` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `stratified_parameters`. **As dimension name, we use the same name as the age dimension in the dataset: `'age_group'`. The coordinates of the dimension will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
 
 ```python
-from pySODM.models.base import SDEModel
+from pySODM.models.base import JumpProcess
 
-class SDE_influenza_model(SDEModel):
+class JumpProcess_influenza_model(JumpProcess):
     """
     Simple stochastic SEIR model for influenza with undetected carriers
     """
@@ -145,9 +145,9 @@ class SDE_influenza_model(SDEModel):
         return S_new, E_new, Ip_new, Iud_new, Id_new, R_new, Im_inc_new
 ```
 
-There are some formatting requirements to `compute_rates()` and `apply_transitionings()`, which are listed in the [SDEModel documentation](models.md).
+There are some formatting requirements to `compute_rates()` and `apply_transitionings()`, which are listed in the [JumpProcess documentation](models.md).
 
-The actual drawing of the transitionings is abstracted away from the user in the `SDEModel` class. Two stochastic simulation algorithms are currently available. In this tutorial, we'll use the Tau-Leaping method, where the value of `tau` is fixed and the number of transitionings in the interval `t` and `t + \tau` are drawn from a binomial distribution. This method is an approximation of the Stochastic Simulation Algorithm (SSA), where the time until the first transitioning `tau` is computed and only one transitioning can happen at every simulation step. However, as we aim to simulate a large number of individuals (11 million individuals), the time between transitionings becomes very small and the SSA becomes computationally too demanding. Good values for `tau` are typically found by balancing the use of computational resources against numerical stability. 
+The actual drawing of the transitionings is abstracted away from the user in the `JumpProcess` class. Two stochastic simulation algorithms are currently available. In this tutorial, we'll use the Tau-Leaping method, where the value of `tau` is fixed and the number of transitionings in the interval `t` and `t + \tau` are drawn from a binomial distribution. This method is an approximation of the Stochastic Simulation Algorithm (SSA), where the time until the first transitioning `tau` is computed and only one transitioning can happen at every simulation step. However, as we aim to simulate a large number of individuals (11 million individuals), the time between transitionings becomes very small and the SSA becomes computationally too demanding. Good values for `tau` are typically found by balancing the use of computational resources against numerical stability. 
 
 ### Social contact function
 
@@ -247,7 +247,7 @@ Next, we'll set the model up in our calibration script `~/tutorials/influenza_17
 ```python
 
 # Load model
-from models import SDE_influenza_model as influenza_model
+from models import JumpProcess_influenza_model as influenza_model
 
 # Load TDPF
 from models import make_contact_matrix_function

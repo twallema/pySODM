@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from pySODM.models.base import ODEModel, SDEModel
+from pySODM.models.base import ODEModel, JumpProcess
 
 class ODE_influenza_model(ODEModel):
     """
@@ -29,7 +29,7 @@ class ODE_influenza_model(ODEModel):
 
         return dS, dE, dIp, dIud, dId, dR, dIm_inc_new
 
-class SDE_influenza_model(SDEModel):
+class JumpProcess_influenza_model(JumpProcess):
     """
     Simple stochastic SEIR model for influenza with undetected carriers
     """

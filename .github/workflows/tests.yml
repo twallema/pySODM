@@ -25,5 +25,5 @@ jobs:
     - name: Build
       run: |
         pytest src/tests/test_ODEModel.py
-        pytest src/tests/test_SDEModel.py
+        pytest src/tests/test_JumpProcess.py
         pytest src/tests/test_calibration.py

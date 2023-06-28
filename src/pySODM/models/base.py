@@ -17,7 +17,7 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
 
-class SDEModel:
+class JumpProcess:
     """
     Initialise a stochastic differential equations model
 
