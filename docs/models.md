@@ -4,9 +4,9 @@ Standard usage of pySODM involves building an ODE or stochastic jump process mod
 
 ## base.py
 
-###  *class* ODEModel
+###  *class* ODE
 
-The ODEModel class inherits several attributes from the model class defined by the user.
+The ODE class inherits several attributes from the model class defined by the user.
 
 **Inherits from model declaration:**
 

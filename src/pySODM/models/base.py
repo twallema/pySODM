@@ -481,7 +481,7 @@ class JumpProcess:
 ## ODE Models ##
 ################
 
-class ODEModel:
+class ODE:
     """
     Initialise an ordinary differential equations model
 

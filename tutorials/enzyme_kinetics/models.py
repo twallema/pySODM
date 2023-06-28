@@ -1,8 +1,8 @@
 import numpy as np
 from numba import njit
-from pySODM.models.base import ODEModel
+from pySODM.models.base import ODE
 
-class packed_PFR(ODEModel):
+class packed_PFR(ODE):
     """
     A model of a packed-bed plug-flow reactor with axial dispersion in one dimension
     At the surface of the catalyst, the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water takes place
@@ -50,7 +50,7 @@ class packed_PFR(ODEModel):
 
         return dC_F, dC_S
 
-class PPBB_model(ODEModel):
+class PPBB_model(ODE):
     """
     A model for the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water
     S + A <--> Es + W

@@ -62,7 +62,7 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
     - Version 0.2.3 (2023-05-04, PR #46)
         > Fixed minor bugs encountered when using pySODM for a dynamic input-output model of the Belgian economy. Published to pyPI.
 - Version 0.1 (2022-12-23, PR #14)
-    > Application pySODM to three use cases. Documentation website. Unit tests for ODEModel, JumpProcess and calibration. 
+    > Application pySODM to three use cases. Documentation website. Unit tests for ODE, JumpProcess and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
         > Start of semantic versions: Major.Minor.Patch
     - Version 0.1.2 (2023-01-11, PR #23)

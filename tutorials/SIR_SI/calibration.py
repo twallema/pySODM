@@ -29,7 +29,7 @@ warnings.filterwarnings("ignore")
 ## Define model ##
 ##################
 
-# Import the ODEModel class
+# Import the ODE class
 from models import ODE_SIR_SI as SIR_SI
 # Define parameters and initial condition
 params={'alpha': np.array([0.05, 0.1, 0.2, 0.15]), 'gamma': 5, 'beta': 7}

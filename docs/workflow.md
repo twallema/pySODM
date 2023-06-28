@@ -84,23 +84,23 @@ N &=& S + I + R, \\
 \end{eqnarray}
 ```
 
-The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the `ODEModel` class from `~/src/models/base.by`. Then, the user must define his/her own class which must contain (minimally),
+The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the `ODE` class from `~/src/models/base.by`. Then, the user must define his/her own class which must contain (minimally),
 - A list containing the state names `states`,
 - A list containing the parameter names `parameter_names`,
 - An `integrate()` function where the differentials of the model are computed,
 
-and take the `ODEModel` class as its input. Checkout the documentation of the ODEModel class [here](models.md). There are some important formatting requirements to the integrate function, which are verified when the model is initialized,
+and take the `ODE` class as its input. Checkout the documentation of the ODE class [here](models.md). There are some important formatting requirements to the integrate function, which are verified when the model is initialized,
 1. The integrate function must have the timestep `t` as its first input
 2. The model states and parameters must also be given as input, their order does not make a difference
 3. The integrate function must return a differential for every model state, arranged in the same order as the state names defined in `states`
 4. The integrate function must be a static method (include `@staticmethod`)
 
 ```
-# Import the ODEModel class
-from pySODM.models.base import ODEModel
+# Import the ODE class
+from pySODM.models.base import ODE
 
 # Define the model equations
-class ODE_SIR(ODEModel):
+class ODE_SIR(ODE):
     """
     Simple SIR model without dimensions
     """

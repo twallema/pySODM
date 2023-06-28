@@ -1,5 +1,5 @@
 import numpy as np
-from pySODM.models.base import JumpProcess, ODEModel
+from pySODM.models.base import JumpProcess, ODE
 
 class JumpProcess_SIR_SI(JumpProcess):
     """
@@ -39,7 +39,7 @@ class JumpProcess_SIR_SI(JumpProcess):
 
         return S_new, I_new, R_new, S_v_new, I_v_new
 
-class ODE_SIR_SI(ODEModel):
+class ODE_SIR_SI(ODE):
     """
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """

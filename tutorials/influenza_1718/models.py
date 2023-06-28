@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from pySODM.models.base import ODEModel, JumpProcess
+from pySODM.models.base import ODE, JumpProcess
 
-class ODE_influenza_model(ODEModel):
+class ODE_influenza_model(ODE):
     """
     Simple SEIR model for influenza with undetected carriers
     """

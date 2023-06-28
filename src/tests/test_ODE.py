@@ -1,13 +1,13 @@
 import pytest
 import pandas as pd
 import numpy as np
-from pySODM.models.base import ODEModel
+from pySODM.models.base import ODE
 
 #############################
 ## Model without dimension ##
 #############################
 
-class SIR(ODEModel):
+class SIR(ODE):
     """A Simple SIR model without dimension
     """
 
@@ -213,7 +213,7 @@ def test_model_init_validation():
 ## Model with one dimension ##
 ###################################
 
-class SIRstratified(ODEModel):
+class SIRstratified(ODE):
     """An SIR Model with one dimension and the same state size
     """
     states = ['S', 'I', 'R']
@@ -329,7 +329,7 @@ def test_stratified_SIR_init_validation():
 ## A model with different dimensions for different states ##
 ############################################################
 
-class SIR_SI(ODEModel):
+class SIR_SI(ODE):
     """
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito) with a twist
     The S states is higher-dimensional to test the possiblities
