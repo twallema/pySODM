@@ -10,11 +10,11 @@ The ODEModel class inherits several attributes from the model class defined by t
 
 **Inherits:**
 
-* **state_names** (list) - Names of the model's states.
-* **parameter_names** (list) - Names of the model's parameters. Parameters are not subject to input checks and can thus be of any datatype/size.
+* **states** (list) - Names of the model's states.
+* **parameters** (list) - Names of the model's parameters. Parameters are not subject to input checks and can thus be of any datatype/size.
 * **integrate** (function) - Function computing the differentials of every model state. The integrate function must have the timestep `t` as its first input, followed by the `state_names`, `parameter_names` and `parameter_stratified_names` (their order is not important). The integrate function must return a differential for every model state of the correct size and **in the same order as `state_names`**. The integrate function must be a static method (include `@staticmethod`).
-* **dimension_names** (list) - optional - Names of the possible model dimensions. The coordinates of the dimensions are specified during initialization of the model.
-* **parameter_stratified_names** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length, which must be equal to the number of coordinates of the dimension axis it corresponds to, is verified during model initialization. Their use is optional and mainly serves as a way for the user to structure his code.
+* **dimensions** (list) - optional - Names of the possible model dimensions. The coordinates of the dimensions are specified during initialization of the model.
+* **stratified_parameters** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length, which must be equal to the number of coordinates of the dimension axis it corresponds to, is verified during model initialization. Their use is optional and mainly serves as a way for the user to structure his code.
     * If the model has one dimension: list contains strings - `['stratpar_1', 'stratpar_2']`
     * If the model has multiple dimensions: list contains *n* sublists, where *n* is the number of model dimensions (length of `dimension_names`). Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimension_names` - example: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`
 * **state_dimensions** (list) - optional - Specify, for each model state in `state_names`, its dimensions. Allows users to define models with states of different sizes. If `state_dimensions` is not provided, all model states will have the same size, depending on the model's dimensions specified in `dimension_names`. If specified, `state_dimensions` must contain *n* sublists, where *n* is the number of model states (length of `state_names`). If some model states have no dimensions (i.e. it is a float), specify an empty list.
@@ -23,8 +23,8 @@ Upon intialization of the model class, the following arguments must be provided.
 
 **Parameters:**
 
-* **states** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
-* **parameters** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
+* **states_values** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
+* **parameters_values** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
 * **coordinates** (dict) - optional - Keys: names of dimensions (`dimension_names`). Values: desired coordinates for the dimension axis. Values provided here become the dimension's coordinates in the `xarray` Dataset.
 * **time_dependent_parameters** (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function. Time-dependent parameter functions must have `t` (simulation timestep), `states` (model states at timestep `t`) and `params` (model parameters dictionary) as the first three arguments.
 
@@ -57,12 +57,12 @@ The SDEModel class inherits several attributes from the model class defined by t
 
 **Inherits:**
 
-* **state_names** (list) - Names of the model's states.
-* **parameter_names** (list) - Names of the model's parameters. Parameters are not subject to input checks and can thus be of any datatype/size.
+* **states** (list) - Names of the model's states.
+* **parameters** (list) - Names of the model's parameters. Parameters are not subject to input checks and can thus be of any datatype/size.
 * **compute_rates** (function) - Function returning the rates of transitioning between the model states. `compute_rates()` must have the timestep `t` as its first input, followed by the `state_names`, `parameter_names` and the `parameter_stratified_names` (their order is not important). `compute_rates()` must be a static method (include `@staticmethod`). The output of `compute_rates()` must be a dictionary. Its keys must be valid model states, a rate is only needed for the states undergoing a transitioning. The corresponding values must be a list containing the rates of the possible transitionings of the state. In this way, a model state can have multiple transitionings.
 * **apply_transitionings** (function) - Function to update the states with the number of drawn transitionings. `apply_transitionings()` must have the timestep `t` as its first input, followed by the solver timestep `tau`, follwed by the dictionary containing the transitionings `transitionings`, then followed by the model states and parameters similarily to `compute_rates()`.
-* **dimension_names** (list) - optional - Names of the possible model dimensions. The coordinates of the dimensions are specified during initialization of the model.
-* **parameter_stratified_names** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length, which must be equal to the number of coordinates of the dimension axis it corresponds to, is verified during model initialization. Their use is optional and mainly serves as a way for the user to structure his code.
+* **dimensions** (list) - optional - Names of the possible model dimensions. The coordinates of the dimensions are specified during initialization of the model.
+* **stratified_parameters** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length, which must be equal to the number of coordinates of the dimension axis it corresponds to, is verified during model initialization. Their use is optional and mainly serves as a way for the user to structure his code.
     * If the model has one dimension: list contains strings - `['stratpar_1', 'stratpar_2']`
     * If the model has multiple dimensions: list contains *n* sublists, where *n* is the number of model dimensions (length of `dimension_names`). Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimension_names` - example: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`
 * **state_dimensions** (list) - optional - Specify, for each model state in `state_names`, its dimensions. Allows users to define models with states of different sizes. If `state_dimensions` is not provided, all model states will have the same size, depending on the model's dimensions specified in `dimension_names`. If specified, `state_dimensions` must contain *n* sublists, where *n* is the number of model states (length of `state_names`). If some model states have no dimensions (i.e. it is a float), specify an empty list.
@@ -71,8 +71,8 @@ Upon intialization of the model class, the following arguments must be provided.
 
 **Parameters:**
 
-* **states** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
-* **parameters** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
+* **states_values** (dict) - Keys: names of states. Values: values of states. The dictionary does not have to contain a key,value pair for all states listed in `state_names`. States that lack a key,value pair are filled with zeros upon initialization.
+* **parameters_values** (dict) - Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameters listed in `parameter_names` and `parameter_stratified_names`. If time dependent parameter functions with additional parameters (aside from the obligatory `t`, `states`, `params`) are used, these parameters must be included as well. 
 * **coordinates** (dict) - optional - Keys: names of dimensions (`dimension_names`). Values: desired coordinates for the dimension axis. Values provided here become the dimension's coordinates in the `xarray` Dataset.
 * **time_dependent_parameters** (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function. Time-dependent parameter functions must have `t` (simulation timestep), `states` (model states at timestep `t`) and `params` (model parameters dictionary) as the first three arguments.
 
