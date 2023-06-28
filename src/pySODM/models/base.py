@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
 from pySODM.models.utils import int_to_date, list_to_dict
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
-                                        validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_state_dimensions, \
+                                        validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
 
@@ -47,7 +47,7 @@ class JumpProcess:
     parameters = None
     stratified_parameters = None
     dimensions = None
-    state_dimensions = None
+    dimensions_per_state = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
@@ -77,12 +77,12 @@ class JumpProcess:
         # Validate and compute the dimension sizes
         self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
 
-        # Validate state_dimensions
-        if self.state_dimensions:
-            validate_state_dimensions(self.state_dimensions, self.coordinates, self.states_names)
+        # Validate dimensions_per_state
+        if self.dimensions_per_state:
+            validate_dimensions_per_state(self.dimensions_per_state, self.coordinates, self.states_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
-        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.state_dimensions)
+        self.state_shapes, self.dimensions_per_state, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.dimensions_per_state)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
         self.initial_states = validate_initial_states(self.state_shapes, self.states)
@@ -369,7 +369,7 @@ class JumpProcess:
         # Run the time loop
         output = self._solve_discrete(fun, t_eval, np.asarray(y0), self.parameters)
 
-        return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
+        return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
     def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, tau, output_timestep):
         """
@@ -511,7 +511,7 @@ class ODEModel:
     parameters = None
     stratified_parameters = None
     dimensions = None
-    state_dimensions = None
+    dimensions_per_state = None
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
@@ -540,12 +540,12 @@ class ODEModel:
         # Validate and compute the dimension sizes
         self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
 
-        # Validate state_dimensions
-        if self.state_dimensions:
-            validate_state_dimensions(self.state_dimensions, self.coordinates, self.states_names)
+        # Validate dimensions_per_state
+        if self.dimensions_per_state:
+            validate_dimensions_per_state(self.dimensions_per_state, self.coordinates, self.states_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
-        self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.state_dimensions)
+        self.state_shapes, self.dimensions_per_state, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.dimensions_per_state)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
         self.initial_states = validate_initial_states(self.state_shapes, self.states)
@@ -671,7 +671,7 @@ class ODEModel:
             output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
 
         # Map to variable names
-        return _output_to_xarray_dataset(output, self.state_shapes, self.state_dimensions, self.state_coordinates, actual_start_date)
+        return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
     def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
         """
@@ -790,7 +790,7 @@ class ODEModel:
 
         return out
 
-def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coordinates, actual_start_date=None):
+def _output_to_xarray_dataset(output, state_shapes, dimensions_per_state, state_coordinates, actual_start_date=None):
     """
     Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
 
@@ -805,7 +805,7 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
     state_shapes: dict
         Keys: state names. Values: tuples with state shape
 
-    state_dimensions: dict
+    dimensions_per_state: dict
         Keys: state names. Values: list containing dimensions associated with state
 
     state_coordinates: dict
@@ -834,15 +834,15 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
         data_variables.update({k: np.moveaxis(v, [-1,], [0,])})
 
     # Append the time dimension
-    new_state_dimensions={}
-    for k,v in state_dimensions.items():
+    new_dimensions_per_state={}
+    for k,v in dimensions_per_state.items():
         v_acc = v.copy()
         if actual_start_date is not None:
             v_acc = ['date',] + v_acc
-            new_state_dimensions.update({k: v_acc})
+            new_dimensions_per_state.update({k: v_acc})
         else:
             v_acc = ['time',] + v_acc
-            new_state_dimensions.update({k: v_acc})
+            new_dimensions_per_state.update({k: v_acc})
 
     # Append the time coordinates
     new_state_coordinates={}
@@ -858,9 +858,9 @@ def _output_to_xarray_dataset(output, state_shapes, state_dimensions, state_coor
     # Build the xarray dataset
     data = {}
     for var, arr in data_variables.items():
-        if len(new_state_dimensions[var]) == 1:
+        if len(new_dimensions_per_state[var]) == 1:
             arr = np.ravel(arr)
-        xarr = xarray.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        xarr = xarray.DataArray(arr, dims=new_dimensions_per_state[var], coords=new_state_coordinates[var])
         data[var] = xarr
 
     return xarray.Dataset(data)

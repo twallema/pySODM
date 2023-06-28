@@ -135,7 +135,7 @@ Data variables:
 ```
 
 ## Set up an ODE model with multiple dimensions
-pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `state_dimensions` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and infected vectors are able to transmit a disease to the humans. In turn, infected humans can pass the disease back to the vector (see flowchart). Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
+pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `dimensions_per_state` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and infected vectors are able to transmit a disease to the humans. In turn, infected humans can pass the disease back to the vector (see flowchart). Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
 
 <img src="./_static/figs/quickstart/quickstart_SIR_SI_flowchart.png" width="700" />
 
@@ -149,7 +149,7 @@ class ODE_SIR_SI(ODEModel):
     parameters = ['beta', 'gamma']
     stratified_parameters = ['alpha']
     dimensions = ['age_group']
-    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
+    dimensions_per_state = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):

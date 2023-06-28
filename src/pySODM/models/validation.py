@@ -132,26 +132,26 @@ def validate_dimensions(dimension_names, coordinates):
 
     return dimension_size
 
-def validate_state_dimensions(state_dimensions, coordinates, state_names):
-    """Valide if length of `state_dimensions` is equal to the length of `state_names`. Check if the dimensions provided for every model state are existing dimensions."""
+def validate_dimensions_per_state(dimensions_per_state, coordinates, state_names):
+    """Valide if length of `dimensions_per_state` is equal to the length of `state_names`. Check if the dimensions provided for every model state are existing dimensions."""
 
     # Length equal to state_names?   
-    if len(state_dimensions) != len(state_names):
+    if len(dimensions_per_state) != len(state_names):
         raise ValueError(
-            f"The length of `state_dimensions` ({len(state_dimensions)}) must match the length of `state_names` ({len(state_names)})"
+            f"The length of `dimensions_per_state` ({len(dimensions_per_state)}) must match the length of `state_names` ({len(state_names)})"
         )
     # Contains only valid coordinates?
     for i,state_name in enumerate(state_names):
-        if not all(x in coordinates.keys() for x in state_dimensions[i]):
+        if not all(x in coordinates.keys() for x in dimensions_per_state[i]):
             raise ValueError(
-                f"The dimension names of model state '{state_name}', specified in position {i} of `state_dimensions` contains invalid coordinate names. Redundant names: {set(state_dimensions[i]).difference(set(coordinates.keys()))}"
+                f"The dimension names of model state '{state_name}', specified in position {i} of `dimensions_per_state` contains invalid coordinate names. Redundant names: {set(dimensions_per_state[i]).difference(set(coordinates.keys()))}"
         )
 
-def build_state_sizes_dimensions(coordinates, state_names, state_dimensions):
+def build_state_sizes_dimensions(coordinates, state_names, dimensions_per_state):
     """A function returning three dictionaries: A dictionary containing, for every model state: 1) Its shape, 2) its dimensions, 3) its coordinates.
     """
 
-    if not state_dimensions:
+    if not dimensions_per_state:
         if not coordinates:
             return dict(zip(state_names, len(state_names)*[(1,),] )), dict(zip(state_names, len(state_names)*[[],] )), dict(zip(state_names, len(state_names)*[[],] ))
         else:
@@ -171,13 +171,13 @@ def build_state_sizes_dimensions(coordinates, state_names, state_dimensions):
     else:
         if not coordinates:
             raise ValueError(
-                "`state_dimensions` found in the model defenition, however you have not provided `coordinates` when initializing the model. "
+                "`dimensions_per_state` found in the model defenition, however you have not provided `coordinates` when initializing the model. "
             )
         else:
             shapes=[]
             coords=[]
             for i,state_name in enumerate(state_names):
-                dimensions = state_dimensions[i]
+                dimensions = dimensions_per_state[i]
                 if not dimensions:
                     shapes.append( (1,) )
                     coords.append( [] )
@@ -194,7 +194,7 @@ def build_state_sizes_dimensions(coordinates, state_names, state_dimensions):
                             )
                     shapes.append(tuple(shape))
                     coords.append(coord)
-            return dict(zip(state_names, shapes)), dict(zip(state_names, state_dimensions)),  dict(zip(state_names, coords))
+            return dict(zip(state_names, shapes)), dict(zip(state_names, dimensions_per_state)),  dict(zip(state_names, coords))
 
 def validate_parameter_function(func):
     # Validate the function passed to time_dependent_parameters

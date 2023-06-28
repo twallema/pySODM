@@ -358,7 +358,7 @@ class log_posterior_probability():
         ## Compare data and model dimensions ##
         ############################################
 
-        out = create_fake_xarray_output(model.state_dimensions, model.state_coordinates, model.initial_states, self.time_index)
+        out = create_fake_xarray_output(model.dimensions_per_state, model.state_coordinates, model.initial_states, self.time_index)
         self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
 
         ########################################
@@ -862,14 +862,14 @@ def validate_aggregation_function(aggregation_function, n_datasets):
         )
     return aggregation_function
 
-def create_fake_xarray_output(state_dimensions, state_coordinates, initial_states, time_index):
+def create_fake_xarray_output(dimensions_per_state, state_coordinates, initial_states, time_index):
     """ 
     A function to "replicate" the xarray.Dataset output of a simulation
     Made to omit the need to call the sim function in the initialization of the log_posterior_probability
 
     Parameters
     ----------
-    state_dimensions: dict
+    dimensions_per_state: dict
         Keys: model states. Values: List containing dimensions associated with state.
 
     state_coordinates: dict
@@ -889,11 +889,11 @@ def create_fake_xarray_output(state_dimensions, state_coordinates, initial_state
     """
 
     # Append the time dimension
-    new_state_dimensions={}
-    for k,v in state_dimensions.items():
+    new_dimensions_per_state={}
+    for k,v in dimensions_per_state.items():
         v_acc = v.copy()
         v_acc = [time_index,] + v_acc
-        new_state_dimensions.update({k: v_acc})
+        new_dimensions_per_state.update({k: v_acc})
 
     # Append the time coordinates
     new_state_coordinates={}
@@ -909,9 +909,9 @@ def create_fake_xarray_output(state_dimensions, state_coordinates, initial_state
     data = {}
     for var, arr in initial_states.items():
         if arr.ndim >= 1:
-            if state_dimensions[var]:
+            if dimensions_per_state[var]:
                 arr = arr[np.newaxis, ...]
-        xarr = xr.DataArray(arr, dims=new_state_dimensions[var], coords=new_state_coordinates[var])
+        xarr = xr.DataArray(arr, dims=new_dimensions_per_state[var], coords=new_state_coordinates[var])
         data[var] = xarr
 
     return xr.Dataset(data)
