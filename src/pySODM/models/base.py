@@ -230,7 +230,7 @@ class SDEModel:
             Dictionary containing the rates associated with each transitionings of the model states.
 
         tau: int/float
-            Timestep
+            Leap size/simulation timestep
         
         Returns
         -------
@@ -239,14 +239,13 @@ class SDEModel:
             Dictionary containing the number of transitionings for every model state
         
         tau: int/float
-            Timestep
-        
+            Leap size/simulation timestep
         """
 
-        transitionings={k: v[:] for k, v in rates.items()}
+        transitionings = rates.copy()
         for k,rate in rates.items():
             p = 1 - np.exp(-tau*np.stack(rate, axis=-1, dtype=np.float64))
-            s=np.zeros(p.shape[:-1])
+            s=np.zeros(p.shape[:-1], dtype=np.float64)
             for i in range(p.shape[-1]-1):
                 s += p[...,i]
             s = 1 - s
