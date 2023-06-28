@@ -25,11 +25,11 @@ class SDEModel:
     ----------
     To initialise the model, provide following inputs:
 
-    states_values : dictionary
+    states : dictionary
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
-    parameters_values : dictionary
+    parameters : dictionary
         values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time dependency on the parameters. The
@@ -49,15 +49,16 @@ class SDEModel:
     dimensions = None
     state_dimensions = None
 
-    def __init__(self, states_values, parameters_values, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
         self.parameters_names = self.parameters
         self.parameters_stratified_names = self.stratified_parameters
         self.dimensions_names = self.dimensions
-        self.states = states_values
-        parameters = parameters_values
+        
+        self.states = states
+        parameters = parameters
 
         # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
@@ -488,11 +489,11 @@ class ODEModel:
     ----------
     To initialise the model, provide following inputs:
 
-    states_values : dictionary
+    states : dictionary
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
-    parameters_values : dictionary
+    parameters : dictionary
         values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time dependency on the parameters. The
@@ -512,15 +513,15 @@ class ODEModel:
     dimensions = None
     state_dimensions = None
 
-    def __init__(self, states_values, parameters_values, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
         self.parameters_names = self.parameters
         self.parameters_stratified_names = self.stratified_parameters
         self.dimensions_names = self.dimensions
-        self.states = states_values
-        parameters = parameters_values
+        self.states = states
+        parameters = parameters
 
         # Do not undergo manipulation during model initialization
         self.coordinates = coordinates

@@ -100,7 +100,7 @@ and the population basic reproduction number is computed as the weighted average
 
 ### The model
 
-Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `dimension_names` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `parameter_stratified_names`. **As dimension name, we use the same name as the age dimension in the dataset: `'age_group'`. The coordinates of the dimension will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
+Opposed to ODE models, where the user had to define an `integrate()` function to compute the values of the derivatives at time {math}`t`, the user will have to define [two functions](models.md) to setup an SDE model: 1) A function to compute the rates at time {math}`t` named `compute_rates()`, and 2) A function to compute the values of the model states at time {math}`t+\tau` named `apply_transitionings()`. As we did in the [packed-bed continuous flow reactor](enzyme_kinetics.md) tutorial, we'll stratifiy the model into age groups by specifying a variable `dimensions` in our model declaration and we'll implement the parameter {math}`f_a` as a stratified parameter by specifying a variable `stratified_parameters`. **As dimension name, we use the same name as the age dimension in the dataset: `'age_group'`. The coordinates of the dimension will be defined later when the model is initialized, we'll have to use the same coordinates as the dataset.** As in the [enzyme kinetics tutorial](enzyme_kinetics.md), we'll group our model in a file called `models.py` to reduce the complexity of our calibration script. We introduce one additional state in the model, the incidence of new detected cases, `I_m_inc`, which we'll use this state to match our data to.
 
 ```python
 from pySODM.models.base import SDEModel
@@ -110,10 +110,10 @@ class SDE_influenza_model(SDEModel):
     Simple stochastic SEIR model for influenza with undetected carriers
     """
     
-    state_names = ['S','E','Ip','Iud','Id','R','Im_inc']
-    parameter_names = ['alpha', 'beta', 'gamma', 'delta','N']
-    parameter_stratified_names = ['f_ud']
-    dimension_names = ['age_group']
+    states = ['S','E','Ip','Iud','Id','R','Im_inc']
+    parameters = ['alpha', 'beta', 'gamma', 'delta','N']
+    stratified_parameters = ['f_ud']
+    dimensions = ['age_group']
 
     @staticmethod
     def compute_rates(t, S, E, Ip, Iud, Id, R, Im_inc, alpha, beta, gamma, delta, N, f_ud):

@@ -71,10 +71,7 @@ class ODE_SIR(ODEModel):
         return dS, dI, dR
 
 # Initialize model
-model = ODE_SIR(states_values={'S': 1000, 'I': 1}, parameters_values={'beta':0.35, 'gamma':5})
-
-print(model.states)
-print(model.parameters)
+model = ODE_SIR(states={'S': 1000, 'I': 1}, parameters={'beta':0.35, 'gamma':5})
 
 # Simulate from t=0 until t=121
 out = model.sim([0, 121])
