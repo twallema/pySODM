@@ -155,9 +155,9 @@
 <section id="coding-it-up">
 <h3>Coding it up<a class="headerlink" href="#coding-it-up" title="Permalink to this heading">¶</a></h3>
 <p>We’ll start by making a file <code class="docutils literal notranslate"><span class="pre">models.py</span></code> in our working directory, where we’ll group our models for this tutorial. Coding up the equations above is very similar to the <a class="reference internal" href="workflow.html"><span class="std std-doc">simple SIR model</span></a>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODEModel</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
 
-<span class="k">class</span> <span class="nc">PPBB_model</span><span class="p">(</span><span class="n">ODEModel</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">PPBB_model</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A model for the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water</span>
 <span class="sd">    S + A &lt;--&gt; Es + W</span>
@@ -415,9 +415,9 @@ C_S^{i,0} &amp;=&amp; C_F^{i,0},\\\end{split}\]</div>
 </ul>
 <p>We’ll use the concept of <em>dimensions</em> to implement these two-dimensional numpy arrays. We’ll do this by defining <code class="docutils literal notranslate"><span class="pre">dimensions</span> <span class="pre">=</span> <span class="pre">['species',</span> <span class="pre">'x']</span></code>. At this point, we only need to provide a good name for our dimension, the coordinates are provided later when we initialize the model model. Additionally, we have a mass transfer coefficient <span class="math notranslate nohighlight">\(k_La^{i}\)</span> and an axial dispersion coefficient <span class="math notranslate nohighlight">\(D_{ax}^i\)</span> for every species. We can optionally assign these parameters as <em>stratified parameters</em> of the species axis in our model declaration by defining <code class="docutils literal notranslate"><span class="pre">stratified_parameters</span> <span class="pre">=</span> <span class="pre">[['kL_a',</span> <span class="pre">'D_ax'],]</span></code>. This is not necessary, but the length of <em>stratified parameters</em> are contrasted to the dimension’s coordinates when the model is initialized, providing a fail safe.</p>
 <p>The derivatives are pre-initialized as zeros and their computation is done by looping over every reacting species and then looping over all spatial nodes except the inlet node (<span class="math notranslate nohighlight">\(j=0\)</span>). An exception is coded at the outlet, whwere the no-flux boundary approximation is substituted in the system of equations. Stepping through these loops slows the code down and thus we decorate the <code class="docutils literal notranslate"><span class="pre">integrate()</span></code> function with the <a class="reference external" href="https://numba.pydata.org/">numba</a> <code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> decorator. Doing so speeds the code up by a factor 16.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODEModel</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
 
-<span class="k">class</span> <span class="nc">packed_PFR</span><span class="p">(</span><span class="n">ODEModel</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">packed_PFR</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A model of a packed-bed plug-flow reactor with axial dispersion in one dimension</span>
 <span class="sd">    At the surface of the catalyst, the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water takes place</span>

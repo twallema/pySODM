@@ -54,9 +54,9 @@ to data from three initial rate experiments, and five full time-course experimen
 We'll start by making a file `models.py` in our working directory, where we'll group our models for this tutorial. Coding up the equations above is very similar to the [simple SIR model](workflow.md).
 
 ```python
-from pySODM.models.base import ODEModel
+from pySODM.models.base import ODE
 
-class PPBB_model(ODEModel):
+class PPBB_model(ODE):
     """
     A model for the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water
     S + A <--> Es + W
@@ -359,9 +359,9 @@ We'll use the concept of *dimensions* to implement these two-dimensional numpy a
 The derivatives are pre-initialized as zeros and their computation is done by looping over every reacting species and then looping over all spatial nodes except the inlet node ({math}`j=0`). An exception is coded at the outlet, whwere the no-flux boundary approximation is substituted in the system of equations. Stepping through these loops slows the code down and thus we decorate the `integrate()` function with the [numba](https://numba.pydata.org/) `@njit` decorator. Doing so speeds the code up by a factor 16.
 
 ```python
-from pySODM.models.base import ODEModel
+from pySODM.models.base import ODE
 
-class packed_PFR(ODEModel):
+class packed_PFR(ODE):
     """
     A model of a packed-bed plug-flow reactor with axial dispersion in one dimension
     At the surface of the catalyst, the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water takes place
