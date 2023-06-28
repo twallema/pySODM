@@ -25,11 +25,11 @@ class SDEModel:
     ----------
     To initialise the model, provide following inputs:
 
-    states : dictionary
+    states_values : dictionary
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
-    parameters : dictionary
+    parameters_values : dictionary
         values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time dependency on the parameters. The
@@ -43,13 +43,21 @@ class SDEModel:
         Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
-    state_names = None
-    parameter_names = None
-    dimension_names = None
-    parameter_stratified_names = None
+    states = None
+    parameters = None
+    stratified_parameters = None
+    dimensions = None
     state_dimensions = None
 
-    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, states_values, parameters_values, coordinates=None, time_dependent_parameters=None):
+
+        # Add a suffix _names to all user-defined name declarations 
+        self.state_names = self.states
+        self.parameter_names = self.parameters
+        self.parameter_stratified_names = self.stratified_parameters
+        self.dimension_names = self.dimensions
+        self.states = states_values
+        parameters = parameters_values
 
         # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
@@ -70,13 +78,13 @@ class SDEModel:
 
         # Validate state_dimensions
         if self.state_dimensions:
-            validate_state_dimensions(self.state_dimensions, self.coordinates, self.state_names)
+            validate_state_dimensions(self.state_dimensions, self.coordinates, self.states)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
         self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states = validate_initial_states(self.state_shapes, states)
+        self.initial_states = validate_initial_states(self.state_shapes, self.states)
 
         # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
@@ -480,11 +488,11 @@ class ODEModel:
     ----------
     To initialise the model, provide following inputs:
 
-    states : dictionary
+    states_values : dictionary
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
-    parameters : dictionary
+    parameters_values : dictionary
         values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
         Optionally specify a function for time dependency on the parameters. The
@@ -498,13 +506,21 @@ class ODEModel:
         Example: {'spatial_units': ['city_1','city_2','city_3']}
     """
 
-    state_names = None
-    parameter_names = None
-    dimension_names = None
-    parameter_stratified_names = None
+    states = None
+    parameters = None
+    stratified_parameters = None
+    dimensions = None
     state_dimensions = None
 
-    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, states_values, parameters_values, coordinates=None, time_dependent_parameters=None):
+
+        # Add a suffix _names to all user-defined name declarations 
+        self.state_names = self.states
+        self.parameter_names = self.parameters
+        self.parameter_stratified_names = self.stratified_parameters
+        self.dimension_names = self.dimensions
+        self.states = states_values
+        parameters = parameters_values
 
         # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
