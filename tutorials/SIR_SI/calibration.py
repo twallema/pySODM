@@ -50,7 +50,7 @@ out = model.sim(120)
 # Overdisperse data from humans
 alpha=0.03
 y = np.random.negative_binomial(1/alpha, (1/alpha)/(out['I'] + (1/alpha)))
-out['I'] = (['age_group','time'], y)
+out['I'] = (['time', 'age_group'], y)
 data_humans = out['I'].to_series()
 
 # Overdisperse data from mosquitos
