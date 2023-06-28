@@ -38,7 +38,7 @@ init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 2}
 age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)])
 coordinates={'age_group': age_groups}
 # Initialize model
-model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+model = SIR_SI(init_states, params, coordinates=coordinates)
 
 ################################
 ## Generate synthetic dataset ##
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     labels=['0-5','5-15','15-65','65-120']
     for i,age_group in enumerate(age_groups):
         ax[1].plot(out['time'], out['I'].sel(age_group=age_group)/init_states['S'][i]*100000, color=colors[i], label=labels[i])
-        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[age_group, slice(None)]/init_states['S'][i]*100000, color='black', label='data', alpha=0.6)
+        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group]/init_states['S'][i]*100000, color='black', label='data', alpha=0.6)
     ax[1].set_ylabel('Infectious humans per 100K')
     ax[1].legend()
     ax[1].set_xlabel('time (days)')
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     colors=['black', 'red', 'green', 'blue']
     labels=['0-5','5-15','15-65','65-120']
     for i,age_group in enumerate(age_groups):
-        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[age_group,slice(None)]/init_states['S'][i]*100000, color=colors[i], label=labels[i])
+        ax[1].plot(data_humans.index.get_level_values('time').unique(), data_humans.loc[slice(None), age_group]/init_states['S'][i]*100000, color=colors[i], label=labels[i])
         for j in range(N):
             ax[1].plot(out['time'], out['I'].sel(age_group=age_group).isel(draws=j)/init_states['S'][i]*100000, color=colors[i], linewidth=2, alpha=0.03)
     ax[1].set_ylabel('Infectious humans per 100K')
