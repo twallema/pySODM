@@ -10,7 +10,7 @@ class JumpProcess_SIR_SI(JumpProcess):
     parameters = ['beta', 'gamma']
     stratified_parameters = ['alpha']
     dimensions = ['age_group']
-    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
+    dimensions_per_state = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def compute_rates(t, S, I, R, S_v, I_v, alpha, beta, gamma):
@@ -48,7 +48,7 @@ class ODE_SIR_SI(ODEModel):
     parameters = ['beta', 'gamma']
     stratified_parameters = ['alpha']
     dimensions = ['age_group']
-    state_dimensions = [['age_group'],['age_group'],['age_group'],[],[]]
+    dimensions_per_state = [['age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):

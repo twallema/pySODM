@@ -54,7 +54,7 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
 ### Versions
 
 - Version 0.2.0 (2023-01-19, PR #25)
-    > Introduction of `state_dimensions` in model declaration, allowing the user to define models where states can have different sizes.
+    > Introduction of `dimensions_per_state` in model declaration, allowing the user to define models where states can have different sizes.
     - Version 0.2.1 (2023-01-27, PR #30)
         > Fixed bugs encountered when incorporating pySODM into the SARS-CoV-2 Dynamic Transmission Models. More thorough checks on `bounds` in the log posterior probability function. Finished manuscript.
     - Version 0.2.2 (2023-01-27, PR #31)

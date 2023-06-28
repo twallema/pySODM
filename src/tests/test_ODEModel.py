@@ -339,7 +339,7 @@ class SIR_SI(ODEModel):
     parameters = ['beta', 'gamma']
     stratified_parameters = ['alpha']
     dimensions = ['age_group']
-    state_dimensions = [['age_group','age_group'],['age_group'],['age_group'],[],[]]
+    dimensions_per_state = [['age_group','age_group'],['age_group'],['age_group'],[],[]]
 
     @staticmethod
     def integrate(t, S, I, R, S_v, I_v, alpha, beta, gamma):
