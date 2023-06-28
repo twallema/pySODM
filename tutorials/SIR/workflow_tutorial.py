@@ -55,8 +55,8 @@ class ODE_SIR(ODEModel):
     Simple SIR model without dimensions
     """
     
-    state_names = ['S','I','R']
-    parameter_names = ['beta','gamma']
+    states = ['S','I','R']
+    parameters = ['beta','gamma']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
@@ -70,13 +70,11 @@ class ODE_SIR(ODEModel):
 
         return dS, dI, dR
 
-# Define parameters and initial condition
-params={'beta':0.35, 'gamma':5}
-init_states = {'S': 1000, 'I': 1}
-
 # Initialize model
-model = ODE_SIR(states=init_states, parameters=params)
+model = ODE_SIR(states_values={'S': 1000, 'I': 1}, parameters_values={'beta':0.35, 'gamma':5})
 
+print(model.states)
+print(model.parameters)
 
 # Simulate from t=0 until t=121
 out = model.sim([0, 121])
