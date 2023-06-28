@@ -2,7 +2,7 @@
 
 ## Set up a dimensionless ODE model
 
-Load pySODM's [`ODEModel` class](models.md) and define your model. As an example, we'll set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,
+Load pySODM's [`ODE` class](models.md) and define your model. As an example, we'll set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,
 
 <img src="./_static/figs/quickstart/quickstart_SIR_flowchart.png" width="500" />
 
@@ -17,11 +17,11 @@ N &=& S + I + R, \\
 ```
 
 ```python
-# Import the ODEModel class
-from pySODM.models.base import ODEModel
+# Import the ODE class
+from pySODM.models.base import ODE
 
 # Define the model equations
-class SIR(ODEModel):
+class SIR(ODE):
 
     states = ['S','I','R']
     parameters = ['beta','gamma']
@@ -88,11 +88,11 @@ The simulation above results in the following trajectories for the number of sus
 To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimensions` keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.
 
 ```python
-# Import the ODEModel class
-from pySODM.models.base import ODEModel
+# Import the ODE class
+from pySODM.models.base import ODE
 
 # Define the model equations
-class stratified_SIR(ODEModel):
+class stratified_SIR(ODE):
     
     states = ['S','I','R']
     parameters = ['beta', 'gamma]
@@ -140,7 +140,7 @@ pySODM allows model states to have different coordinates and thus different size
 <img src="./_static/figs/quickstart/quickstart_SIR_SI_flowchart.png" width="700" />
 
 ```python
-class ODE_SIR_SI(ODEModel):
+class ODE_SIR_SI(ODE):
     """
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """
@@ -203,7 +203,7 @@ Data variables:
 To stochastically simulate the simple SIR model, the `JumpProcess` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed mathematical description of implenting models using Gillespie's tau-leaping method (example of a jump proces), we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings. Further, the transitioning for state `I` is a float and this should be a `numpy.float`. I'm still figuring out if I want to introduce the overhead to check and correct this behavior (likely not).
 
 ```python
-# Import the ODEModel class
+# Import the ODE class
 from pySODM.models.base import JumpProcess
 
 # Define the model equations
@@ -238,7 +238,7 @@ class SIR(JumpProcess):
 
 ### Draw function
 
-The `sim()` method of `ODEModel` and `JumpProcess` can be used to perform {math}`N` repeated simulations (keyword `N`). Additionally a *draw function* can be used to update model parameters during every run. A draw function to randomly draw `gamma` from a uniform simulation before every run is implemented as follows,
+The `sim()` method of `ODE` and `JumpProcess` can be used to perform {math}`N` repeated simulations (keyword `N`). Additionally a *draw function* can be used to update model parameters during every run. A draw function to randomly draw `gamma` from a uniform simulation before every run is implemented as follows,
 
 ```python
 def draw_function(param_dict, samples_dict):

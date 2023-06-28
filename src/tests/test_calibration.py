@@ -3,13 +3,13 @@ import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from pySODM.models.base import ODEModel
+from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_poisson, ll_negative_binomial
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 
-# Only tested for ODEModel but the model output is identical so this shouldn't matter
+# Only tested for ODE but the model output is identical so this shouldn't matter
 
 ##############
 ## Settings ##
@@ -43,7 +43,7 @@ for age_group in age_groups:
 ## Model without dimension ##
 #############################
 
-class SIR(ODEModel):
+class SIR(ODE):
 
     # state variables and parameters
     states = ['S', 'I', 'R']
@@ -308,7 +308,7 @@ def test_xarray_datasets():
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
 
-class SIR_nd_beta(ODEModel):
+class SIR_nd_beta(ODE):
 
     # state variables and parameters
     states = ['S', 'I', 'R']
@@ -356,7 +356,7 @@ def test_calibration_nd_parameter():
 ## Model with one dimension ##
 ###################################
 
-class SIRstratified(ODEModel):
+class SIRstratified(ODE):
 
     # state variables and parameters
     states = ['S', 'I', 'R']
@@ -500,7 +500,7 @@ def break_log_likelihood_functions_with_one_dimension():
 ## Model with two dimensions ##
 ####################################
 
-class SIRdoublestratified(ODEModel):
+class SIRdoublestratified(ODE):
 
     # state variables and parameters
     states = ['S', 'I', 'R']
@@ -675,7 +675,7 @@ def break_log_likelihood_functions_with_two_dimensions():
 ## Model where states have different dimensions ##
 ##################################################
 
-class ODE_SIR_SI(ODEModel):
+class ODE_SIR_SI(ODE):
     """
     An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)
     """

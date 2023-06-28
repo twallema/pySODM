@@ -24,6 +24,6 @@ jobs:
         pip install -e .[develop]
     - name: Build
       run: |
-        pytest src/tests/test_ODEModel.py
+        pytest src/tests/test_ODE.py
         pytest src/tests/test_JumpProcess.py
         pytest src/tests/test_calibration.py

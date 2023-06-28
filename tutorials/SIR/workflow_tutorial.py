@@ -46,11 +46,11 @@ d = d[d.index.dayofweek < 5]
 ## Define model ##
 ##################
 
-# Import the ODEModel class
-from pySODM.models.base import ODEModel
+# Import the ODE class
+from pySODM.models.base import ODE
 
 # Define the model equations
-class ODE_SIR(ODEModel):
+class ODE_SIR(ODE):
     """
     Simple SIR model without dimensions
     """
