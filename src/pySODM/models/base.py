@@ -547,7 +547,7 @@ class ODEModel:
         self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states = validate_initial_states(self.state_shapes, states)
+        self.initial_states = validate_initial_states(self.state_shapes, self.states)
 
         # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
