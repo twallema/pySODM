@@ -78,7 +78,7 @@ class SDEModel:
 
         # Validate state_dimensions
         if self.state_dimensions:
-            validate_state_dimensions(self.state_dimensions, self.coordinates, self.states)
+            validate_state_dimensions(self.state_dimensions, self.coordinates, self.state_names)
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
         self.state_shapes, self.state_dimensions, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.state_names, self.state_dimensions)
