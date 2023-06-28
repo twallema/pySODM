@@ -9,8 +9,8 @@ dependencies:
   - scipy
   - numba   
   - xarray
+  - matplotlib
   - emcee
   - h5py  
   - tqdm
   - corner
-  - matplotlib
