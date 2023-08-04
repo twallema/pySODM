@@ -306,7 +306,14 @@ class log_posterior_probability():
 
         # TODO: for now, only one start- and enddate can be provided
         # It would be good to be able to use a list with the same length as the number of models
-        self.start_sim = self._check_simulation_time(start_sim, 'start_sim', data, self.time_index)
+        if isinstance(start_sim, list):
+            assert len(start_sim) == len(self.models), f'number of simulation startdates ({len(start_sim)}) must match the number of datasets ({len(data)})'
+            self.start_sim = []
+            for st in start_sim:
+                self.start_sim.append(self._check_simulation_time(st, 'start_sim', data, self.time_index))
+        else:
+            self.start_sim = len(data)*[self._check_simulation_time(start_sim, 'start_sim', data, self.time_index),]
+        
         self.end_sim = self._check_simulation_time(end_sim, 'end_sim', data, self.time_index)
 
         ########################################
@@ -500,7 +507,7 @@ class log_posterior_probability():
             # assign model parameters
             model.parameters.update(thetas_dict)
             # perform simulation only once
-            out = model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+            out = model.sim([self.start_sim[idx] ,self.end_sim], **simulation_kwargs)
             # loop over dataframes
             for idx,df in enumerate(self.data):
                 # get aggregation function
@@ -520,7 +527,7 @@ class log_posterior_probability():
                 # assign parameters
                 model.parameters.update(thetas_dict)
                 # perform simulation
-                out = model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+                out = model.sim([self.start_sim[idx] ,self.end_sim], **simulation_kwargs)
                 # get aggregation function
                 if self.aggregation_function:
                     aggfunc = self.aggregation_function[idx]
