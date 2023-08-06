@@ -393,9 +393,9 @@ class log_posterior_probability():
         else:
             self.coordinates_data_also_in_model = []
             self.aggregate_over = []
-            for df, model in zip(data, self.models):
+            for df, aggfunc, model in zip(data, self.aggregation_function, self.models):
                 out = self._create_fake_xarray_output(model.dimensions_per_state, model.state_coordinates, model.initial_states, self.time_index)
-                a,b = self._compare_data_model_coordinates(out, [df,], states, aggregation_function, self.additional_axes_data)
+                a,b = self._compare_data_model_coordinates(out, [df,], states, [aggfunc,], self.additional_axes_data)
                 self.coordinates_data_also_in_model.append(a[0])
                 self.aggregate_over.append(b[0])
  
