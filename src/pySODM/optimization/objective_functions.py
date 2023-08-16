@@ -41,7 +41,7 @@ def ll_gaussian(ymodel, ydata, sigma):
         raise ValueError(
             'the standard deviation used in `ll_gaussian` contains values smaller than or equal to zero'
         )
-    return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
+    return - 1/2 * np.sum((ydata - ymodel) ** 2 / (sigma*ymodel)**2 + np.log(2*np.pi*(sigma*ymodel)**2))
 
 def ll_poisson(ymodel, ydata):
     """Loglikelihood of Poisson distribution
