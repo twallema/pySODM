@@ -395,11 +395,10 @@ class log_posterior_probability():
             self.aggregate_over = []
             for i, (df, aggfunc, model) in enumerate(zip(data, self.aggregation_function, self.models)):
                 out = self._create_fake_xarray_output(model.dimensions_per_state, model.state_coordinates, model.initial_states, self.time_index)
-                a,b = self._compare_data_model_coordinates(out, [df,], states, [aggfunc,], [self.additional_axes_data[i],])
+                a,b = self._compare_data_model_coordinates(out, [df,], [states[i],], [aggfunc,], [self.additional_axes_data[i],])
                 self.coordinates_data_also_in_model.append(a[0])
                 self.aggregate_over.append(b[0])
-        print(self.aggregate_over)
-        
+
         ########################################
         ## Input checks on log_likelihood_fnc ##
         ########################################
@@ -442,6 +441,8 @@ class log_posterior_probability():
         else:
             out_copy = out[states]
         # Reduce dimensions on the model prediction
+        print(out.dims)
+        print(aggregate_over)
         for dimension in out.dims:
             if dimension in aggregate_over:
                 out_copy = out_copy.sum(dim=dimension)
@@ -535,6 +536,7 @@ class log_posterior_probability():
                 else:
                     aggfunc = None
                 # compute log likelihood
+                print('evaluating')
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
                                                   self.coordinates_data_also_in_model[idx], aggfunc)
