@@ -190,6 +190,30 @@ def log_prior_normal(x,norm_params):
     mu,stdev=norm_params
     return np.sum(norm.logpdf(x, loc = mu, scale = stdev))
 
+def log_prior_normal_L2(x, L2_params):
+    """ L2 regularised version of a normal prior
+
+    Corresponds to a normal prior, normalised to zero at the expected value of the parameter, but multiplied by some weight
+    Resolves the issue that the prior is overwhelmed by likelihood in magnitude when a lot of data is used
+    Often referred to as "ridge regression"
+
+    Parameters
+    ----------
+    x: float
+        Parameter value whos probability we want to test.
+    L2_params: tuple
+        Tuple containg the reguralisation weight (l), the expected value of the parameter (mu) the expected standard deviation (stdev)
+        Higher regularisation weights force the posterior distribution to be more in line with the prior distribution
+        This implies the reguralisation weight express how confident you are about your prior beliefs
+
+    Returns
+    -------
+    Log probability of sample x in light of a normal prior distribution.
+
+    """
+    mu,stdev,l=L2_params
+    return np.sum(l*(norm.logpdf(x, loc=mu, scale=stdev) - norm.logpdf(mu, loc=mu, scale=stdev)))
+
 def log_prior_triangle(x,triangle_params):
     """ Triangle log prior distribution
 
