@@ -840,6 +840,9 @@ class log_posterior_probability():
                         for _ in range(parameter_sizes[name]):
                             expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
                             expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+            else:
+                expanded_log_prior_prob_fnc = log_prior_prob_fnc
+                expanded_log_prior_prob_fnc_args = log_prior_prob_fnc_args
 
         return expanded_log_prior_prob_fnc, expanded_log_prior_prob_fnc_args
 
