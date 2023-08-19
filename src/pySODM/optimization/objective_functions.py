@@ -465,8 +465,6 @@ class log_posterior_probability():
         else:
             out_copy = out[states]
         # Reduce dimensions on the model prediction
-        print(out.dims)
-        print(aggregate_over)
         for dimension in out.dims:
             if dimension in aggregate_over:
                 out_copy = out_copy.sum(dim=dimension)
@@ -560,7 +558,6 @@ class log_posterior_probability():
                 else:
                     aggfunc = None
                 # compute log likelihood
-                print('evaluating')
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
                                                   self.coordinates_data_also_in_model[idx], aggfunc)
