@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A model for the enzymatic esterification of D-glucose and Lauric acid in a continuous-flow reactor &mdash; pySODM  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="An stochastic jump process model for the 2017-2018 Influenza Season in Belgium" href="influenza_1718.html" />
+    <link rel="prev" title="Modeling and Calibration Workflow" href="workflow.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pySODM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflow.html">Modeling and calibration workflow</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Case studies</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Enzyme kinetics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calibration-of-intrinsic-kinetics-ode-model">Calibration of Intrinsic kinetics (ODE model)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#experiments-and-model-equations">Experiments and model equations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#coding-it-up">Coding it up</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#simulating-a-packed-bed-reactor-pde-model">Simulating a Packed-bed reactor (PDE model)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model-equations">Model equations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Coding it up</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="influenza_1718.html">Influenza 2017-2018</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Additional references</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="speedup.html">Speeding up models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="start_to_collaborate.html">Start to collaborate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guidelines.html">Contribution guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="git_workflow.html">Git workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pySODM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">A model for the enzymatic esterification of D-glucose and Lauric acid in a continuous-flow reactor</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/enzyme_kinetics.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="a-model-for-the-enzymatic-esterification-of-d-glucose-and-lauric-acid-in-a-continuous-flow-reactor">
+<h1>A model for the enzymatic esterification of D-glucose and Lauric acid in a continuous-flow reactor<a class="headerlink" href="#a-model-for-the-enzymatic-esterification-of-d-glucose-and-lauric-acid-in-a-continuous-flow-reactor" title="Link to this heading">¶</a></h1>
+<p>This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (master dissertation). Ghent University, Ghent, BE.</p>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h2>
+<p>Sugar fatty acid esters (SFAEs) are nonionic surfactants which play an important role in the food, detergent, agricultural, cosmetic and pharmaceutical industry. Because of several inherent merits and green character, the development of an enzymatic process is preferred over traditional chemical synthesis. The combination of high conversion rates per volume unit, ease of scale-up by numbering-up and inherent stability of lipases motivate the choice to synthesise SFAEs in continuous flow reactors packed with immobilised lipase. As a model reaction, the esterification of D-glucose and Lauric acid, performed in t-Butanol at 50 degrees Celcius and yielding Glucose Laurate Ester and water as products, is used.</p>
+<p><img alt="reaction" src="_images/reaction.png" /></p>
+<p>The goal of this tutorial is to demonstrate how pySODM can be used to build a virtual prototype of a continuous flow reactor reactor packed with enzyme beads. First, an enzyme kinetic model is calibrated to time course data obtained in batch experiments. The calibrated kinetics can then be used to make predictions on how the yields in our continuous-flow reactor vary with the flow rate. I will attempt to provide a brief introduction to each of the models used in this tutorial. However, I shall cut several corners for the sake of shortening this demo (my master’s thesis is 80 pages).</p>
+<p>In this tutorial pySODM is used to:</p>
+<ol class="arabic simple">
+<li><p>Build an ODE model to describe the reaction course in a batch experiment.</p></li>
+<li><p>Calibrate the ODE model to timecourse data from eight experiments, performed with different initial concentrations of D-Glucose, Lauric acid and water. Each experiment thus has a different intial condition, which must be provided to the log posterior probability function.</p></li>
+<li><p>Demonstrate how a 1D packed-bed reactor (PDE system) can be implemented in pySODM by using the method-of-lines.</p></li>
+<li><p>Propagate the posterior distributions of the kinetic parameters through the packed-bed reactor model and asses what how the yields change in function of the flow rate.</p></li>
+</ol>
+</section>
+<section id="calibration-of-intrinsic-kinetics-ode-model">
+<h2>Calibration of Intrinsic kinetics (ODE model)<a class="headerlink" href="#calibration-of-intrinsic-kinetics-ode-model" title="Link to this heading">¶</a></h2>
+<p>This part of the tutorial can be replicated by running</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>calibrate_intrinsic_kinetics.py
+</pre></div>
+</div>
+<p>located in <code class="docutils literal notranslate"><span class="pre">~/tutorials/enzyme_kinetics/</span></code>.</p>
+<section id="experiments-and-model-equations">
+<h3>Experiments and model equations<a class="headerlink" href="#experiments-and-model-equations" title="Link to this heading">¶</a></h3>
+<p>Multiple batch experiments were performed. For each experiment a supersaturated solution of D-glucose and Lauric acid in t-Butanol had to be prepared. First, as much water as possible had to be removed from the t-Butanol by means of 0.3 nm molecular sieves. Then, because of its low solubility in t-Butanol, a supersaturated solution of D-glucose was prepared by reflux boiling overnight. The maximum attainable concentration of D-Glucose in t-Butanol at 50 Degrees Celcius is between 40 mM and 45 mM. Next, Lauric acid was added and the mixture was transferred to a 50 mL flask suspended in an oil bath kept at 50 degrees Celcius. To start the reaction, 10 g/L of beads containing the enzyme were added to the mixture. The mixture was stirred with a magnetic stirrer throughout the reaction to avoid mass transfer limitations during the reaction course. Samples were withdrawn at regular intervals and analyzed for Glucose Laurate Ester using an HPLC-MS.</p>
+<p>The experiments performed could be subdivided into two types:</p>
+<ol class="arabic simple">
+<li><p>Initial rate experiments: The reaction course is only followed during the first minutes when very little product are formed.</p></li>
+<li><p>Full time-course experiments. In this experiment, samples are withdrawn every few hours until the reaction mixture equillibrates.</p></li>
+</ol>
+<p>Typically, the calibration of a ping-pong bi-bi enzyme kinetic model is performed in two steps as the model equation is quite ugly (see <a class="reference external" href="https://doi.org/10.1002/bit.10260">Flores et al., 2002</a>). First, the initial rate experiments are used to calibrate the parameters that govern the <em>forward</em> reaction. During an initial rate experiment, one can assume no products have been formed and thus all the terms containing products in the rate equation drop out. Second, the parameters of the <em>backward</em> reaction are calibrated to the full time-course experiments. For the sake of brevity, I shall glance over this two-step calibration. We will simply calibrate the following (simplified) ping-pong bi-bi kinetic model,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{eqnarray}
+\frac{d[S]}{dt} &amp;=&amp; - v, \\
+\frac{d[A]}{dt} &amp;=&amp; - v, \\
+\frac{d[Es]}{dt} &amp;=&amp; + v, \\
+\frac{d[W]}{dt} &amp;=&amp; + v, \\
+\end{eqnarray}\end{split}\]</div>
+<p>where,</p>
+<div class="math notranslate nohighlight">
+\[\frac{v}{[E]_t} = \frac{{V_f}/{K_S} ([S] [A] - (1/K_{eq}) [Es][W])}{[A] + R_{AS} [S] + R_{AW} [W] + R_{Es} [Es]}, \Bigg[\frac{mmol}{min . \text{g catalyst}} \Bigg],\]</div>
+<p>to data from three initial rate experiments, and five full time-course experiments. In the equation, <span class="math notranslate nohighlight">\([S]\)</span> denotes the concentration of D-glucose, <span class="math notranslate nohighlight">\([A]\)</span> denotes the concentration of Lauric Acid, <span class="math notranslate nohighlight">\([Es]\)</span> denotes the concentration of Glucose Laurate Ester, and <span class="math notranslate nohighlight">\([W]\)</span> denotes the concentration of water, all in millimolar (mM). The parameters <span class="math notranslate nohighlight">\(R_{AS}\)</span>, <span class="math notranslate nohighlight">\(R_{AW}\)</span> and <span class="math notranslate nohighlight">\(R_{Es}\)</span> can be interpreted as inhibitory constants due to their appearance in the denominator of the rate equation. <span class="math notranslate nohighlight">\(V_f/K_S\)</span> is typically treated as one parameter and has an impact on the initial reaction rate. <span class="math notranslate nohighlight">\(K_{eq}\)</span> is the equillibrium coefficient, which determines if the reaction favor the reactants or the products.</p>
+</section>
+<section id="coding-it-up">
+<h3>Coding it up<a class="headerlink" href="#coding-it-up" title="Link to this heading">¶</a></h3>
+<p>We’ll start by making a file <code class="docutils literal notranslate"><span class="pre">models.py</span></code> in our working directory, where we’ll group our models for this tutorial. Coding up the equations above is very similar to the <a class="reference internal" href="workflow.html"><span class="std std-doc">simple SIR model</span></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
+
+<span class="k">class</span> <span class="nc">PPBB_model</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A model for the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water</span>
+<span class="sd">    S + A &lt;--&gt; Es + W</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;A&#39;</span><span class="p">,</span><span class="s1">&#39;Es&#39;</span><span class="p">,</span><span class="s1">&#39;W&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;c_enzyme&#39;</span><span class="p">,</span> <span class="s1">&#39;Vf_Ks&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">,</span> <span class="s1">&#39;R_Es&#39;</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">Es</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">c_enzyme</span><span class="p">,</span> <span class="n">Vf_Ks</span><span class="p">,</span> <span class="n">R_AS</span><span class="p">,</span> <span class="n">R_AW</span><span class="p">,</span> <span class="n">R_Es</span><span class="p">,</span> <span class="n">K_eq</span><span class="p">):</span>
+
+        <span class="c1"># Calculate rate</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">c_enzyme</span><span class="o">*</span><span class="p">(</span><span class="n">Vf_Ks</span><span class="o">*</span><span class="p">(</span><span class="n">S</span><span class="o">*</span><span class="n">A</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">K_eq</span><span class="p">)</span><span class="o">*</span><span class="n">Es</span><span class="o">*</span><span class="n">W</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">R_AS</span><span class="o">*</span><span class="n">S</span> <span class="o">+</span> <span class="n">R_AW</span><span class="o">*</span><span class="n">W</span> <span class="o">+</span> <span class="n">R_Es</span><span class="o">*</span><span class="n">Es</span><span class="p">))</span>
+       
+        <span class="k">return</span> <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span>
+</pre></div>
+</div>
+<p>We’ll then procede by making a file <code class="docutils literal notranslate"><span class="pre">calibrate_intrinsic_kinetics.py</span></code> in the working directory, where we’ll load and initialize this model as follows,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the model from models.py</span>
+<span class="kn">from</span> <span class="nn">models</span> <span class="kn">import</span> <span class="n">PPBB_model</span>
+
+<span class="c1"># Define model parameters</span>
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;c_enzyme&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;Vf_Ks&#39;</span><span class="p">:</span> <span class="mf">1.03</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">:</span> <span class="mf">1.90</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">:</span> <span class="mf">2.58</span><span class="p">,</span> <span class="c1"># Forward</span>
+        <span class="s1">&#39;R_Es&#39;</span><span class="p">:</span> <span class="mf">0.57</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">:</span> <span class="mf">0.89</span><span class="p">}</span>                                     <span class="c1"># Backward</span>
+
+<span class="c1"># Define initial condition</span>
+<span class="n">init_states</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">46</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="mi">61</span><span class="p">,</span> <span class="s1">&#39;W&#39;</span><span class="p">:</span> <span class="mi">37</span><span class="p">,</span> <span class="s1">&#39;Es&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+<span class="c1"># Initialize model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">PPBB_model</span><span class="p">(</span><span class="n">init_states</span><span class="p">,</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The next step is loading the experimental data from the <code class="docutils literal notranslate"><span class="pre">~/tutorials/enzyme_kinetics/data/intrinsic_kinetics</span></code> folder and setting up our log posterior probability function for optimization. There are eight files, each containing data from one experiment. The data have the following structure,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/intrinsic_kinetics/exp_1.csv&#39;</span><span class="p">),</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">          </span>S<span class="w">      </span>A<span class="w">      </span>W<span class="w">     </span>Es<span class="w">  </span>sigma
+<span class="nb">time</span><span class="w">                                   </span>
+<span class="m">0</span><span class="w">     </span><span class="m">45</span>.96<span class="w">  </span><span class="m">60</span>.99<span class="w">  </span><span class="m">36</span>.92<span class="w">   </span><span class="m">0</span>.00<span class="w">   </span><span class="m">0</span>.46
+<span class="m">20</span><span class="w">      </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">   </span><span class="m">1</span>.99<span class="w">   </span><span class="m">0</span>.44
+<span class="m">40</span><span class="w">      </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">   </span><span class="m">6</span>.10<span class="w">   </span><span class="m">0</span>.40
+<span class="m">60</span><span class="w">      </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">   </span><span class="m">7</span>.59<span class="w">   </span><span class="m">0</span>.38
+<span class="m">90</span><span class="w">      </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">  </span><span class="m">10</span>.68<span class="w">   </span><span class="m">0</span>.35
+<span class="m">120</span><span class="w">     </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">  </span><span class="m">14</span>.22<span class="w">   </span><span class="m">0</span>.32
+<span class="m">180</span><span class="w">     </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">  </span><span class="m">17</span>.56<span class="w">   </span><span class="m">0</span>.28
+<span class="m">240</span><span class="w">     </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">  </span><span class="m">17</span>.67<span class="w">   </span><span class="m">0</span>.28
+<span class="m">360</span><span class="w">     </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">  </span><span class="m">19</span>.51<span class="w">   </span><span class="m">0</span>.26
+<span class="m">1440</span><span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">    </span>NaN<span class="w">  </span><span class="m">21</span>.02<span class="w">   </span><span class="m">0</span>.25
+</pre></div>
+</div>
+<p>To perform an optimization of the parameters, a <a class="reference internal" href="optimization.html"><span class="std std-doc">log posterior probability function</span></a> must be setup. As explained in the <a class="reference internal" href="workflow.html"><span class="std std-doc">simple SIR tutorial</span></a>, the log posterior of the parameters is the sum of the log prior and log likelihood. In this example, we will not define the priors explictly and thus pySODM will revert to uniform priors. To choose an appropriate likelihood function, we start by analyzing the mean-variance relationship of the data from the eight experiments. Below is a visualisation of the measurement standard deviation (obtained by performing three measurements) versus the measured ester concentration. From the figure we can deduce that the measurement’s standard deviation is 4% relative to the measurement’s mean. The R-squared of 0.49 is quite low, but this is likely due to the presence of outliers at glucose laurate ester concentrations above 20 mM. I have personally gathered these data in the lab, and measuring higher concentrations of glucose laurate ester was challenging due to surface-active properties of the substance.</p>
+<p><img alt="reaction" src="_images/mean-variance.png" /></p>
+<p>In this example. we’ll use a Gaussian likelihood function, mathematically,</p>
+<div class="math notranslate nohighlight">
+\[\log p(y \mid \mathbf{\theta}) = -0.5 \sum_{i=0}^N \sum_{j=0}^T \Bigg[ \frac{(y_{i,j} - \hat{y}_{i,j}(\mathbf{\theta}))^2}{\sigma_{i,j}^2} + \log (2 \pi \sigma_{i,j}^2) \Bigg],\]</div>
+<p>where the standard deviation of the measured concentration equals,</p>
+<div class="math notranslate nohighlight">
+\[\sigma_{i,j} = 0.04\ y_{i,j},\]</div>
+<p>here <span class="math notranslate nohighlight">\(y_{i,j}\)</span> is the glucose laurate ester concentration of the <span class="math notranslate nohighlight">\(j\)</span>th timestep of the <span class="math notranslate nohighlight">\(i\)</span>th experiment, and <span class="math notranslate nohighlight">\(\hat{y}_{i,j}\)</span> is the estimated glucose laurate ester concentration. <span class="math notranslate nohighlight">\(\sigma_{i,j}\)</span> is the standard deviation of the observations. Although it can be tempting to weigh the datapoints with the observed variability, this is generally not recommended when the number of replicates is low, as the deviation will vary considerably just by chance, potentially skewing the estimated model parameters.</p>
+<p>We’ll load the datasets using a <code class="docutils literal notranslate"><span class="pre">for</span></code> statement and immediately extract two inputs to our log posterior probability function: 1) The glucose laurate ester observations as <code class="docutils literal notranslate"><span class="pre">data</span></code>, 2) The glucose laurate ester measurement error, computed as 4% relative to the glucose laurate ester observations and, 3) the initial concentrations used in the experiment in <code class="docutils literal notranslate"><span class="pre">initial_states</span></code>. We will also construct the list of model states to match our datasets to (<code class="docutils literal notranslate"><span class="pre">states</span></code>), which is a list containing eight instances of the Ester state names <code class="docutils literal notranslate"><span class="pre">'Es'</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">ll_gaussian</span>
+
+<span class="c1"># Extract and sort the names</span>
+<span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/intrinsic_kinetics/&#39;</span><span class="p">))</span>
+<span class="n">names</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+<span class="c1"># Load data and prepare log likelihood function</span>
+<span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">states</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">log_likelihood_fnc</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">log_likelihood_fnc_args</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">initial_states</span><span class="o">=</span><span class="p">[]</span>
+<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/intrinsic_kinetics/&#39;</span><span class="o">+</span><span class="n">name</span><span class="p">),</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span> <span class="c1"># Cut out zero&#39;s!</span>
+    <span class="n">log_likelihood_fnc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ll_gaussian</span><span class="p">)</span>
+    <span class="n">log_likelihood_fnc_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.04</span><span class="o">*</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span> <span class="c1"># 4% Relative noise</span>
+    <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Es&#39;</span><span class="p">)</span>
+    <span class="n">initial_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;S&#39;</span><span class="p">],</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="s1">&#39;Es&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Es&#39;</span><span class="p">],</span> <span class="s1">&#39;W&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;W&#39;</span><span class="p">]}</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>All that is left is to define a list containing the five model parameters we’d like to calibrate: <span class="math notranslate nohighlight">\(V_f/K_S\)</span>, <span class="math notranslate nohighlight">\(R_{AS}\)</span>, <span class="math notranslate nohighlight">\(R_{AW}\)</span>,<span class="math notranslate nohighlight">\(R_{Es}\)</span>, <span class="math notranslate nohighlight">\(K_{eq}\)</span>, and a list containing an upper and lower bound for every model parameter.  We’ll use the optional argument <code class="docutils literal notranslate"><span class="pre">labels</span></code> so our MCMC diagnostic figures can use fancy <span class="math notranslate nohighlight">\(\LaTeX\)</span> labels. Note how we didn’t define <code class="docutils literal notranslate"><span class="pre">weights</span></code> to our dataset, so all datasets are weighted equally. We also didn’t define prior probability functions for our parameters, this means pySODM will automatically default to uniform priors over the provided bounds.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">log_posterior_probability</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Calibated parameters and bounds</span>
+    <span class="n">pars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">,</span> <span class="s1">&#39;R_Es&#39;</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$V_f/K_S$&#39;</span><span class="p">,</span><span class="s1">&#39;$R_</span><span class="si">{AS}</span><span class="s1">$&#39;</span><span class="p">,</span><span class="s1">&#39;$R_</span><span class="si">{AW}</span><span class="s1">$&#39;</span><span class="p">,</span><span class="s1">&#39;$R_</span><span class="si">{Es}</span><span class="s1">$&#39;</span><span class="p">,</span> <span class="s1">&#39;$K_</span><span class="si">{eq}</span><span class="s1">$&#39;</span><span class="p">]</span>
+    <span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1e-5</span><span class="p">,</span><span class="mf">1e-2</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mf">10e4</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mf">10e4</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mf">10e4</span><span class="p">),</span> <span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span><span class="mi">2</span><span class="p">)]</span>
+    
+    <span class="c1"># Setup objective function (no priors --&gt; uniform priors based on bounds)</span>
+    <span class="n">objective_function</span> <span class="o">=</span> <span class="n">log_posterior_probability</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">log_likelihood_fnc</span><span class="p">,</span> <span class="n">log_likelihood_fnc_args</span><span class="p">,</span>  <span class="n">initial_states</span><span class="o">=</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>            
+</pre></div>
+</div>
+<p>Now, we can use an optimization algorithm to find the set of parameters that maximizes the posterior probability. Given how we don’t have a good initial guess as the values of our parameters, we’ll use a Particle Swarm Optimization (PSO) to scan the parameter space for a global minimum. We’ll run the PSO for 30 iterations, then, we’ll use a local Nelder-Mead minimization to refine the estimate further.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization</span> <span class="kn">import</span> <span class="n">pso</span><span class="p">,</span> <span class="n">nelder_mead</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># PSO</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">pso</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">swarmsize</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>    
+
+    <span class="c1"># Nelder-mead</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="mf">0.05</span><span class="p">,]</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">nelder_mead</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">30</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>We find the following estimates for our parameters,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.95</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">1.40</span><span class="p">,</span> <span class="mf">5.00</span><span class="p">,</span> <span class="mf">0.70</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Next, we’ll use this estimate to initiate our Markov-Chain Monte-Carlo sampler which requires the help of two functions: <a class="reference internal" href="optimization.html"><span class="std std-doc">perturbate_theta</span></a> and <a class="reference internal" href="optimization.html"><span class="std std-doc">run_EnsembleSampler</span></a>. We’ll initiate 5 chains per calibrated parameter, so 25 chains in total, by. To do so, we’ll first use <code class="docutils literal notranslate"><span class="pre">perturbate_theta</span></code> to perturbate our previously obtained estimate <code class="docutils literal notranslate"><span class="pre">theta</span></code> by 10%. The result is a np.ndarray <code class="docutils literal notranslate"><span class="pre">pos</span></code> of shape <code class="docutils literal notranslate"><span class="pre">(5,</span> <span class="pre">25)</span></code>, which we’ll then pass on to <code class="docutils literal notranslate"><span class="pre">run_EnsembleSampler</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">perturbate_theta</span>
+
+    <span class="c1"># Perturbate previously obtained estimate</span>
+    <span class="n">ndim</span><span class="p">,</span> <span class="n">nwalkers</span><span class="p">,</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">perturbate_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">pert</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">pars</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="mf">0.10</span><span class="p">,],</span> <span class="n">multiplier</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, we’ll setup and run the sampler using <code class="docutils literal notranslate"><span class="pre">run_EnsembleSampler</span></code> until the chains converge.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">run_EnsembleSampler</span>
+
+    <span class="c1"># Additional settings</span>
+    <span class="n">n_mcmc</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="n">print_n</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">samples_path</span><span class="o">=</span><span class="s1">&#39;sampler_output/&#39;</span>
+    <span class="n">fig_path</span><span class="o">=</span><span class="s1">&#39;sampler_output/&#39;</span>
+    <span class="n">identifier</span> <span class="o">=</span> <span class="s1">&#39;username&#39;</span>
+
+    <span class="c1"># Some usefull settings we&#39;d like to retain (no pd.Timestamps or np.arrays allowed!)</span>
+    <span class="n">settings</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;start_calibration&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;end_calibration&#39;</span><span class="p">:</span> <span class="mi">3000</span><span class="p">,</span> <span class="s1">&#39;n_chains&#39;</span><span class="p">:</span> <span class="n">nwalkers</span><span class="p">,</span>
+              <span class="s1">&#39;starting_estimate&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span>
+
+    <span class="c1"># Sample n_mcmc iterations</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">run_EnsembleSampler</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">n_mcmc</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">objective_function</span><span class="p">,</span>
+                                    <span class="n">fig_path</span><span class="o">=</span><span class="n">fig_path</span><span class="p">,</span> <span class="n">samples_path</span><span class="o">=</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">print_n</span><span class="o">=</span><span class="n">print_n</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                    <span class="n">settings_dict</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The output of the above procedure yields an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> object containing our 1000 iterations for 25 chains. We can extract the chains quite by using the <code class="docutils literal notranslate"><span class="pre">get_chain()</span></code> method (see the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/sampler/">emcee documentation</a>). However, we’re interested in building a dictionary of samples because this interfaces nicely to pySODM’s draw functions. To that end, we can use the builtin method <code class="docutils literal notranslate"><span class="pre">emcee_sampler_to_dictionary()</span></code>. We’ll use the <code class="docutils literal notranslate"><span class="pre">corner</span></code> package to visualize the distributions of the five calibrated parameters.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="kn">import</span> <span class="nn">corner</span>
+    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">emcee_sampler_to_dictionary</span>
+
+    <span class="c1"># Generate a sample dictionary and save it as .json for long-term storage</span>
+    <span class="n">samples_dict</span> <span class="o">=</span> <span class="n">emcee_sampler_to_dictionary</span><span class="p">(</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">discard</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+    <span class="c1"># Look at the resulting distributions in a cornerplot</span>
+    <span class="n">CORNER_KWARGS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">smooth</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span><span class="n">title_fmt</span><span class="o">=</span><span class="s2">&quot;.2E&quot;</span><span class="p">)</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">corner</span><span class="o">.</span><span class="n">corner</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">discard</span><span class="o">=</span><span class="n">discard</span><span class="p">,</span> <span class="n">thin</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="o">**</span><span class="n">CORNER_KWARGS</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span><span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">get_axes</span><span class="p">()):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The distribution of the parameters are shown below. The equillibrium of this reaction is shifted towards the reactants, as indicated by an equillibrium constant of <span class="math notranslate nohighlight">\(K_{eq} = 0.70 &lt; 1\)</span>. It is thus likely that products such as water will have to be removed during or in between reactions to attain higher yields.</p>
+<p><img alt="corner" src="_images/enzyme_kinetics_corner.png" /></p>
+<p>Finally, we can use the <em>draw functions</em> to propagate the parameter samples in our model and asses the goodness-of-fit. Simulating a model is performed using the <a class="reference internal" href="models.html"><span class="std std-doc">sim</span></a> function. All that is left after simulating the model is to add the 4% observational noise to the model predictions using <code class="docutils literal notranslate"><span class="pre">add_gaussian_noise(out,</span> <span class="pre">0.04,</span> <span class="pre">relative=True)</span></code> to add 4% (relative) noise to the model output.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span> <span class="n">samples_dict</span><span class="p">):</span>
+        <span class="c1"># Always draw correlated samples at the SAME INDEX! </span>
+        <span class="n">idx</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">])))</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_AS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_AS&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_AW&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_AW&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_Es&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_Es&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;K_eq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;K_eq&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">param_dict</span>
+
+    <span class="c1"># Loop over datasets</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="c1"># Update initial condition</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">initial_states</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="c1"># Simulate model</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">1600</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_fcn</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples_dict</span><span class="p">)</span>
+        <span class="c1"># Add 4% observational noise</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">add_gaussian_noise</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mf">0.04</span><span class="p">,</span> <span class="n">relative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Visualize</span>
+        <span class="n">fig</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mf">2.5</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">y_err</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">capsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Data&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;draws&#39;</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Model mean&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;draws&#39;</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mf">0.025</span><span class="p">),</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;Es&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;draws&#39;</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mf">0.975</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Model 95% CI&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Glucose Laurate (mM)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time (min)&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The following figure shows the goodness-of-fit of the model to the time course of a reaction started with 40 mM D-glucose, 121 mM Lauric acid and 24 mM water present in the medium. After 24 hours, the reaction has equillibrated and <span class="math notranslate nohighlight">\(24 \pm 2\ mM\)</span> (95% CI) of Glucose Laurate ester is formed, meaning the reaction has a yield of <span class="math notranslate nohighlight">\(60\% \pm 5\%\ mM\)</span> (95% CI). For this enzymatic reaction, higher acid-to-sugar ratios and lower initial water concentrations lead to the highest yields. To conclude this section, I visualize the yield on a 2D grid spanning the concentrations of D-Glucose and Lauric on the y-axis (given as the acid-to-sugar ratio with 40 mM of D-Glucose used), and the water concentration on the x-axis.</p>
+<p><img alt="fit_2" src="_images/enzyme_kinetics_fit.png" /></p>
+<p><img alt="yield" src="_images/enzyme_kinetics_vary_AS.png" /></p>
+</section>
+</section>
+<section id="simulating-a-packed-bed-reactor-pde-model">
+<h2>Simulating a Packed-bed reactor (PDE model)<a class="headerlink" href="#simulating-a-packed-bed-reactor-pde-model" title="Link to this heading">¶</a></h2>
+<section id="model-equations">
+<h3>Model equations<a class="headerlink" href="#model-equations" title="Link to this heading">¶</a></h3>
+<p>This part of the tutorial can be replicated using <code class="docutils literal notranslate"><span class="pre">~/tutorials/enzyme_kinetics/simulate_1D_PFR.py</span></code></p>
+<p>Our continuous flow reactor consists of a tube with an inner diameter of 2400 micrometer, packed with Novozyme 435 enzyme beads with a diameter of 475 micrometer. To give you a sense of what our continuous flow reactor looks like, a <a class="reference external" href="https://github.com/bpartopour/PBG">simulation</a> was performed where 50 enzyme beads are dropped in a tube,</p>
+<p><img alt="dem_sim" src="_images/dem_sim.png" /></p>
+<p>In a reactor packed with immoblized enzymes, mass transfer processes are often as important as the chemical reaction itself. We introduce our reactants at the reactor inlet, where they move between the catalytic beads in the free moving solvent. The enzyme is located inside the Novozyme 435 beads and the reactants undergo two processes before they reach the enzyme: 1) They diffuse from the free moving solvent stream, through the layer of slower moving solvent adhering the catalyst bead (<em>boundary layer</em>) to the surface of the catalyst, this is called <em>external diffusion</em>. 2) They diffuse inside the pores of the catalyst to an enzyme molecule, this is called <em>internal diffusion</em>. Finally, the reaction happens and the reverse mass transfer processes releas the product in the free moving solvent stream.</p>
+<p><img alt="heterogeneous_catalyst" src="_images/massTransferCatalystPellet2.png" /></p>
+<p>Luckily, the internal pores of the Novozyme 435 beads are quite large so internal diffusion can be ignored. This drastically simplifies our model, we only need to account for the mass transfer resistance between the free moving solvent and the surface of the catalyst. We will build a 1D model (along the axial dimension of the reactor) and assume our species are transported by diffusive and convenctive forces in the free moving solvent. The species can be transported through the liquid boundary layer to the catalyst particle surface where they can undergo the enzymatic reaction at a rate <span class="math notranslate nohighlight">\(v^i\)</span>. This system is governed by the following equations (for a derivation, see the <a class="reference external" href="https://arxiv.org/abs/2301.10664">manuscript</a>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{cases}
+\dfrac{\partial C^{i,j}_{\mathrm{F}}}{\partial t} &amp;= \underbrace{D^i_{\mathrm{ax}} \dfrac{\delta^2 C^{i,j}_{\mathrm{F}}}{\delta x^2}}_\text{axial dispersion} - \underbrace{u \dfrac{\delta C^{i,j}_{\mathrm{F}}}{\delta x}}_\text{convection} + \underbrace{\dfrac{k_{\mathrm{L}} a^i}{\epsilon} (C^{i,j}_{\mathrm{S}}-C^{i,j}_{\mathrm{F}})}_\text{diffusion to catalyst},\nonumber \\
+\dfrac{\partial C^{i,j}_{\mathrm{S}}}{\partial t} &amp;= \underbrace{\text{-} \dfrac{k_{\mathrm{L}} a^i}{(1\text{-}\epsilon)} (C^{i,j}_{\mathrm{S}}-C^{i,j}_{\mathrm{F}})}_\text{diffusion to catalyst} + \underbrace{\rho_{\mathrm{B}} \dfrac{v^i}{[E]_{\mathrm{t}}}}_\text{reaction}\ ,
+\end{cases}\end{split}\]</div>
+<p>Here, <span class="math notranslate nohighlight">\(D^i_{ax}\)</span> is the axial dispersion coefficient, governing diffusion in the axial dimension. <span class="math notranslate nohighlight">\(k_L a^i\)</span> is the mass transfer coefficient from the free moving solvent to the catalyst surface and vice versa. <span class="math notranslate nohighlight">\(\epsilon\)</span> is the porosity of the packed bed, equal to 43%. <span class="math notranslate nohighlight">\(\rho_B\)</span> is the density of the Novozyme 435 beads, equal to <span class="math notranslate nohighlight">\(435 kg/m^3\)</span>. The values of <span class="math notranslate nohighlight">\(D^i_{ax}\)</span> and  <span class="math notranslate nohighlight">\(k_L a^i\)</span> were retrieved from the engineering literature, references are ommitted here for the sake of brevity.</p>
+<p>We’ll use the method-of-lines to implement these equations in the pySODM framework. The method-of-lines consists of discretizing only the spatial derivatives to obtain a system of coupled ordinary differential equations. We’ll replace the spatial derivatives with their respective first order approximations. It is common practice to treat the convective term explictly while the diffusive term is treated implicitly.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial C^{i,j}_F}{\partial x} &amp;\approx \dfrac{C_F^{i, j+1} - C_F^{i, j}}{\Delta x},\\
+\frac{\partial^2 C^{i,j}_F}{\partial x^2} &amp;\approx \dfrac{C_F^{i, j-1} - 2 C_F^{i, j} + C_F^{i, j+1} }{\Delta x^2}.\\\end{split}\]</div>
+<p>Substituting,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{cases}
+\dfrac{d C^{i,j}_{\mathrm{F}}}{d t} &amp;= D^i_{\mathrm{ax}} \dfrac{C_F^{i, j-1} - 2 C_F^{i, j} + C_F^{i, j+1} }{\Delta x^2} - u \dfrac{C_F^{i, j+1} - C_F^{i, j}}{\Delta x} + \dfrac{k_{\mathrm{L}} a^i}{\epsilon} (C^{i,j}_{\mathrm{S}}-C^{i,j}_{\mathrm{F}}),\nonumber \\
+\dfrac{d C^{i,j}_{\mathrm{S}}}{d t} &amp;= \text{-} \dfrac{k_{\mathrm{L}} a^i}{(1\text{-}\epsilon)} (C^{i,j}_{\mathrm{S}}-C^{i,j}_{\mathrm{F}}) + \rho_{\mathrm{B}} \dfrac{v^i}{[E]_{\mathrm{t}}}.
+\end{cases}\end{split}\]</div>
+<p>All that is left before we can implement these equations in pySODM is to consider what happens at the inlet and outlet boundaries. At the inlet (<span class="math notranslate nohighlight">\(j=0\)</span>), we’ll assume that the species concentration in both the liquid and at the catalyst surface are equal to fixed inlet concentrations <span class="math notranslate nohighlight">\(c^i\)</span> provided by the user. In technical terms, this is referred to as a Dirichlet boundary condition. Mathematically,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}C_F^{i,0} &amp;=&amp; c^i,\\
+C_S^{i,0} &amp;=&amp; C_F^{i,0},\\\end{split}\]</div>
+<p>and thus,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{cases}
+\dfrac{d C^{i,0}_{\mathrm{F}}}{d t} &amp;= 0,\\
+\dfrac{d C^{i,0}_{\mathrm{S}}}{d t} &amp;= 0.
+\end{cases}\end{split}\]</div>
+<p>At the outlet (<span class="math notranslate nohighlight">\(j=N\)</span>), a problem arises as <span class="math notranslate nohighlight">\(C_F^{i, N+1}\)</span> is needed to approximate our spatial derivatives and this node is “outside” our reactor domain. We can fix this easily by treating our outlet as a no-flux boundary, mathematically,</p>
+<div class="math notranslate nohighlight">
+\[\dfrac{d C^{i,N}_{\mathrm{F}}}{d t} = 0,\]</div>
+<p>Approximating with a central finite difference approximation,</p>
+<div class="math notranslate nohighlight">
+\[\dfrac{C^{i,N+1} - C^{i,N-1}}{2 \Delta x} = 0,\]</div>
+<p>we can thus substitute <span class="math notranslate nohighlight">\(C_F^{i, N+1} = C_F^{i,N-1}\)</span> at the reactor outlet.</p>
+</section>
+<section id="id1">
+<h3>Coding it up<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p>We’ll start by coding the 1D packed PFR model in our <code class="docutils literal notranslate"><span class="pre">models.py</span></code>. Our model has two states with two indices:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(C_{F}^{i,j}\)</span> : The concentration of species <span class="math notranslate nohighlight">\(i\)</span> at axial location <span class="math notranslate nohighlight">\(j\)</span> in the freestreaming liquid.</p></li>
+<li><p><span class="math notranslate nohighlight">\(C_{S}^{i,j}\)</span> : The concentration of species <span class="math notranslate nohighlight">\(i\)</span> at axial location <span class="math notranslate nohighlight">\(j\)</span> at the catalyst surface.</p></li>
+</ul>
+<p>We’ll use the concept of <em>dimensions</em> to implement these two-dimensional numpy arrays. We’ll do this by defining <code class="docutils literal notranslate"><span class="pre">dimensions</span> <span class="pre">=</span> <span class="pre">['species',</span> <span class="pre">'x']</span></code>. At this point, we only need to provide a good name for our dimension, the coordinates are provided later when we initialize the model model. Additionally, we have a mass transfer coefficient <span class="math notranslate nohighlight">\(k_La^{i}\)</span> and an axial dispersion coefficient <span class="math notranslate nohighlight">\(D_{ax}^i\)</span> for every species. We can optionally assign these parameters as <em>stratified parameters</em> of the species axis in our model declaration by defining <code class="docutils literal notranslate"><span class="pre">stratified_parameters</span> <span class="pre">=</span> <span class="pre">[['kL_a',</span> <span class="pre">'D_ax'],]</span></code>. This is not necessary, but the length of <em>stratified parameters</em> are contrasted to the dimension’s coordinates when the model is initialized, providing a fail safe.</p>
+<p>The derivatives are pre-initialized as zeros and their computation is done by looping over every reacting species and then looping over all spatial nodes except the inlet node (<span class="math notranslate nohighlight">\(j=0\)</span>). An exception is coded at the outlet, whwere the no-flux boundary approximation is substituted in the system of equations. Stepping through these loops slows the code down and thus we decorate the <code class="docutils literal notranslate"><span class="pre">integrate()</span></code> function with the <a class="reference external" href="https://numba.pydata.org/">numba</a> <code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> decorator. Doing so speeds the code up by a factor 16.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
+
+<span class="k">class</span> <span class="nc">packed_PFR</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A model of a packed-bed plug-flow reactor with axial dispersion in one dimension</span>
+<span class="sd">    At the surface of the catalyst, the enzymatic esterification conversion of D-Glucose and Lauric acid into Glucose Laurate Ester and water takes place</span>
+<span class="sd">    S + A &lt;--&gt; Es + W</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;C_F&#39;</span><span class="p">,</span> <span class="s1">&#39;C_S&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;delta_x&#39;</span><span class="p">,</span> <span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;rho_B&#39;</span><span class="p">,</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AS&#39;</span><span class="p">,</span> <span class="s1">&#39;R_AW&#39;</span><span class="p">,</span> <span class="s1">&#39;K_eq&#39;</span><span class="p">,</span> <span class="s1">&#39;R_Es&#39;</span><span class="p">]</span>
+    <span class="n">dimensions</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;species&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">]</span>
+    <span class="n">stratified_parameters</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;kL_a&#39;</span><span class="p">,</span> <span class="s1">&#39;D_ax&#39;</span><span class="p">],]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@njit</span>
+    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">C_F</span><span class="p">,</span> <span class="n">C_S</span><span class="p">,</span> <span class="n">delta_x</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">rho_B</span><span class="p">,</span> <span class="n">Vf_Ks</span><span class="p">,</span> <span class="n">R_AS</span><span class="p">,</span> <span class="n">R_AW</span><span class="p">,</span> <span class="n">K_eq</span><span class="p">,</span> <span class="n">R_Es</span><span class="p">,</span> <span class="n">kL_a</span><span class="p">,</span> <span class="n">D_ax</span><span class="p">):</span>
+
+        <span class="c1"># Initialize derivatives</span>
+        <span class="n">dC_F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">C_F</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">dC_S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">C_S</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+        <span class="c1"># Reaction stochiometry</span>
+        <span class="n">stochiometry</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># dimension lengths</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">C_F</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">C_F</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Loop over species: S, A, Es, W</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="c1"># Loop over reactor length</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">X</span><span class="p">):</span>
+                <span class="c1"># Evaluate the enzyme kinetic model</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="n">Vf_Ks</span><span class="o">*</span><span class="p">(</span><span class="n">C_S</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">C_S</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">K_eq</span><span class="p">)</span><span class="o">*</span><span class="n">C_S</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">C_S</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">C_S</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">R_AS</span><span class="o">*</span><span class="n">C_S</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">R_AW</span><span class="o">*</span><span class="n">C_S</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">R_Es</span><span class="o">*</span><span class="n">C_S</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="n">j</span><span class="p">]))</span><span class="o">/</span><span class="mi">60</span> <span class="c1"># mmol/(s.g_catalyst)</span>
+                <span class="c1"># Intermediate nodes</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">X</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">dC_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">D_ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">delta_x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> \
+                                          <span class="p">(</span><span class="n">u</span><span class="o">/</span><span class="n">delta_x</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> \
+                                          <span class="p">(</span><span class="n">kL_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">epsilon</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">C_S</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span>
+                <span class="c1"># Outlet boundary</span>
+                <span class="k">elif</span> <span class="n">j</span> <span class="o">==</span> <span class="n">X</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">dC_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">D_ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">delta_x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> \
+                                          <span class="p">(</span><span class="n">u</span><span class="o">/</span><span class="n">delta_x</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> \
+                                          <span class="p">(</span><span class="n">kL_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">epsilon</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">C_S</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span>
+                <span class="c1"># Solid phase</span>
+                <span class="n">dC_S</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="p">(</span><span class="n">kL_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">epsilon</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">C_S</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">C_F</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="n">rho_B</span><span class="o">*</span><span class="n">stochiometry</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">v</span>
+
+        <span class="k">return</span> <span class="n">dC_F</span><span class="p">,</span> <span class="n">dC_S</span>
+</pre></div>
+</div>
+<p>Because the model is stratified, a dictionary containing the coordinates of every dimension must be provided when initializing the model. The keys of the dictionary must match the names provided previously in <code class="docutils literal notranslate"><span class="pre">dimensions</span></code>. We define the names of our four species as coordinates of the species dimension. To define a reactor of 1 m, discretized in 100 parts, we define <code class="docutils literal notranslate"><span class="pre">np.linspace(start=0,</span> <span class="pre">stop=1,</span> <span class="pre">num=100)</span></code> as the coordinates of the spatial axis. In the model, the states are <code class="docutils literal notranslate"><span class="pre">np.ndarrays</span></code> of size <code class="docutils literal notranslate"><span class="pre">(4,100)</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define coordinates</span>
+<span class="n">coordinates</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;species&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;A&#39;</span><span class="p">,</span><span class="s1">&#39;Es&#39;</span><span class="p">,</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">100</span><span class="p">)}</span>
+
+<span class="c1"># Initialize model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">packed_PFR</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next, we load our previously obtained samples of the kinetic parameters and define our <em>draw function</em> for the kinetic parameters once more. All that is left is to validate our packed-bed model with some experimental data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load samples</span>
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span><span class="s1">&#39;data/username_SAMPLES_2023-06-07.json&#39;</span><span class="p">))</span>
+<span class="n">samples_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="c1"># Define draw function</span>
+<span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span> <span class="n">samples_dict</span><span class="p">):</span>
+    <span class="n">idx</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;Vf_Ks&#39;</span><span class="p">])))</span>
+    <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_AS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_AS&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_AW&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_AW&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;R_Es&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;R_Es&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;K_eq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;K_eq&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">param_dict</span>
+</pre></div>
+</div>
+<p>A first experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 28 mM water. The reactants were pumped through the reactor at a flow rate of 0.2 mL/min, resulting in an average residence time of 13.5 minutes. After ten retention times, when the outlet concentration had stabilized, three samples were withdrawn at the outlet. Then, the reactor was cut short by 0.10 m, and again three samples were withdrawn at the outlet. In this way, the reactant profile acrosss the reactor length was obtained. I omit the code to replicate the following figures from this documentation as no new concepts are introduced beyond this point. Our packed-bed model does an adequate job at describing the data.</p>
+<p><img alt="PFR_reactorcut" src="_images/enzyme_kinetics_cut_reactor.png" /></p>
+<p>An second experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 18 mM water. The reaction was initiated at a flow rate of 0.5 mL/min, which corresponded to a retention time of 5.4 minutes. The flow rate was then lowered in 0.1 mL/min increments and samples were taken at the reactor outlet after a steady-state was reached. Here, our model seems to overestimate the amount of product formed at higher flow rates, with the error becoming smaller as the flow rate becomes lower.</p>
+<p><img alt="PFR_flowrate" src="_images/enzyme_kinetics_vary_flowrate.png" /></p>
+<p>Because the enzyme beads are quite small compared to the tube’s inner diamter, the radial porosity profile of the packed bed is not uniform but fluctuates. As an illustration, below is the radial porosity profile of the simulated packed bed shown earlier, especially near the wall of the reactor, the porosity approaches zero. This likely cause the solvent to <em>channel</em> through the high porosity regions, especially when the flow rate is increased. Our model does not include a radial dimension explictly and uses the radially averaged porosity, it can thus not account for this effect.</p>
+<p><img alt="radial_porosity" src="_images/400beadsRadialVoidage.png" /></p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="workflow.html" class="btn btn-neutral float-left" title="Modeling and Calibration Workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="influenza_1718.html" class="btn btn-neutral float-right" title="An stochastic jump process model for the 2017-2018 Influenza Season in Belgium" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Tijs Alleman.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
