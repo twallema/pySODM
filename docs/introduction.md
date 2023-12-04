@@ -12,7 +12,7 @@ pip install pySODM
 
 Documentation: https://twallema.github.io/pySODM
 
-Manuscript: https://arxiv.org/abs/2301.10664
+Manuscript: https://arxiv.org/abs/2301.10664 / https://www.sciencedirect.com/science/article/pii/S1877750323002089 
 
 pyPI: https://pypi.org/project/pySODM/ 
 
