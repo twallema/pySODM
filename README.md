@@ -11,7 +11,7 @@ pip install pySODM
 
 Documentation: https://twallema.github.io/pySODM
 
-Manuscript: https://arxiv.org/abs/2301.10664
+Manuscript: https://www.sciencedirect.com/science/article/pii/S1877750323002089
 
 pyPI: https://pypi.org/project/pySODM/ 
 
@@ -61,6 +61,8 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
         > Published to pyPI.
     - Version 0.2.3 (2023-05-04, PR #46)
         > Fixed minor bugs encountered when using pySODM for a dynamic input-output model of the Belgian economy. Published to pyPI.
+    - Version 0.2.4 (2023-12-04, PR #62)
+        > Validated the use of Python 3.11. Efficiency gains in simulation of jump processes. Ommitted dependency on Numba. All changes related to publishing our software manuscript in Journal of Computational Science. Improved nomenclature in model defenition.
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODE, JumpProcess and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
