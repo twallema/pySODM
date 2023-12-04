@@ -3,17 +3,14 @@ This script contains a calibration of an SIR model to synthetic data.
 """
 
 __author__      = "Tijs Alleman & Wolf Demunyck"
-__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2024 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
 
 
 ############################
 ## Load required packages ##
 ############################
 
-from pyexpat import model
-import sys,os
-import emcee
-import datetime
+# General purpose packages
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
