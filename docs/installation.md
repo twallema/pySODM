@@ -25,7 +25,6 @@ When making your own modeling and simulation project, we recommend storing your 
      dependencies:
      - python=3.11
      - ...
-     - ...
      ```
 
 - Setup/update the `environment`: Dependencies are collected in the conda `environment.yml` file (inside the root folder), so anybody can recreate the required environment using,
