@@ -215,10 +215,10 @@ if __name__ == '__main__':
         return param_dict
 
     # Attach its arguments to the parameter dictionary
-    params.update({'start_measures': end_date})
+    model.parameters.update({'start_measures': end_date})
 
     # Initialize the model with the time dependent parameter funtion
-    model_with = ODE_SIR(states=init_states, parameters=params, time_dependent_parameters={'beta': lower_infectivity})
+    model_with = ODE_SIR(states=model.initial_states, parameters=model.parameters, time_dependent_parameters={'beta': lower_infectivity})
 
     # Simulate the model
     out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
