@@ -108,7 +108,7 @@ class ODE_SIR(ODE):
     """
     
     states = ['S','I','R']
-    parameter_names = ['beta','gamma']
+    parameters = ['beta','gamma']
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
