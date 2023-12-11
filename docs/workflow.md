@@ -253,7 +253,7 @@ if __name__ == '__main__':
     # Update beta with the calibrated value
     model.parameters.update({'beta': theta[0]})
     # Simulate the model
-    out = model.sim([start_date, end_date])
+    out = model.sim([d.index.min(), d,index.max()])
     # Visualize result
     fig,ax=plt.subplots()
     ax.plot(out['date'], out['I'], color='red', label='Infectious')
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10,], multiplier=multiplier_mcmc, bounds=bounds)
     # Usefull settings to retain in the samples dictionary (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
+    settings={'start_calibration': d.index.min().strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'starting_estimate': list(theta)}
     # Run the sampler
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
@@ -362,7 +362,7 @@ As demonstrated in the quickstart example, the `xarray` containing the model out
 
 ```
 # Simulate model
-out = model.sim([start_date, end_date+pd.Timedelta(days=28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+out = model.sim([d.index.min(), d.index.max()+pd.Timedelta(days=28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
 # Add negative binomial observation noise
 out = add_negative_binomial_noise(out, dispersion)
 # Visualize result
@@ -400,10 +400,10 @@ This simple function reduces the parameter `param` with a factor two if the simu
 We will apply this function to the infectivity parameter `beta` by using the `time_dependent_parameters` argument of `sim()`.
 ```
 # Attach the additional arguments of the time-depenent function to the parameter dictionary
-params.update({'start_measures': '2023-01-21'})
+model.parameters.update({'start_measures': '2023-01-21'})
 
 # Initialize the model with the time dependent parameter funtion
-model_with = ODE_SIR(states=init_states, parameters=params,
+model_with = ODE_SIR(states=init_states, parameters=model.parameters,
                      time_dependent_parameters={'beta': lower_infectivity})
 ```
 
@@ -411,7 +411,7 @@ Next, we compare the simulations with and without the use of our time-dependent 
 
 ```
 # Simulate the model
-out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
 
 # Add negative binomial observation noise
 out_with = add_negative_binomial_noise(out_with, alpha)
