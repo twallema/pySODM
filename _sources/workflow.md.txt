@@ -19,7 +19,7 @@ I typically place all my dependencies together at the top of my script. However,
 ```
 import numpy as np
 import pandas as pd
-from matplotlib.pyplot import plt
+import matplotlib.pyplot as plt
 ```
 
 ### Load the dataset
@@ -33,16 +33,18 @@ n_{cases}(t) = \exp \Big( t *  \dfrac{\log 2}{t_d} \Big)
 We'll assume the first case was detected on December 1st, 2022 and data was collected on every weekday until December 21st, 2022. Then, we'll add observational noise to the synthetic data. For count based data, observational noise is typically the result of a poisson or negative binomial proces, depending on the occurence of overdispersion. For a poisson proces, the variance in the data is equal to the mean: {math}`\sigma^2 = \mu`, while for a negative binomial proces the mean-variance relationship is quadratic: {math}`\sigma^2 = \mu + \alpha \mu^2`. For this example we'll use the negative binomial distribution with a dispersion factor of `alpha=0.03`, which was representative for the data used during the COVID-19 pandemic in Belgium. Note that for {math}`\alpha=0`, the variance of the negative binomial distribution is equal to the variance of the poisson distribution.
 
 ```
-# Parameters
-alpha = 0.03 # Overdispersion
-t_d = 10 # Doubling time
+# Parameters 
+alpha = 0.03    # Overdispersion
+t_d = 10         # Exponential doubling time
 # Sample data
 dates = pd.date_range('2022-12-01','2023-01-21')
 t = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
-y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(t*np.log(2)/td) + (1/alpha)))
+y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(t*np.log(2)/t_d) + (1/alpha)))
 # Place in a pd.Series
 d = pd.Series(index=dates, data=y, name='CASES')
-# Data collection only on weekdays only
+# Index name must be date for calibration to work
+d.index.name = 'date'
+# Data collection only on weekdays
 d = d[d.index.dayofweek < 5]
 ```
 
