@@ -28,13 +28,16 @@ warnings.filterwarnings("ignore")
 ## Generate a synthetic dataset with overdispersion ##
 ######################################################
 
-dates = pd.date_range('2022-12-01','2023-01-21')
-x = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
+# Parameters 
 alpha = 0.03
-td = 10
-y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(x*np.log(2)/td) + (1/alpha)))
+t_d = 10
+# Sample data
+dates = pd.date_range('2022-12-01','2023-01-21')
+t = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
+y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(t*np.log(2)/t_d) + (1/alpha)))
+# Place in a pd.Series
 d = pd.Series(index=dates, data=y, name='CASES')
-# Index name must be data for calibration to work
+# Index name must be date for calibration to work
 d.index.name = 'date'
 # Data collection only on weekdays
 d = d[d.index.dayofweek < 5]
