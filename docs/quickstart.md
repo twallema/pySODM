@@ -178,7 +178,7 @@ coordinates={'age_group': ['0-5','5-15', '15-65','65-120']}
 # Initialize model
 model = ODE_SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
 # Simulate the model
-model.sim(120)
+out = model.sim(120)
 print(out)
 ```
 
