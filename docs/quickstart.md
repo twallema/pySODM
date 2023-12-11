@@ -174,9 +174,9 @@ Setting up and simulating the model,
 # Define parameters, initial states and coordinates
 params={'alpha': np.array([0.05, 0.1, 0.2, 0.15]), 'gamma': 5, 'beta': 7}
 init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 2}
-coordinates={'age_groups': ['0-5','5-15', '15-65','65-120']}
+coordinates={'age_group': ['0-5','5-15', '15-65','65-120']}
 # Initialize model
-model = SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+model = ODE_SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
 # Simulate the model
 model.sim(120)
 print(out)
