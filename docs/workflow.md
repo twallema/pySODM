@@ -167,7 +167,7 @@ from the above equations we can deduce that the SSEs's use is only appropriate w
 |------------------------------|--------------------------------------------|
 | Gaussian                     | {math}`\sigma^2 = c`                       |
 | Poisson                      | {math}`\sigma^2 = \mu`                     |
-| Quasi-Poison                 | {math}`\sigma^2 = \alpha * \mu`            |
+| Quasi-Poisson                | {math}`\sigma^2 = \alpha * \mu`            |
 | Negative Binomial            | {math}`\sigma^2 = \mu + \alpha * \mu^2`    |
 
 The following snippet performs the above procedure on our synthetic dataset. 
