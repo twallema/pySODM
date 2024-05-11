@@ -47,7 +47,7 @@ def test_SIR_time():
     output = model.sim(time)
     
     # 'time' present in output
-    assert 'time' in list(output.dims.keys())
+    assert 'time' in list(output.sizes.keys())
     # Default (no specification output frequency): 0, 1, 2, 3, ..., 50
     np.testing.assert_allclose(output["time"], np.arange(0, 51))
     # Numerically speaking everything ok?
@@ -89,6 +89,8 @@ def test_SIR_time():
     with pytest.raises(TypeError, match="solver method 'method' must be of type string"):
          model.sim(50, method=3)
 
+test_SIR_time()
+
 def test_SIR_date():
     """ Test the use of str/datetime time indexing
     """
@@ -104,7 +106,7 @@ def test_SIR_date():
     output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')])
 
     # Validate
-    assert 'date' in list(output.dims.keys())
+    assert 'date' in list(output.sizes.keys())
     S = output["S"].values.squeeze()
     assert S[0] == 1_000_000 - 10
     assert S.shape == (51, )
@@ -141,7 +143,7 @@ def test_SSA():
     output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')], method='SSA')
 
     # Validate
-    assert 'date' in list(output.dims.keys())
+    assert 'date' in list(output.sizes.keys())
     S = output["S"].values.squeeze()
     assert S[0] == 1000 - 10
     assert S.shape == (51, )
@@ -517,7 +519,7 @@ def test_draw_function():
     output = model.sim(time, draw_function=draw_function, samples={}, N=5)
 
     # assert dimension 'draws' is present in output
-    assert 'draws' in list(output.dims.keys())
+    assert 'draws' in list(output.sizes.keys())
 
     # wrong draw function
     def draw_function(pardict, samples):
