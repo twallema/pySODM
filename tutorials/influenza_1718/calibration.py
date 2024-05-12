@@ -49,10 +49,10 @@ processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2)) # Automatical
 ###############
 
 # Load case data
-data = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format.csv'), index_col=[0,1], parse_dates=True)
+data = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format.csv'), index_col=[0,1], parse_dates=True, date_format='%Y-%m-%d')
 data = data.squeeze()
 # Load case data per 100K
-data_100K = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format_100K.csv'), index_col=[0,1], parse_dates=True)
+data_100K = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format_100K.csv'), index_col=[0,1], parse_dates=True, date_format='%Y-%m-%d')
 data_100K = data_100K.squeeze()
 # Re-insert pd.IntervalIndex (pd.IntervalIndex is always loaded as a string..)
 age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)], closed='left')
