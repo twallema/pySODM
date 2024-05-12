@@ -21,10 +21,6 @@ from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta,
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial, ll_poisson
 
-# Suppress warnings
-import warnings
-warnings.filterwarnings("ignore")
-
 ##################
 ## Define model ##
 ##################
