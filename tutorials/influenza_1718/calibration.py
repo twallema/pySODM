@@ -25,9 +25,6 @@ from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emce
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 # pySODM dependecies
 import corner
-# Suppress warnings
-import warnings
-warnings.filterwarnings("ignore")
 
 ##############
 ## Settings ##
