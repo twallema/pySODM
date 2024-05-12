@@ -20,10 +20,6 @@ from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta,
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 
-# Suppress warnings
-import warnings
-warnings.filterwarnings("ignore")
-
 ######################################################
 ## Generate a synthetic dataset with overdispersion ##
 ######################################################
@@ -107,7 +103,7 @@ if __name__ == '__main__':
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
-    bounds = [(1e-6,1),]
+    bounds = [(0,10),]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
     # Extract start- and enddate
