@@ -3,17 +3,14 @@ This script contains a calibration of an SIR model to synthetic data.
 """
 
 __author__      = "Tijs Alleman & Wolf Demunyck"
-__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2024 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
 
 
 ############################
 ## Load required packages ##
 ############################
 
-from pyexpat import model
-import sys,os
-import emcee
-import datetime
+# General purpose packages
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,21 +20,20 @@ from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta,
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 
-# Suppress warnings
-import warnings
-warnings.filterwarnings("ignore")
-
 ######################################################
 ## Generate a synthetic dataset with overdispersion ##
 ######################################################
 
-dates = pd.date_range('2022-12-01','2023-01-21')
-x = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
+# Parameters 
 alpha = 0.03
-td = 10
-y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(x*np.log(2)/td) + (1/alpha)))
+t_d = 10
+# Sample data
+dates = pd.date_range('2022-12-01','2023-01-21')
+t = np.linspace(start=0, stop=len(dates)-1, num=len(dates))
+y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(t*np.log(2)/t_d) + (1/alpha)))
+# Place in a pd.Series
 d = pd.Series(index=dates, data=y, name='CASES')
-# Index name must be data for calibration to work
+# Index name must be date for calibration to work
 d.index.name = 'date'
 # Data collection only on weekdays
 d = d[d.index.dayofweek < 5]
@@ -107,7 +103,7 @@ if __name__ == '__main__':
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
-    bounds = [(1e-6,1),]
+    bounds = [(0,10),]
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
     # Extract start- and enddate
@@ -147,7 +143,7 @@ if __name__ == '__main__':
     fig_path = 'sampler_output/'
     identifier = 'username'
     # Perturbate previously obtained estimate
-    ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=bounds)
+    ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10,], multiplier=multiplier_mcmc, bounds=bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
               'n_chains': nwalkers, 'starting_estimate': list(theta)}
@@ -215,10 +211,10 @@ if __name__ == '__main__':
         return param_dict
 
     # Attach its arguments to the parameter dictionary
-    params.update({'start_measures': end_date})
+    model.parameters.update({'start_measures': end_date})
 
     # Initialize the model with the time dependent parameter funtion
-    model_with = ODE_SIR(states=init_states, parameters=params, time_dependent_parameters={'beta': lower_infectivity})
+    model_with = ODE_SIR(states=model.initial_states, parameters=model.parameters, time_dependent_parameters={'beta': lower_infectivity})
 
     # Simulate the model
     out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)

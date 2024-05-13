@@ -10,7 +10,7 @@ __copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent Universit
 ## Load required packages ##
 ############################
 
-import sys,os
+# General purpose packages
 import corner
 import pandas as pd
 import numpy as np
@@ -20,10 +20,6 @@ from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta, variance_analysis
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial, ll_poisson
-
-# Suppress warnings
-import warnings
-warnings.filterwarnings("ignore")
 
 ##################
 ## Define model ##
@@ -85,7 +81,6 @@ if __name__ == '__main__':
     objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
     # Initial guess --> pso
     theta = pso.optimize(objective_function, swarmsize=3*18, max_iter=30, processes=18, debug=True)[0]
-    #theta = [7, 0.05, 0.1, 0.2, 0.15]
     # Run Nelder-Mead optimisation
     theta = nelder_mead.optimize(objective_function, theta, 0.10*np.ones(len(theta)), processes=18, max_iter=30)[0]
     # Simulate the model
@@ -115,7 +110,7 @@ if __name__ == '__main__':
     ###########################
 
     # Variables
-    n_mcmc = 1000
+    n_mcmc = 100
     multiplier_mcmc = 9
     processes = 9
     print_n = 50
