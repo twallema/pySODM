@@ -7,7 +7,7 @@ import itertools
 import xarray
 import copy
 import numpy as np
-import multiprocessing as mp
+from multiprocessing.pool import ThreadPool  
 from functools import partial
 from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
@@ -460,7 +460,7 @@ class JumpProcess:
 
         # Run simulations
         if processes: # Needed 
-            with mp.Pool(processes) as p:
+            with ThreadPool(processes) as p:
                 output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), drawn_dictionaries)
         else:
             output=[]
@@ -773,7 +773,7 @@ class ODE:
 
         # Run simulations
         if processes: # Needed 
-            with mp.Pool(processes) as p:
+            with ThreadPool(processes) as p:
                 output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_dictionaries)
         else:
             output=[]
