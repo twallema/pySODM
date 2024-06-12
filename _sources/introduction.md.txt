@@ -8,6 +8,7 @@
 ```
 pip install pySODM
 ```
+
 ### Resources
 
 Documentation: https://twallema.github.io/pySODM
