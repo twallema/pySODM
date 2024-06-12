@@ -8,14 +8,14 @@ pip install pySODM
 
 ### Install pySODM in a conda environment
 
-When making your own modeling and simulation project, we recommend storing your dependencies in a conda environment. Using a conda environment allows others to more quickly replicate your code. Make sure you have Python (conda) and the required dependency packages installed. We recommend using `Anaconda` to manage your Python packages. See the [conda installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) and make sure you have conda up and running. Next:
+When making your own modeling and simulation project, we recommend storing the dependencies of your project in a conda environment. Using a conda environment allows others to more quickly replicate your code. Make sure you have Python (conda) and the required dependency packages installed. We recommend using `Anaconda` to manage your Python packages. See the [conda installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) and make sure you have conda up and running. Next:
 
 - Update conda after the installation to make sure your version is up-to-date,
      ```
      conda update conda
      ```
 
-- Make an environment file `environment.yml` with the dependencies of your own project. pySODM is currently validated on Python 3.11.
+- Make an environment file `my_environment.yml` with the dependencies of your own project. pySODM is currently validated on Python 3.12.
 
      ```
      name: MY_ENVIRONMENT
@@ -23,20 +23,20 @@ When making your own modeling and simulation project, we recommend storing your 
      - defaults
      - conda-forge
      dependencies:
-     - python=3.11
+     - python=3.12
      - ...
      ```
 
-- Setup/update the `environment`: Dependencies are collected in the conda `environment.yml` file (inside the root folder), so anybody can recreate the required environment using,
+- Setup/update the `environment`: Dependencies are collected in the conda `my_environment.yml` file (inside the root folder), so anybody can recreate the required environment using,
 
      ```
-     conda env create -f environment.yml
+     conda env create -f my_environment.yml
      conda activate MY_ENVIRONMENT
      ```
      or alternatively, to update the environment (needed after adding a dependency),
      ```
      conda activate MY_ENVIRONMENT
-     conda env update -f environment.yml --prune
+     conda env update -f my_environment.yml --prune
      ```
      
      When creating or upating an environment, *solving the environment* can take very long if you have a lot of dependencies, so be wary of adding unnecessary dependencies.
@@ -48,7 +48,7 @@ When making your own modeling and simulation project, we recommend storing your 
      pip install pySODM
      ```
 
-     __Note:__ The above step should be executed in a Linux terminal or command prompt. Use your favorite terminal or use the [Anaconda Prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt).
+     __Note:__ The above step should be executed in a Mac/Linux terminal or command prompt. Use your favorite terminal or use the [Anaconda Prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#open-anaconda-prompt).
 
 ### Want to try out the tutorials?
 
