@@ -29,7 +29,8 @@ def matmul_2D_3D_matrix(X, W):
         Matrix product of size (n, m). 
         Element-wise equivalent operation: O_{ij} = \sum_{l} [ s_{il} * w_{lji} ]
     """
-    return np.einsum('ik,kji->ij', X, np.broadcast_to(np.atleast_3d(W), (W.shape[0], W.shape[0], X.shape[0])))
+    W = np.atleast_3d(W)
+    return np.einsum('ik,kji->ij', X, np.broadcast_to(W, (W.shape[0], W.shape[0], X.shape[0])))
 
 ###################
 ## Deterministic ##

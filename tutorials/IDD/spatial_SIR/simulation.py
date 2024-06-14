@@ -20,16 +20,32 @@ import matplotlib.pyplot as plt
 # Epidemic is seeded in location 'A'. Inhabitants of 'B' never visit 'A'.
 # While 20% of inhabitants of 'A' visits 'B', and has f_v % of their contacts in 'B'.
 
-coordinates = {'age': ['0-25', '25+'],  # 2 age groups
-               'location': ['A', 'B']   # 2 spatial units 'A' and 'B'
+coordinates = {'age': ['0-25', '25+'],  
+               'location': ['A', 'B']  
                 }
-init_states = {'S': np.array([[100, 400], [1000, 4000]]),   # 
-               'I': np.array([[1, 0], [0, 0]])
+init_states = {'S': np.array([[100, 400], [1000, 4000]]),   
+               'I': np.array([[0.2, 0.8], [0, 0]])
                }
-params = {'beta': 0.025,                                # infectivity (-)
+params = {'beta': 0.03,                                 # infectivity (-)
           'gamma': 5,                                   # duration of infection (d)
           'f_v': 0.1,                                   # fraction of total contacts on visited patch
-          'N': np.array([[10.7, 7.9],[3.22, 14.0]]),    # contact matrix (BE, Van Hoang, 2020)
+          'N': np.array([[10, 10],[10, 10]]),           # contact matrix
+          'M': np.array([[0.8, 0.2], [0, 1]])           # origin-destination mobility matrix
+          }
+
+# OR
+# Exactly the same model without age groups
+
+coordinates = {'age': ['0+'],  
+               'location': ['A', 'B']
+                }
+init_states = {'S': np.array([[500, 5000]]),    
+               'I': np.array([[1, 0]])
+               }
+params = {'beta': 0.03,                                # infectivity (-)
+          'gamma': 5,                                   # duration of infection (d)
+          'f_v': 0.1,                                   # fraction of total contacts on visited patch
+          'N': np.mean(np.sum(params['N'], axis=1)),    # contact matrix (BE, Van Hoang, 2020)
           'M': np.array([[0.8, 0.2], [0, 1]])           # origin-destination mobility matrix
           }
 
