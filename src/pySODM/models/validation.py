@@ -300,20 +300,22 @@ def check_initial_states_shape(values, desired_shape, name, object_name):
 
         if values.shape != desired_shape:
             raise ValueError(
-                "The desired shape of model state '{name}' is {desired_shape}, but provided {obj} '{name}' "
-                "has length {val}".format(
-                    desired_shape=desired_shape, obj=object_name, name=name, val=values.shape
+                f"{object_name} has invalid shape"
+                "\n-------------------------------------------"
+                f"\n\nState name: {name}"
+                f"\nExpected shape: {desired_shape}"
+                f"\nProvided shape: {values.shape}\n"
                 )
-            )
     else:
         values = np.asarray(values, dtype=np.float64)
         if values.shape != desired_shape:
             raise ValueError(
-                "The desired shape of model state '{name}' is {desired_shape}, but provided {obj} '{name}' "
-                "has length {val}".format(
-                    desired_shape=desired_shape, obj=object_name, name=name, val=values.shape
+                f"{object_name} has invalid shape"
+                "\n-------------------------------------------"
+                f"\n\nState name: {name}"
+                f"\nExpected shape: {desired_shape}"
+                f"\nProvided shape: {values.shape}\n"
                 )
-            )
 
     return values
 
