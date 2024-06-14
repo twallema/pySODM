@@ -369,9 +369,15 @@ def validate_apply_transitionings_signature(apply_transitionings, parameter_name
         missing_states = [name for name in missing_all if name in state_names]
         missing_parameters = [name for name in missing_all if name in parameter_names_merged]
         raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the apply_transitionings function. "
-            "Missing parameters: {0}. Missing states: {1}. "
-            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
+            "Parameter and state name mismatch in model declaration"
+            "\n\nThe state and parameter names declared in your model class (variables: 'states' and 'parameters') don't match the names provided in the defenition of the class' apply_transitionings function. "
+            "\n\nDeclared state and parameter names"
+            "\n----------------------------------"
+            f"\nStates: {state_names}"
+            f"\nParameters: {parameter_names_merged}"
+            "\n\nIn defenition of the apply_transitionings function "
+            "\n---------------------------------------------------"
+            f"\nMissing parameters: {missing_parameters}. Missing states: {missing_states}. Redundant: {list(redundant_all)}."
         )
 
 def validate_integrate_or_compute_rates_signature(integrate_func, parameter_names_merged, state_names, _function_parameters):
@@ -394,9 +400,15 @@ def validate_integrate_or_compute_rates_signature(integrate_func, parameter_name
         missing_states = [name for name in missing_all if name in state_names]
         missing_parameters = [name for name in missing_all if name in parameter_names_merged]
         raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function. "
-            "Missing parameters: {0}. Missing states: {1}. "
-            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
+            "Parameter and state name mismatch in model declaration"
+            "\n\nThe state and parameter names declared in your model class (variables: 'states' and 'parameters') don't match the names provided in the defenition of the class' integrate/compute_rates function. "
+            "\n\nDeclared state and parameter names"
+            "\n----------------------------------"
+            f"\nStates: {state_names}"
+            f"\nParameters: {parameter_names_merged}"
+            "\n\nIn defenition of the apply_transitionings function "
+            "\n---------------------------------------------------"
+            f"\nMissing parameters: {missing_parameters}. Missing states: {missing_states}. Redundant: {list(redundant_all)}.\n"
         )
 
     all_params = parameter_names_merged.copy()
