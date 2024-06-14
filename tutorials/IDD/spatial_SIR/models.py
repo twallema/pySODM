@@ -61,7 +61,7 @@ class spatial_ODE_SIR(ODE):
         dI_v = beta * S_v * np.transpose(matmul_2D_3D_matrix(np.transpose(I_v/T_v), f_v*N))
 
         # distribute the number of new infections on visited patch to the home patch 
-        dI_v = S * np.transpose(M @ np.transpose(dI_v/S_v))
+        dI_v = S * np.transpose(np.atleast_2d(M) @ np.transpose(dI_v/S_v))
 
         # Calculate differentials
         dS = - (dI_h + dI_v)

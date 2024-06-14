@@ -35,17 +35,18 @@ params = {'beta': 0.03,                                 # infectivity (-)
 
 # OR
 # Exactly the same model without age groups
+# Validated the reduction to one spatial unit as well (becomes a plain SIR)
 
 coordinates = {'age': ['0+'],  
                'location': ['A', 'B']
                 }
-init_states = {'S': np.array([[500, 5000]]),    
-               'I': np.array([[1, 0]])
+init_states = {'S': np.atleast_2d([500, 5000]),    
+               'I': np.atleast_2d([1, 0])
                }
-params = {'beta': 0.03,                                # infectivity (-)
+params = {'beta': 0.03,                                 # infectivity (-)
           'gamma': 5,                                   # duration of infection (d)
           'f_v': 0.1,                                   # fraction of total contacts on visited patch
-          'N': np.mean(np.sum(params['N'], axis=1)),    # contact matrix (BE, Van Hoang, 2020)
+          'N': np.mean(np.sum(params['N'], axis=1)),    # contact matrix
           'M': np.array([[0.8, 0.2], [0, 1]])           # origin-destination mobility matrix
           }
 
