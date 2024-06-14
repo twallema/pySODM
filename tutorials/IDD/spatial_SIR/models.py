@@ -6,18 +6,12 @@ __author__      = "Tijs Alleman"
 __copyright__   = "Copyright (c) 2024 by T.W. Alleman, IDD Group, Johns Hopkins Bloomberg School of Public Health. All Rights Reserved."
 
 import numpy as np
-
-###################
-## Deterministic ##
-###################
-
-# import the ODE class
-from pySODM.models.base import ODE
+from pySODM.models.base import ODE, JumpProcess
 
 # helper function
 def matmul_2D_3D_matrix(X, W):
     """
-    Computes the matrix product of a 2D matrix (size n x m) and a 3D matrix (size m x m x n).
+    Computes the product of a 2D matrix (size n x m) and a 3D matrix (size m x m x n) as an n-dimensional stack of (1xm) and (m,m) products.
 
     input
     =====
@@ -37,14 +31,17 @@ def matmul_2D_3D_matrix(X, W):
     """
     return np.einsum('ik,kji->ij', X, np.broadcast_to(np.atleast_3d(W), (W.shape[0], W.shape[0], X.shape[0])))
 
-# Define the model equations
+###################
+## Deterministic ##
+###################
+
 class spatial_ODE_SIR(ODE):
     """
     SIR model with a spatial stratification
     """
     
     states = ['S','I','R']
-    parameters = ['beta','gamma']
+    parameters = ['beta','gamma', 'f_v', 'N', 'M']
     dimensions = ['age', 'location']
 
     @staticmethod
@@ -59,11 +56,11 @@ class spatial_ODE_SIR(ODE):
         I_v = matmul_2D_3D_matrix(I, M)
 
         # compute number of new infections on home patch and visited patch
-        dI_h = beta * S * np.transpose(matmul_2D_3D_matrix(np.transpose(I/T), N)) # N can  be of size (n_age, n_age) or (n_age, n_age, n_loc), representing a different contact matrix in every spatial patch 
-        dI_v = beta * S_v * np.transpose(matmul_2D_3D_matrix(np.transpose(I_v/T), N))
+        dI_h = beta * S * np.transpose(matmul_2D_3D_matrix(np.transpose(I/T), (1-f_v)*N)) # N can  be of size (n_age, n_age) or (n_age, n_age, n_loc), representing a different contact matrix in every spatial patch 
+        dI_v = beta * S_v * np.transpose(matmul_2D_3D_matrix(np.transpose(I_v/T_v), f_v*N))
 
         # distribute the number of new infections on visited patch to the home patch 
-        dI_h = S * np.transpose(M @ np.transpose(dI_h/S_v))
+        dI_v = S * np.transpose(M @ np.transpose(dI_v/S_v))
 
         # Calculate differentials
         dS = - (dI_h + dI_v)
