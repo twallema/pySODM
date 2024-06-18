@@ -30,6 +30,6 @@ First, by running the script `data_conversion.py`, the user converts the *raw* w
 
 ### Interim
 
-+ `data_influenza_1718_format.csv`: Daily incidence of Influenza cases in Belgium  during the 2017-2018 Influenza season. Data available for four age groups: [0,5(, [5,15(, [15,65(, [65,120(. Generated from `dataset_influenza_1718.csv` by executing the data conversion script `data_conversion.py`.
++ `ILI_weekly_100K.csv`:  Weekly incidence of GP visits for Influenza-like illness per 100K inhabitants in Belgium during the 2017-2018 season. Data available for four age groups: [0,5(, [5,15(, [15,65(, [65,120(. Dates are the reported week number's midpoint. Generated from `dataset_influenza_1718.csv` by executing the data conversion script `data_conversion.py`.
 
-
++ `ILI_weekly_ABS.csv`: Weekly incidence of GP visits for Influenza-like illness in Belgium during the 2017-2018 season. Data available for four age groups: [0,5(, [5,15(, [15,65(, [65,120(. Dates are the reported week number's midpoint. Generated from `dataset_influenza_1718.csv` by executing the data conversion script `data_conversion.py`.

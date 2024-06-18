@@ -32,41 +32,41 @@ import corner
 
 tau = 0.50                                      # Timestep of Tau-Leaping algorithm
 alpha = 0.03                                    # Overdispersion factor (based on COVID-19)
-end_calibration = pd.Timestamp('2018-03-01')    # Enddate of calibration
+end_calibration = '2018-03-01'                  # Enddate of calibration
 identifier = 'twallema_2018-03-01'              # Give any output of this script an ID
-n_pso = 3                                       # Number of PSO iterations
-multiplier_pso = 36                             # PSO swarm size
-n_mcmc = 50                                    # Number of MCMC iterations
-multiplier_mcmc = 36                            # Total number of Markov chains = number of parameters * multiplier_mcmc
+n_pso = 30                                      # Number of PSO iterations
+multiplier_pso = 10                             # PSO swarm size
+n_mcmc = 500                                    # Number of MCMC iterations
+multiplier_mcmc = 10                            # Total number of Markov chains = number of parameters * multiplier_mcmc
 print_n = 100                                   # Print diagnostics every print_n iterations
-discard = 1000                                  # Discard first `discard` iterations as burn-in
+discard = 50                                    # Discard first `discard` iterations as burn-in
 thin = 10                                       # Thinning factor emcee chains
 n = 100                                         # Repeated simulations used in visualisations
-processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2)) # Automatically use half the number of available threads (typically corresponds to number of physical CPU cores) 
+processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count())) # Retrieve CPU count
 
 ###############
 ## Load data ##
 ###############
 
 # Load case data
-data = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format.csv'), index_col=[0,1], parse_dates=True, date_format='%Y-%m-%d')
+data = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/ILI_weekly_ABS.csv'), index_col=[0,1], parse_dates=True, date_format='%Y-%m-%d')
 data = data.squeeze()
 # Load case data per 100K
-data_100K = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/data_influenza_1718_format_100K.csv'), index_col=[0,1], parse_dates=True, date_format='%Y-%m-%d')
+data_100K = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/interim/ILI_weekly_100K.csv'), index_col=[0,1], parse_dates=True, date_format='%Y-%m-%d')
 data_100K = data_100K.squeeze()
 # Re-insert pd.IntervalIndex (pd.IntervalIndex is always loaded as a string..)
 age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)], closed='left')
 iterables = [data.index.get_level_values('DATE').unique(), age_groups]
 names = ['date', 'age_group']
 index = pd.MultiIndex.from_product(iterables, names=names)
-df_influenza = pd.Series(index=index, name='CASES', data=data.values)
-df_influenza_100K = pd.Series(index=index, name='CASES', data=data_100K.values)
+df_influenza = pd.Series(index=index, name='CASES', data=data.values)/7 # convert weekly cumulative to daily week midpoint 
+df_influenza_100K = pd.Series(index=index, name='CASES', data=data_100K.values)/7 # convert weekly cumulative to daily week midpoint 
 # Extract start and enddate
-start_date = df_influenza.index.get_level_values('date').unique()[8]
-end_date = df_influenza.index.get_level_values('date').unique()[-1] 
-start_calibration = start_date
-# Hardcode Belgian demographics
-initN = pd.Series(index=age_groups, data=np.array([606938, 1328733, 7352492, 2204478]))  
+start_visualisation = df_influenza.index.get_level_values('date').unique()[8].strftime("%Y-%m-%d")
+end_visualisation = df_influenza.index.get_level_values('date').unique()[-1].strftime("%Y-%m-%d")
+start_calibration = start_visualisation
+# Hardcode Belgian demographics (Jan 1, 2018)
+initN = pd.Series(index=age_groups, data=[620914, 1306826, 7317774, 2130556])
 
 ################
 ## Load model ##
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
     # Simulate model
-    out = model.sim([start_calibration, end_date], samples={}, N=n, tau=tau, output_timestep=1)
+    out = model.sim([start_calibration, end_visualisation], samples={}, N=n, tau=tau, output_timestep=1)
     # Add poisson obervational noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     for id, age_class in enumerate(df_influenza.index.get_level_values('age_group').unique()):
         # Data
         axs[id].scatter(df_influenza[start_calibration:end_calibration].index.get_level_values('date').unique(), df_influenza.loc[slice(start_calibration,end_calibration), age_class], color='black', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='observed')
-        axs[id].scatter(df_influenza[end_calibration:end_date].index.get_level_values('date').unique(), df_influenza.loc[slice(end_calibration,end_date), age_class], color='red', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='unobserved')
+        axs[id].scatter(df_influenza[end_calibration:end_visualisation].index.get_level_values('date').unique(), df_influenza.loc[slice(end_calibration,end_visualisation), age_class], color='red', alpha=0.3, linestyle='None', facecolors='None', s=60, linewidth=2, label='unobserved')
         # Model trajectories
         for i in range(n):
             axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).isel(draws=i), color='blue', alpha=0.05, linewidth=1)
@@ -195,18 +195,12 @@ if __name__ == '__main__':
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.30*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': start_calibration.strftime("%Y-%m-%d"), 'end_calibration': end_calibration.strftime("%Y-%m-%d"),
+    settings={'start_calibration': start_calibration, 'end_calibration': end_calibration,
               'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': expanded_labels, 'tau': tau}
     # Sample n_mcmc iterations
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'warmup': 0, 'tau':tau}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                    settings_dict=settings)                           
-    # Sample 5*n_mcmc more
-    for i in range(3):
-        backend = emcee.backends.HDFBackend(os.path.join(os.getcwd(),samples_path+identifier+'_BACKEND_'+run_date+'.hdf5'))
-        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, objective_function_kwargs={'simulation_kwargs': {'warmup': 0, 'tau':tau}},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=backend, processes=processes, progress=True,
-                                    settings_dict=settings)                                                         
+                                    settings_dict=settings)                                                                               
     # Generate a sample dictionary and save it as .json for long-term storage
     # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
     samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard, thin=thin)
@@ -229,7 +223,7 @@ if __name__ == '__main__':
         param_dict['f_ud'] = np.array([slice[idx] for slice in samples_dict['f_ud']])
         return param_dict
     # Simulate model
-    out = model.sim([start_date, end_date], N=n, tau=tau, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add negative binomial observation noise
     out_noise = add_negative_binomial_noise(out, alpha)
 
@@ -243,7 +237,7 @@ if __name__ == '__main__':
     for id, age_class in enumerate(df_influenza_100K.index.get_level_values('age_group').unique()):
         # Data
         axs[id].plot(df_influenza_100K[start_calibration:end_calibration].index.get_level_values('date').unique(), df_influenza_100K.loc[slice(start_calibration,end_calibration), age_class]*7, color='black', marker='o', label='Observed data')
-        axs[id].plot(df_influenza_100K[end_calibration-pd.Timedelta(days=7):end_date].index.get_level_values('date').unique(), df_influenza_100K.loc[slice(end_calibration-pd.Timedelta(days=7),end_date), age_class]*7, color='red', marker='o', label='Unobserved data')
+        axs[id].plot(df_influenza_100K[pd.Timestamp(end_calibration)-pd.Timedelta(days=7):end_visualisation].index.get_level_values('date').unique(), df_influenza_100K.loc[slice(pd.Timestamp(end_calibration)-pd.Timedelta(days=7),end_visualisation), age_class]*7, color='red', marker='o', label='Unobserved data')
         # Model trajectories
         axs[id].plot(out['date'],out['Im_inc'].sel(age_group=age_class).mean(dim='draws')/initN.loc[age_class]*100000*7, color='black', linestyle='--', alpha=0.7, linewidth=1, label='Model mean')
         axs[id].fill_between(out_noise['date'].values,out_noise['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.025)/initN.loc[age_class]*100000*7, out_noise['Im_inc'].sel(age_group=age_class).quantile(dim='draws', q=0.975)/initN.loc[age_class]*100000*7, color='black', alpha=0.15, label='Model 95% CI')
