@@ -16,8 +16,8 @@ data_dir = os.path.join(abs_dir,rel_dir)
 data = pd.read_csv(data_dir)
 # Age groups in dataset
 desired_age_groups = pd.IntervalIndex.from_tuples([(0,5),(5,15),(15,65),(65,120)],closed='left')
-# Hardcode Belgian demographics
-N = pd.Series(index=desired_age_groups, data=[606938, 1328733, 7352492, 2204478])
+# Hardcode Belgian demographics (Jan 1, 2018)
+N = pd.Series(index=desired_age_groups, data=[620914, 1306826, 7317774, 2130556])
 
 ########################
 ## Perform conversion ##
