@@ -27,7 +27,7 @@ for i in range(len(data)):
     y=data['YEAR'][i]
     w=data['WEEK'][i]
     d = str(y)+'-W'+str(w)
-    r = datetime.strptime(d + '-1', "%Y-W%W-%w") + timedelta(days=3.5)
+    r = datetime.strptime(d + '-1', "%Y-W%W-%w") + timedelta(days=4) # Thursday taken as midpoint
     data.loc[i,'DATE']=r
 # convert age groups to pd.IntervalIndex
 age_groups = data['AGE'].unique()
