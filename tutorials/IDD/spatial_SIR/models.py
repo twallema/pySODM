@@ -69,3 +69,83 @@ class spatial_ODE_SIR(ODE):
         dR = 1/gamma*I
 
         return dS, dI, dR
+
+###################
+### Stochastic ###
+###################
+
+
+class spatial_TL_SIR(JumpProcess):
+    """
+    SIR stochastic model with a spatial stratification
+    """
+    states = ['S', 'S_work','I','R']
+    parameters = ['beta','gamma', 'f_v', 'N', 'M']
+    dimensions = ['age', 'location']
+
+
+    @staticmethod
+    def compute_rates(t, S, S_work, I, R, beta, gamma, f_v, N, M):
+
+        # calculate total population 
+        T = S + I + R
+        print("T", T.shape) # 1x2 (nxm)
+        print("M", M.shape) # 2x2 (mxm)
+
+        # compute visiting populations
+        T_v = matmul_2D_3D_matrix(T, M) # M can  be of size (n_loc, n_loc) or (n_loc, n_loc, n_age), representing a different OD matrix in every age group
+        S_v = S_work
+        print("S_v",S_v)
+        I_v = matmul_2D_3D_matrix(I, M)
+        print("I_v",I_v)
+
+        # create a size dummy 
+        G = S.shape[0] # age stratification
+        N = S.shape[1] # spatial stratification
+        size_dummy = np.ones([G,N], np.float64)
+
+        rates = {
+
+            'S': [beta * np.transpose(matmul_2D_3D_matrix(np.transpose(I/T), (1-f_v)*N))], # 
+            'S_work': [beta * np.transpose(matmul_2D_3D_matrix(np.transpose(I_v/T_v), f_v*N))],
+            'I': [size_dummy*(1/gamma)], # 
+
+            }
+        print("rates", rates) # rates {'S': [array([[0.00010778, 0.]])], 'S_work': [array([[1.19760479e-05, 2.35284891e-07]])], 'I': [array([[0.2, 0.2]])]} = OK
+
+        return rates
+    
+
+
+    @ staticmethod
+    def apply_transitionings(t, tau, transitionings, S, S_work, I, R, 
+                             beta, f_v, gamma, 
+                             N, M):
+        
+        ############################
+        ## Update work population ##
+        ############################
+
+        #### RETURN THE Is TO THEIR HOME PATCH 
+        # distribute the number of new infections on visited patch to the home patch 
+        # S_v = matmul_2D_3D_matrix(S, M) # n x m result
+        # S_work_to_home = S * np.transpose(np.atleast_2d(M) @ np.transpose(transitionings['S_work']/S_v))
+        print("S_work", S_work)
+        print("transitionings['S_work']", transitionings['S_work'][0])
+        
+        S_work_to_home = S * np.transpose(np.atleast_2d(M) @ np.transpose(transitionings['S_work'][0]/S_work))
+        # this is an issue when S_work contains a zero [[0 1]] [[1 0]] or even [[0 0]]
+        
+        print("S", S, "S_work_to_home", S_work_to_home)
+        print("transitionings['S']", transitionings['S'])
+        print("transitionings['S'][0]", transitionings['S'][0])
+        ############################
+        ##### CREATE THE NEW VALUES FOR S, Swork, I AND R
+        ############################
+        S_new = S - transitionings['S'][0] - S_work_to_home[0]
+        print("S_new", S_new)
+        S_work_new =  matmul_2D_3D_matrix(S_new, M)
+        I_new = I + transitionings['S'] + S_work_to_home - transitionings['I']
+        R_new = R + transitionings['I']
+        
+        return(S_new,S_work_new, I_new, R_new)

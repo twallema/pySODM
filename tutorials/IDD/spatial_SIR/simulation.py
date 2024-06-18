@@ -80,3 +80,56 @@ plt.show()
 plt.close()
 
 
+
+# helper function
+def matmul_2D_3D_matrix(X, W):
+    """
+    Computes the product of a 2D matrix (size n x m) and a 3D matrix (size m x m x n) as an n-dimensional stack of (1xm) and (m,m) products.
+
+    input
+    =====
+    X: np.ndarray
+        Matrix of size (n,m).
+    W : np.ndarray
+        2D or 3D matrix:
+        - If 2D: Shape (m, m). Expanded to size (m, m, n).
+        - If 3D: Shape (m, m, n).
+          Represents n stacked (m x m) matrices.
+
+    output
+    ======
+    X_out : np.ndarray
+        Matrix product of size (n, m). 
+        Element-wise equivalent operation: O_{ij} = \sum_{l} [ s_{il} * w_{lji} ]
+    """
+    W = np.atleast_3d(W)
+    return np.einsum('ik,kji->ij', X, np.broadcast_to(W, (W.shape[0], W.shape[0], X.shape[0])))
+
+######################
+### initialize model #
+######################
+S_init = np.atleast_2d([500, 5000])
+M = np.array([[0.8, 0.2], [0, 1]])
+S_work_init = matmul_2D_3D_matrix(S_init, M)
+
+coordinates = {'age': ['0+'],  
+               'location': ['A', 'B']
+                }
+init_states = {'S': S_init,    
+               'S_work': np.atleast_2d(S_work_init),
+               'I': np.atleast_2d([1, 0])
+               }
+params = {'beta': 0.03,                                 # infectivity (-)
+          'gamma': 5,                                   # duration of infection (d)
+          'f_v': 0.1,                                   # fraction of total contacts on visited patch
+          'N': np.array([[10, 10],[10, 10]]),           # contact matrix
+          'M': M                                        # origin-destination mobility matrix
+          }
+
+
+from models import spatial_TL_SIR
+model = spatial_TL_SIR(states=init_states, parameters=params, coordinates=coordinates)
+
+##########################
+## Simulate & visualise ##
+##########################
