@@ -11,8 +11,6 @@ __copyright__   = "Copyright (c) 2024 by T.W. Alleman, IDD Group, Johns Hopkins 
 
 import numpy as np
 import matplotlib.pyplot as plt
-import xarray as xr
-
 
 ######################
 ## Initialise model ##
@@ -25,16 +23,15 @@ import xarray as xr
 coordinates = {'age': ['0-25', '25+'],  
                'location': ['A', 'B']  
                 }
-init_states = {'S': np.array([[100, 400], [1000, 4000]]),   
-               'I': np.array([[0.2, 0.8], [0, 0]])
+init_states = {'S': np.array([[100, 1000], [400, 4000]]),   
+               'I': np.array([[0.2, 0], [0.8, 0]])
                }
-params = {'beta': 0.03,                                 # infectivity (-)
+params = {'beta': 0.06,                                 # infectivity (-)
           'gamma': 5,                                   # duration of infection (d)
           'f_v': 0.1,                                   # fraction of total contacts on visited patch
-          'N': np.array([[10, 10],[10, 10]]),           # contact matrix
-          'M': np.array([[0.8, 0.2], [0, 1]])           # origin-destination mobility matrix
+          'N': np.array([[10, 10], [10, 10]]),           # contact matrix
+          'M': np.array([[0.2, 0.8], [0, 1]])           # origin-destination mobility matrix
           }
-
 
 # initialize model
 from models import spatial_ODE_SIR
@@ -65,80 +62,21 @@ plt.tight_layout()
 plt.show()
 plt.close()
 
-
-
-# helper function
-def matmul_2D_3D_matrix(X, W):
-    """
-    Computes the product of a 2D matrix (size n x m) and a 3D matrix (size m x m x n) as an n-dimensional stack of (1xm) and (m,m) products.
-
-    input
-    =====
-    X: np.ndarray
-        Matrix of size (n,m).
-    W : np.ndarray
-        2D or 3D matrix:
-        - If 2D: Shape (m, m). Expanded to size (m, m, n).
-        - If 3D: Shape (m, m, n).
-          Represents n stacked (m x m) matrices.
-
-    output
-    ======
-    X_out : np.ndarray
-        Matrix product of size (n, m). 
-        Element-wise equivalent operation: O_{ij} = \sum_{l} [ s_{il} * w_{lji} ]
-    """
-    W = np.atleast_3d(W)
-    return np.einsum('ik,kji->ij', X, np.broadcast_to(W, (W.shape[0], W.shape[0], X.shape[0])))
-
 ######################
 ### initialize model #
 ######################
-S_init = np.array([[100, 400], [1000, 4000]])
-M = np.array([[0.8, 0.2], [0, 1]])
-S_work_init = matmul_2D_3D_matrix(S_init, M)
 
-coordinates = {'age': ['0-25', '25+'],  
-               'location': ['A', 'B']  
-                }
-
-init_states = {'S': np.array([[100, 400], [1000, 4000]]),    
-               'S_work': np.atleast_2d(S_work_init),
-               'I': np.array([[0.2, 0.8], [0, 0]])
-               }
-params = {'beta': 0.03,                                 # infectivity (-)
-          'gamma': 5,                                   # duration of infection (d)
-          'f_v': 0.1,                                   # fraction of total contacts on visited patch
-          'N': np.array([[10, 10],[10, 10]]),           # contact matrix
-          'M': M                                        # origin-destination mobility matrix
-          }
-
-
-from models import spatial_TL_SIR
+from models import matmul_2D_3D_matrix, spatial_TL_SIR # kan je importeren uit ander python script
+init_states['S_work'] = np.atleast_2d(matmul_2D_3D_matrix(init_states['S'], params['M'])) # vermijd code copieren --> zo ga je plots "onverklaarbare" fouten maken tegen het einde van een script
 model_stoch = spatial_TL_SIR(states=init_states, parameters=params, coordinates=coordinates)
 
-##########################
-## Simulate # repeated simulations
-##########################
+#############
+## Simulate #
+#############
 
 # simulate one single time
-out_stoch = model_stoch.sim(90)
-
-# iterate stochastic simulation n_iter times: 
-simulation_results_TL = [] # list
-n_iter = 50
-
-for i in range(0,n_iter):
-    res_tauLeap = model_stoch.sim(90)  # xarray Dataset size 4
-    # print("res_tauLeap",res_tauLeap)
-    simulation_results_TL.append(res_tauLeap)
-    # print("simulation_results_TL",simulation_results_TL)
-        
-combined_dataset = xr.concat(simulation_results_TL, dim="simulation")
-av_TL = combined_dataset.mean(dim="simulation")
-
-# print(res_tauLeap)
-
+out_stoch = model_stoch.sim(90, N=100)   # repeated simulations zitten ingebouwd in pySODM
+av_TL = out_stoch.mean(dim="draws")     # onder dimensienaam 'draws'
 
 ##########################
 # visualise ODE against TL
@@ -185,11 +123,9 @@ plt.tight_layout(rect=[0, 0, 1, 0.96], h_pad=4.0)  # Increase h_pad to add more 
 plt.show()
 plt.close()
 
-
-
-#######################################
+#############################
 # NOW WITH REDUCED DIMENSIONS 
-#######################################
+#############################
 
 # Exactly the same model without_det age groups
 # Validated the reduction to one spatial unit as well (becomes a plain SIR)
@@ -202,10 +138,10 @@ plt.close()
 coordinates = {'age': ['0+'],  
                'location': ['A', 'B']
                 }
-init_states = {'S': np.atleast_2d([500, 5000]),    
-               'I': np.atleast_2d([1, 0])
+init_states = {'S': np.array([[500, 5000]]),    
+               'I': np.array([[1, 0]])
                }
-params = {'beta': 0.03,                                 # infectivity (-)
+params = {'beta': 0.06,                                 # infectivity (-)
           'gamma': 5,                                   # duration of infection (d)
           'f_v': 0.1,                                   # fraction of total contacts on visited patch
           'N': 20.0,                                    # contact matrix
@@ -222,43 +158,12 @@ out_det = model.sim(90)
 # STOCHASTIC MODEL - no age-groups
 ####################
 
-# INITIALIZE MODEL 
-S_init = np.atleast_2d([500, 5000])
-M = np.array([[0.8, 0.2], [0, 1]])
-S_work_init = matmul_2D_3D_matrix(S_init, M)
-
-coordinates = {'age': ['0+'],  
-               'location': ['A', 'B']
-                }
-init_states = {'S': np.atleast_2d([500, 5000]),    
-               'S_work': np.atleast_2d(S_work_init),
-               'I': np.atleast_2d([1, 0])
-               }
-
-params =  {'beta': 0.03,                                 # infectivity (-)
-          'gamma': 5,                                   # duration of infection (d)
-          'f_v': 0.1,                                   # fraction of total contacts on visited patch
-          'N': 20.0,                                    # contact matrix
-          'M': np.array([[0.8, 0.2], [0, 1]])           # origin-destination mobility matrix
-          }
-
-
-from models import spatial_TL_SIR
+init_states['S_work'] = np.atleast_2d(matmul_2D_3D_matrix(init_states['S'], params['M'])) 
 model_stoch = spatial_TL_SIR(states=init_states, parameters=params, coordinates=coordinates)
 
 # SIMULATE MODEL 
-TL_out = model_stoch.sim(90)
-# iterate stochastic simulation n_iter times: 
-simulation_results_TL = [] # list
-n_iter = 100
-
-for i in range(0,n_iter):
-    res_tauLeap = model_stoch.sim(90)  # xarray Dataset size 4
-    simulation_results_TL.append(res_tauLeap)
-        
-combined_dataset = xr.concat(simulation_results_TL, dim="simulation")
-av_TL = combined_dataset.mean(dim="simulation")
-
+TL_out = model_stoch.sim(90, N=100)
+av_TL = TL_out.mean(dim='draws')
 
 ##########################
 # visualise ODE against TL - no age groups
