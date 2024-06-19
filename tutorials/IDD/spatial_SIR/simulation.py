@@ -247,6 +247,7 @@ from models import spatial_TL_SIR
 model_stoch = spatial_TL_SIR(states=init_states, parameters=params, coordinates=coordinates)
 
 # SIMULATE MODEL 
+TL_out = model_stoch.sim(90)
 # iterate stochastic simulation n_iter times: 
 simulation_results_TL = [] # list
 n_iter = 100
@@ -292,3 +293,5 @@ fig.text(0.5, 0.47, 'Stochastic model - no ages', ha='center', fontsize=16)
 plt.tight_layout(rect=[0, 0, 1, 0.96], h_pad=4.0)  # Increase h_pad to add more space between rows overarching titles
 plt.show()
 plt.close()
+
+# difference between Stochastic and Deterministic is big when removing the age-groups, something is not functioning correctly
