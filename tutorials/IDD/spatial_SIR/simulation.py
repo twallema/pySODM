@@ -26,11 +26,11 @@ coordinates = {'age': ['0-25', '25+'],
 init_states = {'S': np.array([[100, 1000], [400, 4000]]),   
                'I': np.array([[0.2, 0], [0.8, 0]])
                }
-params = {'beta': 0.06,                                 # infectivity (-)
+params = {'beta': 0.03,                                 # infectivity (-)
           'gamma': 5,                                   # duration of infection (d)
           'f_v': 0.1,                                   # fraction of total contacts on visited patch
-          'N': np.array([[10, 10], [10, 10]]),           # contact matrix
-          'M': np.array([[0.2, 0.8], [0, 1]])           # origin-destination mobility matrix
+          'N': np.array([[10, 10], [10, 10]]),          # contact matrix
+          'M': np.array([[0.8, 0.2], [0, 1]])           # origin-destination mobility matrix
           }
 
 # initialize model
@@ -139,9 +139,9 @@ coordinates = {'age': ['0+'],
                'location': ['A', 'B']
                 }
 init_states = {'S': np.array([[500, 5000]]),    
-               'I': np.array([[1, 0]])
+               'I': np.array([[10, 0]])
                }
-params = {'beta': 0.06,                                 # infectivity (-)
+params = {'beta': 0.03,                                 # infectivity (-)
           'gamma': 5,                                   # duration of infection (d)
           'f_v': 0.1,                                   # fraction of total contacts on visited patch
           'N': 20.0,                                    # contact matrix
