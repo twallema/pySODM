@@ -15,20 +15,20 @@ located in `~/tutorials/influenza_1718/`.
 
 ## Data
 
-Data on the weekly incidence of visits to General Practictioners (GP) for Influenza-like illness (ILI) are made publically available by the Belgian Scientific Institute of Public Health (Sciensano). These data were retrieved from the "End of season" report on Influenza in Belgium (see `data/raw/Influenza 2017-2018 End of Season_NL.pdf`). Using [Webplotdigitizer](https://automeris.io/WebPlotDigitizer/), the weekly number of GP visits in the different age groups were extracted (see `data/raw/ILI_weekly_1718.csv`). Then, the script `data_conversion.py` was used to convert the *raw* weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season into a better suited format. The week numbers in the raw dataset were replaced with the date of that week's Thursday, as an approximation of the midpoint of the week. Further, the number of GP visits per 100K inhabitants was converted to the absolute number of GP visits. The formatted data are located in `data/interim/ILI_weekly_100K.csv` and `data/interim/ILI_weekly_100K.csv`.
+Data on the weekly incidence of visits to General Practictioners (GP) are made publically available by the Belgian Scientific Institute of Public Health (Sciensano). These data were retrieved from the "End of season" report on Influenza in Belgium (see `data/raw/Influenza 2017-2018 End of Season_NL.pdf`). Using [Webplotdigitizer](https://automeris.io/WebPlotDigitizer/), the weekly number of GP visits in the different age groups were extracted (see `data/raw/dataset_influenza_1718.csv`). Then, the script `data_conversion.py` was used to convert the *raw* weekly incidence of Influenza cases in Belgium (per 100K inhabitats) during the 2017-2018 Influenza season into a better suited format. The weekly incidence was first converted to the absolute GP visits count by multipying with the demographics. Then, it was assumed that the weekly incidence was the sum of seven equal counts throughout the week preceding the data collection, and hence the weekly data were divided by seven. The formatted data are located in `data/interim/data_influenza_1718_format.csv`.
 
 ![data](/_static/figs/influenza_1718/data.png)
 
-The absolute weekly number of GP visits data are loaded in our calibration script `~/tutorials/influenza_1718/calibration.py` as a `pd.DataFrame` with a `pd.Multiindex`. The weekly number of GP visits is divided by seven to approximate the daily incidence at the week's midpoint (which we'll use to calibrate our model). The `time`/`date` axis in the `pd.DataFrame` is obligatory. The other index names and values are the same as the model's dimensions and coordinates. In this way, pySODM recognizes how model prediction and dataset must be aligned.
+The data are loaded in our calibration script `~/tutorials/influenza_1718/calibration.py` as a `pd.DataFrame` with a `pd.Multiindex`. The `time`/`date` axis is obligatory. The other index names and values are the same as the model's dimensions and coordinates. In this way, pySODM recognizes how model prediction and dataset must be aligned.
 
 ```bash
 date        age_group
-2017-12-01  (0, 5]        15.727305
-            (5, 15]       13.240385
-            (15, 65]     407.778693
-            (65, 120]     32.379271
+2017-11-27  (0, 5]        15.373303
+            (5, 15]       13.462340
+            (15, 65]     409.713333
+            (65, 120]     33.502705
                             ...    
-2018-05-11  (0, 5]         0.000000
+2018-05-07  (0, 5]         0.000000
             (5, 15]        0.000000
             (15, 65]       0.000000
             (65, 120]      0.000000
