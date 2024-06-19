@@ -68,9 +68,6 @@ class spatial_ODE_SIR(ODE):
         dI = (dI_h + dI_v) - 1/gamma*I
         dR = 1/gamma*I
 
-        print("S", S, "I", I, "R", R)
-        print("dS", dS, "dI", dI, "dR, dR")
-
         return dS, dI, dR
 
 ###################
@@ -92,10 +89,9 @@ class spatial_TL_SIR(JumpProcess):
 
         # calculate total population 
         T = S + I + R
-        # print("S", S, "I", I, "R", R)
+
         # compute visiting populations
         T_v = matmul_2D_3D_matrix(T, M) # M can  be of size (n_loc, n_loc) or (n_loc, n_loc, n_age), representing a different OD matrix in every age group
-        S_v = S_work
         I_v = matmul_2D_3D_matrix(I, M)
 
         # create a size dummy 
@@ -121,7 +117,6 @@ class spatial_TL_SIR(JumpProcess):
         
         # distribute the number of new infections on visited patch to the home patch 
         S_work_to_home = S * np.transpose(np.atleast_2d(M) @ np.transpose(transitionings['S_work'][0]/S_work))
-        # print("S_work_to_home", S_work_to_home)
         # the resulting matrix is an N x M matrix with each element of row n, column m representing the total number of people infected from work that need to be returned to age-group n, location m. 
         
         
