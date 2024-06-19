@@ -68,6 +68,9 @@ class spatial_ODE_SIR(ODE):
         dI = (dI_h + dI_v) - 1/gamma*I
         dR = 1/gamma*I
 
+        print("S", S, "I", I, "R", R)
+        print("dS", dS, "dI", dI, "dR, dR")
+
         return dS, dI, dR
 
 ###################
@@ -89,7 +92,7 @@ class spatial_TL_SIR(JumpProcess):
 
         # calculate total population 
         T = S + I + R
-
+        print("S", S, "I", I, "R", R)
         # compute visiting populations
         T_v = matmul_2D_3D_matrix(T, M) # M can  be of size (n_loc, n_loc) or (n_loc, n_loc, n_age), representing a different OD matrix in every age group
         S_v = S_work
@@ -116,21 +119,20 @@ class spatial_TL_SIR(JumpProcess):
                              beta, f_v, gamma, 
                              N, M):
         
-        ############################
-        ## Update work population ##
-        ############################
-
-        #### RETURN THE Is TO THEIR HOME PATCH 
         # distribute the number of new infections on visited patch to the home patch 
         S_work_to_home = S * np.transpose(np.atleast_2d(M) @ np.transpose(transitionings['S_work'][0]/S_work))
-        # this is an issue when S_work contains a zero [[0 1]] [[1 0]] or even [[0 0]]
+        print("S_work_to_home", S_work_to_home)
+        # the resulting matrix is an N x M matrix with each element of row n, column m representing the total number of people infected from work that need to be returned to age-group n, location m. 
         
-        ############################
+        
+        ###################################################
         ##### CREATE THE NEW VALUES FOR S, Swork, I AND R
-        ############################
+        ###################################################
         S_new = S - transitionings['S'][0] - S_work_to_home[0]
+        print("- transitionings S",-transitionings['S'][0],  "- S_work_to_home[0]", -S_work_to_home[0])
         S_work_new =  matmul_2D_3D_matrix(S_new, M)
         I_new = I + transitionings['S'][0] + S_work_to_home[0] - transitionings['I'][0]
+        print("- transitionings I",-transitionings['I'][0])
         R_new = R + transitionings['I'][0]
         
         return(S_new,S_work_new, I_new, R_new)
