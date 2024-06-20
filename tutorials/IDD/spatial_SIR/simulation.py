@@ -59,7 +59,7 @@ ax[1].plot(out_det['time'], out_det['I'].sum(dim='age').sel({'location': 'B'}), 
 ax[1].legend(loc=1, framealpha=1)
 
 plt.tight_layout()
-plt.show()
+# plt.show()
 plt.close()
 
 ######################
@@ -115,13 +115,13 @@ ax[1,1].plot(av_TL['time'], av_TL['I'].sum(dim='age').sel({'location': 'A'}), li
 ax[1,1].plot(av_TL['time'], av_TL['I'].sum(dim='age').sel({'location': 'B'}), linestyle = '-.', color='red', alpha=0.8, label='location B')
 ax[1,1].legend(loc=1, framealpha=1)
 
-fig.text(0.5, 0.95, 'Deterministic model', ha='center', fontsize=16)
-fig.text(0.5, 0.47, 'Stochastic model', ha='center', fontsize=16)
+fig.text(0.5, 0.95, 'Deterministic model - with ages', ha='center', fontsize=16)
+fig.text(0.5, 0.47, 'Stochastic model - with ages', ha='center', fontsize=16)
 
 # Adjust layout to increase spacing between rows and make space for titles
 plt.tight_layout(rect=[0, 0, 1, 0.96], h_pad=4.0)  # Increase h_pad to add more space between rows overarching titles
-plt.show()
-plt.close()
+# plt.show()
+# plt.close()
 
 #############################
 # NOW WITH REDUCED DIMENSIONS 
@@ -197,6 +197,6 @@ fig.text(0.5, 0.47, 'Stochastic model - no ages', ha='center', fontsize=16)
 # Adjust layout to increase spacing between rows and make space for titles
 plt.tight_layout(rect=[0, 0, 1, 0.96], h_pad=4.0)  # Increase h_pad to add more space between rows overarching titles
 plt.show()
-plt.close()
+# plt.close()
 
 # difference between Stochastic and Deterministic is big when removing the age-groups, something is not functioning correctly
