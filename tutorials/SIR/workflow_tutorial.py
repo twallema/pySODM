@@ -171,9 +171,9 @@ if __name__ == '__main__':
     ##############################
 
     # Define draw function
-    def draw_fcn(param_dict, samples_dict):
-        param_dict['beta'] = np.random.choice(samples_dict['beta'])
-        return param_dict
+    def draw_fcn(parameters, samples):
+        parameters['beta'] = np.random.choice(samples_dict['beta'])
+        return parameters
     # Simulate model
     out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add negative binomial observation noise
@@ -205,10 +205,10 @@ if __name__ == '__main__':
             return param/2
 
     # Define draw function
-    def draw_fcn(param_dict, samples_dict):
-        param_dict['beta'] = np.random.choice(samples_dict['beta'])
-        param_dict['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
-        return param_dict
+    def draw_fcn(parameters, samples):
+        parameters['beta'] = np.random.choice(samples_dict['beta'])
+        parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
+        return parameters
 
     # Attach its arguments to the parameter dictionary
     model.parameters.update({'start_measures': end_date})
