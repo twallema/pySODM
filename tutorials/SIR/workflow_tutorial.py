@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
     # Define draw function
     def draw_fcn(parameters, samples):
-        parameters['beta'] = np.random.choice(samples_dict['beta'])
+        parameters['beta'] = np.random.choice(samples['beta'])
         return parameters
     # Simulate model
     out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
     # Define draw function
     def draw_fcn(parameters, samples):
-        parameters['beta'] = np.random.choice(samples_dict['beta'])
+        parameters['beta'] = np.random.choice(samples['beta'])
         parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
         return parameters
 

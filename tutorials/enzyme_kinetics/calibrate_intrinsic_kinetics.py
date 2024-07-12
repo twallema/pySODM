@@ -140,13 +140,13 @@ if __name__ == '__main__':
     ## Visualize result ##
     ######################
 
-    def draw_fcn(param_dict, samples_dict):
-        idx, param_dict['Vf_Ks'] = random.choice(list(enumerate(samples_dict['Vf_Ks'])))
-        param_dict['R_AS'] = samples_dict['R_AS'][idx]
-        param_dict['R_AW'] = samples_dict['R_AW'][idx]
-        param_dict['R_Es'] = samples_dict['R_Es'][idx]
-        param_dict['K_eq'] = samples_dict['K_eq'][idx]
-        return param_dict
+    def draw_fcn(parameters, samples):
+        idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
+        parameters['R_AS'] = samples['R_AS'][idx]
+        parameters['R_AW'] = samples['R_AW'][idx]
+        parameters['R_Es'] = samples['R_Es'][idx]
+        parameters['K_eq'] = samples['K_eq'][idx]
+        return parameters
 
     # Loop over datasets
     for i,df in enumerate(data):

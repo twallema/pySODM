@@ -142,10 +142,10 @@ if __name__ == '__main__':
 
     # Define draw function
     import random
-    def draw_fcn(param_dict, samples_dict):
-        idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
-        param_dict['alpha'] = np.array([slice[idx] for slice in samples_dict['alpha']])
-        return param_dict
+    def draw_fcn(parameters, samples):
+        idx, parameters['beta'] = random.choice(list(enumerate(samples['beta'])))
+        parameters['alpha'] = np.array([slice[idx] for slice in samples['alpha']])
+        return parameters
     # Simulate model
     N = 50
     out = model.sim([start_date, end_date+60], N=N, samples=samples_dict, draw_function=draw_fcn, processes=processes)

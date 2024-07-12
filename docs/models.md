@@ -32,14 +32,14 @@ Upon intialization of the model class, the following arguments must be provided.
 
 * **sim(time, N=1, draw_function=None, samples=None, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1, warmup=0)**
 
-    Simulate a model over a given time period using `scipy.integrate.solve_ivp()`. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`.
+    Simulate a model over a given time period using `scipy.integrate.solve_ivp()`. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every repeated simulation by drawing parameter samples from a dictionary `samples` using a function `draw_function`.
 
     **Parameters**
 
     * **time** - (int/float or list) - The start and stop "time" for the simulation run. Three possible inputs: 1) int/float, 2) list of int/float of type `[start_time, stop_time]`, 3) list of pd.Timestamp or str of type `[start_date, stop_date]`.
     * **N** - (int) - optional - Number of repeated simulations to perform.
-    * **samples** - (dict) - optional - Dictionary containing samples of model parameters. Obligatory input to a *draw function*.   
-    * **draw_function** - (function) - optional - A function consisting of two inputs: the model parameters dictionary `param_dict`, the previously documented samples dictionary `samples_dict`. Function must return the model parameters dictionary `param_dict`. Function can be used to update a model parameter's value during every repeated simulation. Usefull to propagate MCMC samples of model parameters or perform sensitivity analyses.
+    * **samples** - (dict) - optional - Dictionary containing samples of the distribution of model parameters. Obligatory input to a *draw function*. Advanced users: dictionary can contain any arbitrary input to a *draw function*.
+    * **draw_function** - (function) - optional - A function consisting of two inputs: the model parameters dictionary `parameters`, the previously documented samples dictionary `samples`. Function must return the model parameters dictionary `parameters` with its keys unaltered. Function can be used to update a model parameter's value during every repeated simulation. Usefull to propagate MCMC samples of model parameters or perform sensitivity analyses.
     * **processes** - (int) - optional - Number of cores to use when {math}`N > 1`.
     * **method** - (str) - optional - Integration methods of `scipy.integrate.solve_ivp()` (read the [docs](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html)).
     * **rtol** - (int/float) - optional - Relative tolerance of `scipy.integrate.solve_ivp()` (read the [docs](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html)).
@@ -86,8 +86,8 @@ Upon intialization of the model class, the following arguments must be provided.
 
     * **time** - (int/float or list) - The start and stop "time" for the simulation run. Three possible inputs: 1) int/float, 2) list of int/float of type `[start_time, stop_time]`, 3) list of pd.Timestamp or str of type `[start_date, stop_date]`.
     * **N** - (int) - optional - Number of repeated simulations to perform.
-    * **samples** - (dict) - optional - Dictionary containing samples of model parameters. Obligatory input to a *draw function*.   
-    * **draw_function** - (function) - optional - A function consisting of two inputs: the model parameters dictionary `param_dict`, the previously documented samples dictionary `samples_dict`. Function must return the model parameters dictionary `param_dict`. Function can be used to update a model parameter's value during every repeated simulation. Usefull to propagate MCMC samples of model parameters or perform sensitivity analyses.
+    * **samples** - (dict) - optional - Dictionary containing samples of the distribution of model parameters. Obligatory input to a *draw function*. Advanced users: dictionary can contain any arbitrary input to a *draw function*.
+    * **draw_function** - (function) - optional - A function consisting of two inputs: the model parameters dictionary `parameters`, the previously documented samples dictionary `samples`. Function must return the model parameters dictionary `parameters`. Function can be used to update a model parameter's value during every repeated simulation. Usefull to propagate MCMC samples of model parameters or perform sensitivity analyses.
     * **processes** - (int) - optional - Number of cores to use when {math}`N > 1`.
     * **method** - (str) - optional - 'SSA': Stochastic Simulation Algorithm. 'tau-leap': Tau-leaping algorithm. Consult the following [blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
     * **tau** - (int/float) - optional - Leap value of the tau-leaping method. Consult the following [blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.

@@ -85,8 +85,13 @@ def validate_draw_function(draw_function, parameters, samples):
 
     sig = inspect.signature(draw_function)
     keywords = list(sig.parameters.keys())
-    # Verify that names of draw function are param_dict, samples_dict
-    if ((len(keywords) != 2) | (keywords[0] != "parameters") | (keywords[1] != "samples")):
+    # Verify that names of draw function input args are 'parameters' and 'samples
+    if len(keywords) != 2:
+        raise ValueError(
+            f"Your draw function '{draw_function.__name__}' must have 'parameters' and 'samples' as the names of its inputs. Its current inputs are named: {keywords}"
+        )
+    else:
+        if (keywords[0] != "parameters") | (keywords[1] != "samples"):
             raise ValueError(
             f"Your draw function '{draw_function.__name__}' must have 'parameters' and 'samples' as the names of its inputs. Its current inputs are named: {keywords}"
         )
