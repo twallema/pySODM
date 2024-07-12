@@ -217,11 +217,11 @@ if __name__ == '__main__':
     ######################
  
     # Define draw function
-    def draw_fcn(param_dict, samples_dict):
+    def draw_fcn(parameters, samples):
         # Sample model parameters
-        idx, param_dict['beta'] = random.choice(list(enumerate(samples_dict['beta'])))
-        param_dict['f_ud'] = np.array([slice[idx] for slice in samples_dict['f_ud']])
-        return param_dict
+        idx, parameters['beta'] = random.choice(list(enumerate(samples['beta'])))
+        parameters['f_ud'] = np.array([slice[idx] for slice in samples['f_ud']])
+        return parameters
     # Simulate model
     out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
     # Add negative binomial observation noise

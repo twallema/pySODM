@@ -236,20 +236,30 @@ class SIR(JumpProcess):
 
 ## Advanced simulation features
 
-### Draw function
+### Draw functions
 
-The `sim()` method of `ODE` and `JumpProcess` can be used to perform {math}`N` repeated simulations (keyword `N`). Additionally a *draw function* can be used to update model parameters during every run. A draw function to randomly draw `gamma` from a uniform simulation before every run is implemented as follows,
+The `sim()` method of the `ODE` and `JumpProcess` classes can be used to perform {math}`N` repeated simulations by using the optional argument `N`. A *draw function* can be used to alter the value of a model parameters during consecutive model runs by drawing them rrandomly from a list of samples, thereby offering a powerful tool for sensitivity analysis and uncertainty propagation.
+
+Draw functions **always** take two dictionaries as input: 1) The dictionary of model parameters, 2) A dictionary containing samples of a model parameter. Assuming we have a list containing 100 samples of the parameter `gamma`, drawn randomly from 0 to 5,
 
 ```python
-def draw_function(param_dict, samples_dict):
-    param_dict['gamma'] = np.random.uniform(low=1, high=5)
-    return param_dict
+# make an example of a dictionary containing parameter samples
+samples_dict = {'gamma': np.random.uniform(low=0, high=5, n=100)}
 
-out = model.sim(121, N=10, draw_function=draw_function, samples={})
+# define a 'draw function'
+def draw_function(parameters, samples):
+    """ randomly selects a sample of 'gamma' from the provided dictionary of samples and
+        assigns it to the dictionary of model parameters
+    """
+    parameters['gamma'] = np.random.choice(samples['gamma'])
+    return parameters
+
+# simulate 10 trajectories, exploit 10 cores to speed up the computation
+out = model.sim(121, N=10, draw_function=draw_function, samples=samples_dict, processes=10)
 print(out)   
 ```
 
-An additional dimension `'draws'` has been added to the `xarray.Dataset` to accomodate the results of the repeated simulations.
+An additional dimension `'draws'` will be added to the `xarray.Dataset` to accomodate the results of the repeated simulations.
 
 ```bash
 <xarray.Dataset>
@@ -264,9 +274,24 @@ Data variables:
     R           (draws, age_groups, time) float64 0.0 0.3439 ... 684.0 684.0
 ```
 
-### Time-dependent parameter function
+This example is more easily coded up by drawing the random values within the *draw function*,
 
-Parameters can also be varied through the course of one simulation using a *time-dependent parameter function*, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments (including other model parameters).
+```python
+# define a 'draw function'
+def draw_function(parameters, samples):
+    parameters['gamma'] = np.random.uniform(low=0, high=5)
+    return parameters
+
+# simulate the model
+out = model.sim(121, N=10, draw_function=draw_function, samples={})
+```
+**_NOTE_** Internally, a call to `draw_function` is made within the `sim()` function, where it is given the dictionary of model parameters and the input argument `samples` of the `sim()` function.
+
+**_NOTE:_** Technically, you can supply any input you'd like to a *draw function* by exploiting its `samples` dictionary input. Aside from its name and type, `samples` is not subject to any input checks.
+
+### Time-dependent parameter functions
+
+Parameters can also be varied through the course of one simulation using a *time-dependent parameter function* (TDPF), which can be an arbitrarily complex function. A time-dependent parameter function **always** has the current timestep (`t`), the dictionary containing the model states (`states`) at time `t`, and the original value of the parameter it is applied to (`param`) as its inputs. Additionally, the function can take any number of additional user-defined arguments (including other model parameters).
 
 ```python
 def vary_my_parameter(t, states, param, an_additional_parameter):
@@ -278,7 +303,7 @@ def vary_my_parameter(t, states, param, an_additional_parameter):
     return param
 ```
 
-All we need to do is use the `time_dependent_parameters` keyword to declare the parameter our function should be applied to. Additionally, `an_additional_parameter` should be added to the parameters dictionary.
+When initialising the model, all we need to do is use the `time_dependent_parameters` keyword to declare what parameter our TDPF should be applied to. Additional parameters introduced in TDPFs, in this example `an_additional_parameter`, should be added to the parameters dictionary.
 
 ```python
 model = SIR(states={'S': 1000, 'I': 1},

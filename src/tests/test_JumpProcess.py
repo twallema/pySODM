@@ -509,26 +509,49 @@ def test_draw_function():
     initial_states = {"S": [600_000 - 20, 400_000 - 10], "I": [20, 10]}
     coordinates = {'age_groups': ['0-20','20-120']}
 
-    # draw function
-    def draw_function(param_dict, samples_dict):
-        return param_dict
-
+    # correct draw function
+    def draw_function(parameters, samples):
+        return parameters
     # simulate model
     time = [0, 10]
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
     output = model.sim(time, draw_function=draw_function, samples={}, N=5)
-
     # assert dimension 'draws' is present in output
     assert 'draws' in list(output.sizes.keys())
 
-    # wrong draw function
-    def draw_function(pardict, samples):
-        return pardict
-    
+    # wrong draw function: not enough input arguments
+    def draw_function(parameters):
+        return parameters
     # simulate model
     time = [0, 10]
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-    with pytest.raises(ValueError, match="The first parameter of a draw function should be"):
+    with pytest.raises(ValueError, match="Your draw function 'draw_function' must have 'parameters' and 'samples' as the names of its inputs."):
         model.sim(time, draw_function=draw_function, samples={}, N=5)
 
+    # wrong draw function: input arguments switched
+    def draw_function(samples, parameters):
+        return parameters
+    # simulate model
+    time = [0, 10]
+    model = SIRstratified(initial_states, parameters, coordinates=coordinates)
+    with pytest.raises(ValueError, match="Your draw function 'draw_function' must have 'parameters' and 'samples' as the names of its inputs."):
+        model.sim(time, draw_function=draw_function, samples={}, N=5)
     
+    # wrong draw function: too many input arguments
+    def draw_function(parameters, samples, blublabliblu):
+        return parameters
+    # simulate model
+    time = [0, 10]
+    model = SIRstratified(initial_states, parameters, coordinates=coordinates)
+    with pytest.raises(ValueError, match="Your draw function 'draw_function' must have 'parameters' and 'samples' as the names of its inputs."):
+        model.sim(time, draw_function=draw_function, samples={}, N=5)
+
+    # wrong draw function: put a new keys in model parameters dictionary that doesn't represent a model parameter
+    def draw_function(parameters, samples):
+        parameters['bliblublo'] = 5
+        return parameters
+    # simulate model
+    time = [0, 10]
+    model = SIRstratified(initial_states, parameters, coordinates=coordinates)
+    with pytest.raises(ValueError, match="Keys in output dictionary of draw function 'draw_function' must match the keys in input dictionary 'parameters'."):
+        model.sim(time, draw_function=draw_function, samples={}, N=5)

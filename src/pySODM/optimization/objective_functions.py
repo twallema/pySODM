@@ -158,8 +158,8 @@ def log_prior_custom(x, args):
 
     Example use:
     ------------
-    # Posterior of 'my_par' in samples_dict['my_par']
-    density_my_par, bins_my_par = np.histogram(samples_dict['my_par'], bins=20, density=True)
+    # Posterior of 'my_par' in samples['my_par']
+    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=20, density=True)
     density_my_par_norm = density_my_par/np.sum(density_my_par)
     prior_fcn = prior_custom
     prior_fcn_args = (density_my_par_norm, bins_my_par, weight)
