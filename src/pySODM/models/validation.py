@@ -61,22 +61,34 @@ def validate_simulation_time(time, warmup):
     return time, actual_start_date
 
 def validate_draw_function(draw_function, parameters, samples):
-    """Validates the draw functions input and output. For use in the sim() function. """
+    """Validates the draw functions input and output. For use in the sim() functions of the ODE and JumpProcess classes (base.py).
+    
+    input
+    -----
+
+    draw_function: function
+        a function used to alter the values of model parameters between consecutive simulations
+    
+    parameters: dict
+        the dictionary of model parameters
+    
+    samples: dict
+        a dictionary containing samples of model parameters; dictionary can technically contain anything you'd like
+        # TODO: perhaps change to more generic 'draw_function_kwargs'
+    
+    output
+    ------
+    
+    parameters: dict
+        an updated dictionary of model parameters
+    """
 
     sig = inspect.signature(draw_function)
     keywords = list(sig.parameters.keys())
     # Verify that names of draw function are param_dict, samples_dict
-    if keywords[0] != "param_dict":
-        raise ValueError(
-            f"The first parameter of a draw function should be 'param_dict'. Current first parameter: {keywords[0]}"
-        )
-    elif keywords[1] != "samples_dict":
-        raise ValueError(
-            f"The second parameter of a draw function should be 'samples_dict'. Current second parameter: {keywords[1]}"
-        )
-    elif len(keywords) > 2:
-        raise ValueError(
-            f"A draw function can only have two input arguments: 'param_dict' and 'samples_dict'. Current arguments: {keywords}"
+    if ((len(keywords) != 2) | (keywords[0] != "parameters") | (keywords[1] != "samples")):
+            raise ValueError(
+            f"Your draw function '{draw_function.__name__}' must have 'parameters' and 'samples' as the names of its inputs. Its current inputs are named: {keywords}"
         )
     # Call draw function
     cp_draws=copy.deepcopy(parameters)
@@ -88,8 +100,8 @@ def validate_draw_function(draw_function, parameters, samples):
         )
     if set(d.keys()) != set(parameters.keys()):
         raise ValueError(
-            "Keys of model parameters dictionary returned by draw function do not match with the original dictionary.\n"
-            "Missing keys: {0}. Redundant keys: {1}".format(set(parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(parameters.keys())))
+            f"Keys in output dictionary of draw function '{draw_function}' must match the keys in input dictionary 'parameters'.\n"
+            "Missing keys in output dict: {0}. Redundant keys in output dict: {1}".format(set(parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(parameters.keys())))
         )
 
 def fill_initial_state_with_zero(state_names, initial_states):
@@ -243,8 +255,8 @@ def validate_initial_states(state_shapes, initial_states):
     Automatically assumes non-specified states are equal to zero.
     All allowed input types converted to np.float64.
 
-    Parameters
-    ----------
+    input
+    -----
 
     state_shapes: dict
         Contains the shape of every model state.
@@ -252,8 +264,8 @@ def validate_initial_states(state_shapes, initial_states):
     initial_states: dict
         Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
 
-    Returns
-    -------
+    output
+    ------
     
     initial_states: dict
         Dictionary containing the model's validated initial states.
