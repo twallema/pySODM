@@ -61,7 +61,7 @@ def validate_simulation_time(time, warmup):
     return time, actual_start_date
 
 def validate_draw_function(draw_function, parameters, samples):
-    """Validates the draw functions input and output. For use in the sim() functions of the ODE and JumpProcess classes (base.py).
+    """Validates the draw function's input and output. For use in the sim() functions of the ODE and JumpProcess classes (base.py).
     
     input
     -----
