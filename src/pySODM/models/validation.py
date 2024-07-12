@@ -100,7 +100,7 @@ def validate_draw_function(draw_function, parameters, samples):
         )
     if set(d.keys()) != set(parameters.keys()):
         raise ValueError(
-            f"Keys in output dictionary of draw function '{draw_function}' must match the keys in input dictionary 'parameters'.\n"
+            f"Keys in output dictionary of draw function '{draw_function.__name__}' must match the keys in input dictionary 'parameters'.\n"
             "Missing keys in output dict: {0}. Redundant keys in output dict: {1}".format(set(parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(parameters.keys())))
         )
 

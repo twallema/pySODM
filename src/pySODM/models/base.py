@@ -400,7 +400,7 @@ class JumpProcess:
             Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function with as obligatory inputs the dictionary of model parameters and a dictionary of samples
+            A function with as obligatory inputs the dictionary of model parameters 'parameters' and a dictionary of parameter samples 'samples' (can actually contain whatever you'd like as long as its a dict)
             The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
             Usefull to propagate uncertainty, perform sensitivity analysis.
 
