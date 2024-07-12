@@ -56,8 +56,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#set-up-an-ode-model-with-multiple-dimensions">Set up an ODE model with multiple dimensions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#set-up-a-dimensionless-stochastic-jump-process-model">Set up a dimensionless stochastic jump process Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#advanced-simulation-features">Advanced simulation features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#draw-function">Draw function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#time-dependent-parameter-function">Time-dependent parameter function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#draw-functions">Draw functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#time-dependent-parameter-functions">Time-dependent parameter functions</a></li>
 </ul>
 </li>
 </ul>
@@ -324,18 +324,27 @@ Data<span class="w"> </span>variables:
 </section>
 <section id="advanced-simulation-features">
 <h2>Advanced simulation features<a class="headerlink" href="#advanced-simulation-features" title="Link to this heading">¶</a></h2>
-<section id="draw-function">
-<h3>Draw function<a class="headerlink" href="#draw-function" title="Link to this heading">¶</a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method of <code class="docutils literal notranslate"><span class="pre">ODE</span></code> and <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> can be used to perform <span class="math notranslate nohighlight">\(N\)</span> repeated simulations (keyword <code class="docutils literal notranslate"><span class="pre">N</span></code>). Additionally a <em>draw function</em> can be used to update model parameters during every run. A draw function to randomly draw <code class="docutils literal notranslate"><span class="pre">gamma</span></code> from a uniform simulation before every run is implemented as follows,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">draw_function</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span> <span class="n">samples_dict</span><span class="p">):</span>
-    <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">param_dict</span>
+<section id="draw-functions">
+<h3>Draw functions<a class="headerlink" href="#draw-functions" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method of the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> and <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> classes can be used to perform <span class="math notranslate nohighlight">\(N\)</span> repeated simulations by using the optional argument <code class="docutils literal notranslate"><span class="pre">N</span></code>. A <em>draw function</em> can be used to alter the value of a model parameters during consecutive model runs by drawing them rrandomly from a list of samples, thereby offering a powerful tool for sensitivity analysis and uncertainty propagation.</p>
+<p>Draw functions <strong>always</strong> take two dictionaries as input: 1) The dictionary of model parameters, 2) A dictionary containing samples of a model parameter. Assuming we have a list containing 100 samples of the parameter <code class="docutils literal notranslate"><span class="pre">gamma</span></code>, drawn randomly from 0 to 5,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># make an example of a dictionary containing parameter samples</span>
+<span class="n">samples_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">100</span><span class="p">)}</span>
 
-<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_function</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="p">{})</span>
+<span class="c1"># define a &#39;draw function&#39;</span>
+<span class="k">def</span> <span class="nf">draw_function</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; randomly selects a sample of &#39;gamma&#39; from the provided dictionary of samples and</span>
+<span class="sd">        assigns it to the dictionary of model parameters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">parameters</span>
+
+<span class="c1"># simulate 10 trajectories, exploit 10 cores to speed up the computation</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_function</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples_dict</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>   
 </pre></div>
 </div>
-<p>An additional dimension <code class="docutils literal notranslate"><span class="pre">'draws'</span></code> has been added to the <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code> to accomodate the results of the repeated simulations.</p>
+<p>An additional dimension <code class="docutils literal notranslate"><span class="pre">'draws'</span></code> will be added to the <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code> to accomodate the results of the repeated simulations.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
 Dimensions:<span class="w">     </span><span class="o">(</span>time:<span class="w"> </span><span class="m">122</span>,<span class="w"> </span>age_groups:<span class="w"> </span><span class="m">4</span>,<span class="w"> </span>draws:<span class="w"> </span><span class="m">10</span><span class="o">)</span>
 Coordinates:
@@ -348,10 +357,22 @@ Data<span class="w"> </span>variables:
 <span class="w">    </span>R<span class="w">           </span><span class="o">(</span>draws,<span class="w"> </span>age_groups,<span class="w"> </span><span class="nb">time</span><span class="o">)</span><span class="w"> </span>float64<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">0</span>.3439<span class="w"> </span>...<span class="w"> </span><span class="m">684</span>.0<span class="w"> </span><span class="m">684</span>.0
 </pre></div>
 </div>
+<p>This example is more easily coded up by drawing the random values within the <em>draw function</em>,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># define a &#39;draw function&#39;</span>
+<span class="k">def</span> <span class="nf">draw_function</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parameters</span>
+
+<span class="c1"># simulate the model</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_function</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="p">{})</span>
+</pre></div>
+</div>
+<p><strong><em>NOTE</em></strong> Internally, a call to <code class="docutils literal notranslate"><span class="pre">draw_function</span></code> is made within the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function, where it is given the dictionary of model parameters and the input argument <code class="docutils literal notranslate"><span class="pre">samples</span></code> of the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function.</p>
+<p><strong><em>NOTE:</em></strong> Technically, you can supply any input you’d like to a <em>draw function</em> by exploiting its <code class="docutils literal notranslate"><span class="pre">samples</span></code> dictionary input. Aside from its name and type, <code class="docutils literal notranslate"><span class="pre">samples</span></code> is not subject to any input checks.</p>
 </section>
-<section id="time-dependent-parameter-function">
-<h3>Time-dependent parameter function<a class="headerlink" href="#time-dependent-parameter-function" title="Link to this heading">¶</a></h3>
-<p>Parameters can also be varied through the course of one simulation using a <em>time-dependent parameter function</em>, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments (including other model parameters).</p>
+<section id="time-dependent-parameter-functions">
+<h3>Time-dependent parameter functions<a class="headerlink" href="#time-dependent-parameter-functions" title="Link to this heading">¶</a></h3>
+<p>Parameters can also be varied through the course of one simulation using a <em>time-dependent parameter function</em> (TDPF), which can be an arbitrarily complex function. A time-dependent parameter function <strong>always</strong> has the current timestep (<code class="docutils literal notranslate"><span class="pre">t</span></code>), the dictionary containing the model states (<code class="docutils literal notranslate"><span class="pre">states</span></code>) at time <code class="docutils literal notranslate"><span class="pre">t</span></code>, and the original value of the parameter it is applied to (<code class="docutils literal notranslate"><span class="pre">param</span></code>) as its inputs. Additionally, the function can take any number of additional user-defined arguments (including other model parameters).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">vary_my_parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">an_additional_parameter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A function to vary a model parameter during a simulation&quot;&quot;&quot;</span>
 
@@ -361,7 +382,7 @@ Data<span class="w"> </span>variables:
     <span class="k">return</span> <span class="n">param</span>
 </pre></div>
 </div>
-<p>All we need to do is use the <code class="docutils literal notranslate"><span class="pre">time_dependent_parameters</span></code> keyword to declare the parameter our function should be applied to. Additionally, <code class="docutils literal notranslate"><span class="pre">an_additional_parameter</span></code> should be added to the parameters dictionary.</p>
+<p>When initialising the model, all we need to do is use the <code class="docutils literal notranslate"><span class="pre">time_dependent_parameters</span></code> keyword to declare what parameter our TDPF should be applied to. Additional parameters introduced in TDPFs, in this example <code class="docutils literal notranslate"><span class="pre">an_additional_parameter</span></code>, should be added to the parameters dictionary.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
             <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;an_additional_parameter&#39;</span><span class="p">:</span> <span class="n">anything_you_want</span><span class="p">},</span>
             <span class="n">time_dependent_parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="n">vary_my_parameter</span><span class="p">})</span>
