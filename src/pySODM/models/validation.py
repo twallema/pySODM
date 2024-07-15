@@ -83,9 +83,14 @@ def validate_draw_function(draw_function, parameters, samples):
         an updated dictionary of model parameters
     """
 
+    # check if it is a function
+    if not callable(draw_function):
+        raise TypeError(
+            f"a 'draw function' must be callable (a function)"
+        )
+    # verify that names of draw function input args are 'parameters' and 'samples
     sig = inspect.signature(draw_function)
     keywords = list(sig.parameters.keys())
-    # Verify that names of draw function input args are 'parameters' and 'samples
     if len(keywords) != 2:
         raise ValueError(
             f"Your draw function '{draw_function.__name__}' must have 'parameters' and 'samples' as the names of its inputs. Its current inputs are named: {keywords}"
@@ -95,7 +100,7 @@ def validate_draw_function(draw_function, parameters, samples):
             raise ValueError(
             f"Your draw function '{draw_function.__name__}' must have 'parameters' and 'samples' as the names of its inputs. Its current inputs are named: {keywords}"
         )
-    # Call draw function
+    # call draw function and check its outputs
     cp_draws=copy.deepcopy(parameters)
     d = draw_function(parameters, samples)
     parameters = cp_draws

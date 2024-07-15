@@ -755,7 +755,7 @@ class ODE:
         
         # Provinding 'N' but no draw function: wastefull
         if ((N != 1) & (draw_function==None)):
-            raise ValueError('performing N={0} repeated simulations without a `draw_function` is mighty wastefull of computational resources'.format(N))
+            raise ValueError('performing N={0} repeated simulations without using a `draw_function` is wastefull of computational resources'.format(N))
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
