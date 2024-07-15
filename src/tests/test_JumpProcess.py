@@ -519,6 +519,12 @@ def test_draw_function():
     # assert dimension 'draws' is present in output
     assert 'draws' in list(output.sizes.keys())
 
+    # wrong draw function: not a function
+    time = [0, 10]
+    model = SIRstratified(initial_states, parameters, coordinates=coordinates)
+    with pytest.raises(TypeError, match="a 'draw function' must be callable"):
+        model.sim(time, draw_function='bliblablu', samples={}, N=5)
+
     # wrong draw function: not enough input arguments
     def draw_function(parameters):
         return parameters
