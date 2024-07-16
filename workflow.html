@@ -498,17 +498,9 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
                      <span class="n">time_dependent_parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="n">lower_infectivity</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>However, we would like to simulate that the reduction of the infectivity is not instantaneous but is gradual. This can be accomplished by extending our draw function to sample the start of the measures from a triangular distribution.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define draw function</span>
-<span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">ramp_length</span><span class="p">):</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;start_measures&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">right</span><span class="o">=</span><span class="n">ramp_length</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">parameters</span>
-</pre></div>
-</div>
 <p>Next, we compare the simulations with and without the use of our time-dependent model parameter function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Simulate the model</span>
-<span class="n">out_with</span> <span class="o">=</span> <span class="n">model_with</span><span class="o">.</span><span class="n">sim</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="mi">28</span><span class="p">)],</span> <span class="n">N</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_fcn</span><span class="p">,</span> <span class="n">draw_function_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;samples&#39;</span><span class="p">:</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">],</span> <span class="s1">&#39;ramp_length&#39;</span><span class="p">:</span> <span class="mi">21</span><span class="p">}</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">)</span>
+<span class="n">out_with</span> <span class="o">=</span> <span class="n">model_with</span><span class="o">.</span><span class="n">sim</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="mi">28</span><span class="p">)],</span> <span class="n">N</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_fcn</span><span class="p">,</span> <span class="n">draw_function_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;samples&#39;</span><span class="p">:</span> <span class="n">samples_dict</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]}</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">)</span>
 
 <span class="c1"># Add negative binomial observation noise</span>
 <span class="n">out_with</span> <span class="o">=</span> <span class="n">add_negative_binomial_noise</span><span class="p">(</span><span class="n">out_with</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
@@ -531,24 +523,24 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <p><img alt="scenario" src="_images/scenario.png" /></p>
 <p>However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem in two ways using pySODM,</p>
 <ul class="simple">
-<li><p>Implementing a ramp function to lower the infectivity in our time-dependent model parameter function,</p></li>
+<li><p>Implementing a ramp function to gradually lower the infectivity in our time-dependent model parameter function,</p></li>
 <li><p>Using <em>draw functions</em> to sample <code class="docutils literal notranslate"><span class="pre">start_measures</span></code> stochastically in every simulation. We’ll demonstrate this option.</p></li>
 </ul>
-<p>To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. All we have to do is add one line to the draw function,</p>
+<p>To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of <code class="docutils literal notranslate"><span class="pre">ramp_length</span></code> days. All we have to do is add one line to the draw function,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define draw function</span>
-<span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">])</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;start_measures&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">right</span><span class="o">=</span><span class="mi">21</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">ramp_length</span><span class="p">):</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;start_measures&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">right</span><span class="o">=</span><span class="n">ramp_length</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">parameters</span>
 </pre></div>
 </div>
-<p>Gradually adopting the preventive measures results in a more realistic simulation,</p>
+<p>Don’t forget to add the new parameter <code class="docutils literal notranslate"><span class="pre">ramp_length</span></code> to the dictionary of <code class="docutils literal notranslate"><span class="pre">draw_function_kwargs</span></code> when simulating the model! Gradually adopting the preventive measures results in a more realistic simulation,</p>
 <p><img alt="scenario_gradual" src="_images/scenario_gradual.png" /></p>
 </section>
 </section>
 <section id="conclusion">
 <h2>Conclusion<a class="headerlink" href="#conclusion" title="Link to this heading">¶</a></h2>
-<p>I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions so this example was very rudimentary. pySODM allows to tackle much more convoluted problems across different fields. However, the basic syntax of our workflow remains practically unchanged. I illustrate this with the following tutorials,</p>
+<p>I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions (0-dimensional) so this example was very rudimentary. However, pySODM allows to tackle higher-dimensional problems using the same basic syntax. This allows to tackle complex problems in different scientific disciplines, I illustrate this with the following tutorials,</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Case study</p></th>
@@ -557,16 +549,19 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Enzyme kinetics: intrinsic kinetics</p></td>
-<td><p>Dimensionless ODE model. Calibration to multiple datasets with changing initial conditions.</p></td>
+<td><p>Calibration of a model to multiple datasets with changing initial conditions.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Enzyme kinetics: 1D Plug-Flow Reactor</p></td>
-<td><p>Use the method of lines to discretise a PDE model into an ODE model with one dimension.</p></td>
+<td><p>Use the method of lines to discretise a PDE model into an ODE model and simulate it using pySODM.</p></td>
 </tr>
 <tr class="row-even"><td><p>Influenza 2017-2018</p></td>
-<td><p>stochastic jump process model with one dimension. Calibration of a 1D model parameters on a 1D dataset.</p></td>
+<td><p>Stochastic jump process epidemiological model with age groups (1D model). Calibration of a 1D model parameter to a 1D dataset.</p></td>
 </tr>
-<tr class="row-odd"><td><p>SIR-SI Model (see <code class="docutils literal notranslate"><span class="pre">~/tutorials/SIR_SI/</span></code>)</p></td>
+<tr class="row-odd"><td><p>SIR-SI Model</p></td>
 <td><p>ODE model where states have different dimensions and thus different shapes.</p></td>
+</tr>
+<tr class="row-even"><td><p>Spatial SIR model</p></td>
+<td><p>(Coming soon) An epidemiological model with age and space stratification (2D model).</p></td>
 </tr>
 </tbody>
 </table>
