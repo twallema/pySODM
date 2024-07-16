@@ -378,11 +378,11 @@ class JumpProcess:
         self.parameters.update(drawn_parameters)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, processes=None, method='tau_leap', tau=0.5, output_timestep=1):
+    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=0.5, output_timestep=1):
 
         """
-        Run a model simulation for the given time period. Can optionally perform N repeated simulations of time days.
-        Can change the values of model parameters at every repeated simulation by drawing samples from a dictionary `samples` using a function `draw_function`
+        Simulate a model during a given time period.
+        Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
 
         Parameters
         ----------
@@ -400,12 +400,11 @@ class JumpProcess:
             Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function with as obligatory inputs the dictionary of model parameters 'parameters' and a dictionary of parameter samples 'samples' (can actually contain whatever you'd like as long as its a dict)
-            The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
-            Usefull to propagate uncertainty, perform sensitivity analysis.
+            A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
+            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs
 
-        samples : dictionary
-            Sample dictionary used by `draw_function`.
+        draw_function_kwargs : dictionary
+            A dictionary containing the input arguments of the draw function, excluding its obligatory input 'parameters'
 
         processes: int
             Number of cores to distribute the `N` draws over
@@ -436,13 +435,17 @@ class JumpProcess:
             raise TypeError(
                 "discrete timestep 'tau' must be of type int or float"
                 )
-
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
-
-        # Input check on draw function
+        # Input checks related to draw functions
         if draw_function:
-            validate_draw_function(draw_function, self.parameters, samples)
+            # validate function
+            validate_draw_function(draw_function, draw_function_kwargs, self.parameters)
+            # function provided but N=1 --> user likely forgot 'N'
+            if N == 1:
+                raise ValueError(
+                    "you specified a draw function but N=1, have you forgotten 'N'?"
+                )
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
@@ -452,7 +455,7 @@ class JumpProcess:
             cp_draws=copy.deepcopy(self.parameters)        
             if draw_function:
                 out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_function(self.parameters,samples))
+                out.update(draw_function(self.parameters,**draw_function_kwargs))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
@@ -681,9 +684,11 @@ class ODE:
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, samples=None, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1):
+    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1):
         """
-        Run a model simulation for a given time period. Can optionally perform `N` repeated simulations with sampling of model parameters from a dictionary `samples` using a function `draw_function`. Can perform discrete timestepping if `tau != None`.
+        Simulate a model during a given time period.
+        Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
+        Can perform discrete timestepping by specifying `tau != None`.
 
         Parameters
         ----------
@@ -701,12 +706,11 @@ class ODE:
             Number of repeated simulations (default: 1)
 
         draw_function : function
-            A function with as obligatory inputs the dictionary of model parameters and a dictionary of samples
-            The function can alter parameters in the model parameters dictionary between repeated simulations `N`.
-            Usefull to propagate uncertainty, perform sensitivity analysis.
+            A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
+            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs
 
-        samples : dictionary
-            Sample dictionary used by `draw_function`.
+        draw_function_kwargs : dictionary
+            A dictionary containing the input arguments of the draw function, excluding its obligatory input 'parameters'
 
         processes: int
             Number of cores to distribute the `N` draws over.
@@ -745,27 +749,30 @@ class ODE:
                 raise TypeError(
                     "discrete timestep 'tau' must be of type int or float"
                 )
-
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
-
-        # Input check on draw function
+        # Input checks related to draw functions
         if draw_function:
-            validate_draw_function(draw_function, self.parameters, samples)
-        
-        # Provinding 'N' but no draw function: wastefull
+            # validate function
+            validate_draw_function(draw_function, draw_function_kwargs, self.parameters)
+            # function provided but N=1 --> user likely forgot 'N'
+            if N == 1:
+                raise ValueError(
+                    "you specified a draw function but N=1, have you forgotten 'N'?"
+                )
+        # provinding 'N' but no draw function: wasteful of resources
         if ((N != 1) & (draw_function==None)):
-            raise ValueError('performing N={0} repeated simulations without using a `draw_function` is wastefull of computational resources'.format(N))
+            raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
 
+        # Construct list of drawn dictionaries
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
-        # Construct list of drawn dictionaries
         drawn_dictionaries=[]
         for n in range(N):
             cp_draws=copy.deepcopy(self.parameters)
             if draw_function:
                 out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_function(self.parameters,samples))
+                out.update(draw_function(self.parameters,**draw_function_kwargs))
                 drawn_dictionaries.append(out)
             else:
                 drawn_dictionaries.append({})
