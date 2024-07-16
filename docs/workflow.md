@@ -413,21 +413,11 @@ model_with = ODE_SIR(states=init_states, parameters=model.parameters,
                      time_dependent_parameters={'beta': lower_infectivity})
 ```
 
-However, we would like to simulate that the reduction of the infectivity is not instantaneous but is gradual. This can be accomplished by extending our draw function to sample the start of the measures from a triangular distribution. 
-
-```python
-# Define draw function
-def draw_fcn(parameters, samples, ramp_length):
-    parameters['beta'] = np.random.choice(samples)
-    parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=ramp_length))
-    return parameters
-```
-
 Next, we compare the simulations with and without the use of our time-dependent model parameter function.
 
 ```python
 # Simulate the model
-out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict['beta'], 'ramp_length': 21} processes=processes)
+out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict['beta']} processes=processes)
 
 # Add negative binomial observation noise
 out_with = add_negative_binomial_noise(out_with, alpha)
@@ -451,30 +441,31 @@ As we could reasonably expect, if we could implement some form of preventive mea
 ![scenario](/_static/figs/workflow/scenario.png)
 
 However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem in two ways using pySODM,
-- Implementing a ramp function to lower the infectivity in our time-dependent model parameter function,
+- Implementing a ramp function to gradually lower the infectivity in our time-dependent model parameter function,
 - Using *draw functions* to sample `start_measures` stochastically in every simulation. We'll demonstrate this option.
 
-To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. All we have to do is add one line to the draw function,
+To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of `ramp_length` days. All we have to do is add one line to the draw function,
 
 ```python
 # Define draw function
-def draw_fcn(parameters, samples):
-    parameters['beta'] = np.random.choice(samples['beta'])
-    parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
+def draw_fcn(parameters, samples, ramp_length):
+    parameters['beta'] = np.random.choice(samples)
+    parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=ramp_length))
     return parameters
 ```
 
-Gradually adopting the preventive measures results in a more realistic simulation,
+Don't forget to add the new parameter `ramp_length` to the dictionary of `draw_function_kwargs` when simulating the model! Gradually adopting the preventive measures results in a more realistic simulation,
 
 ![scenario_gradual](/_static/figs/workflow/scenario_gradual.png)
 
 ### Conclusion
 
-I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions so this example was very rudimentary. pySODM allows to tackle much more convoluted problems across different fields. However, the basic syntax of our workflow remains practically unchanged. I illustrate this with the following tutorials,
+I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions (0-dimensional) so this example was very rudimentary. However, pySODM allows to tackle higher-dimensional problems using the same basic syntax. This allows to tackle complex problems in different scientific disciplines, I illustrate this with the following tutorials,
 
 | Case study                                     | Features                                                                                          |
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| Enzyme kinetics: intrinsic kinetics            | Dimensionless ODE model. Calibration to multiple datasets with changing initial conditions.       |
-| Enzyme kinetics: 1D Plug-Flow Reactor          | Use the method of lines to discretise a PDE model into an ODE model with one dimension.           |
-| Influenza 2017-2018                            | stochastic jump process model with one dimension. Calibration of a 1D model parameters on a 1D dataset.               |
-| SIR-SI Model (see `~/tutorials/SIR_SI/`)       | ODE model where states have different dimensions and thus different shapes.                       |
+| Enzyme kinetics: intrinsic kinetics            | Calibration of a model to multiple datasets with changing initial conditions.       |
+| Enzyme kinetics: 1D Plug-Flow Reactor          | Use the method of lines to discretise a PDE model into an ODE model and simulate it using pySODM.           |
+| Influenza 2017-2018                            | Stochastic jump process epidemiological model with age groups (1D model). Calibration of a 1D model parameter to a 1D dataset.               |
+| SIR-SI Model       | ODE model where states have different dimensions and thus different shapes.                       |
+| Spatial SIR model       | (Coming soon) An epidemiological model with age and space stratification (2D model).                       |
