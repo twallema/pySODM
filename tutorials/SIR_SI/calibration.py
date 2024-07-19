@@ -147,8 +147,8 @@ if __name__ == '__main__':
         parameters['alpha'] = np.array([slice[idx] for slice in samples['alpha']])
         return parameters
     # Simulate model
-    N = 50
-    out = model.sim([start_date, end_date+60], N=N, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    N = 100
+    out = model.sim([start_date, end_date+60], N=N, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize result
