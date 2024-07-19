@@ -394,11 +394,11 @@ R_0^i = \beta \big(\gamma + f_{\text{ud}}^i \delta + 0.22 (1-f_{\text{ud}})\delt
     <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">df_influenza</span><span class="p">[</span><span class="n">start_date</span><span class="p">:</span><span class="n">end_calibration</span><span class="p">],</span> <span class="p">]</span>
     <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Im_inc&quot;</span><span class="p">,]</span>
     <span class="n">log_likelihood_fnc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ll_negative_binomial</span><span class="p">,]</span>
-    <span class="n">log_likelihood_fnc_args</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="o">*</span><span class="p">[</span><span class="mf">0.03</span><span class="p">,],]</span>
+    <span class="n">log_likelihood_fnc_args</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="o">*</span><span class="p">[</span><span class="mf">0.03</span><span class="p">,],]</span>
 
     <span class="c1"># Calibated parameters and bounds</span>
-    <span class="n">pars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;f_a&#39;</span><span class="p">]</span>
-    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$</span><span class="se">\\</span><span class="s1">beta$&#39;</span><span class="p">,</span> <span class="s1">&#39;$f_a$&#39;</span><span class="p">]</span>
+    <span class="n">pars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;f_ud&#39;</span><span class="p">]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$</span><span class="se">\\</span><span class="s1">beta$&#39;</span><span class="p">,</span> <span class="s1">&#39;$f_</span><span class="si">{ud}</span><span class="s1">$&#39;</span><span class="p">]</span>
     <span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1e-6</span><span class="p">,</span><span class="mf">0.06</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.99</span><span class="p">)]</span>
 
     <span class="c1"># Setup objective function (no priors --&gt; uniform priors based on bounds)</span>
