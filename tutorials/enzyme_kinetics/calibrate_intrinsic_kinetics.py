@@ -56,7 +56,7 @@ params={'c_enzyme': 10, 'Vf_Ks': 0.95/1000, 'R_AS': 0.75, 'R_AW': 1.40, # Forwar
 # Define an initial condition
 init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
 # Initialize model
-model = PPBB_model(init_states,params)
+model = PPBB_model(states=init_states, parameters=params)
 
 ###############
 ## Load data ##
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         # Update initial condition
         model.initial_states.update(initial_states[i])
         # Simulate model
-        out = model.sim(1600, N=n, draw_function=draw_fcn, samples=samples_dict)
+        out = model.sim(1600, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict})
         # Add 4% observational noise
         out = add_gaussian_noise(out, 0.04, relative=True)
         # Visualize

@@ -265,7 +265,7 @@ if __name__ == '__main__':
         # Update initial condition
         model.initial_states.update(initial_states[i])
         # Simulate model
-        out = model.sim(1600, N=n, draw_function=draw_fcn, samples=samples_dict)
+        out = model.sim(1600, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict})
         # Add 4% observational noise
         out = add_gaussian_noise(out, 0.04, relative=True)
         # Visualize

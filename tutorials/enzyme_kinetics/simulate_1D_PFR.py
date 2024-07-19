@@ -122,7 +122,7 @@ model = packed_PFR({'C_F': C_F, 'C_S': C_S}, params, coordinates)
 ## Concentration profile ##
 ###########################
 
-out = model.sim(end_sim, N=n, draw_function=draw_fcn, samples=samples_dict, processes=processes)
+out = model.sim(end_sim, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
 # Add 4% observational noise
 out = add_gaussian_noise(out, 0.04, relative=True)
 # Visualize 
@@ -178,7 +178,7 @@ for q in Q:
     # Update model parameters
     model.parameters.update({'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/nx, 'u': u}) 
     # Simulate
-    out_tmp = model.sim(end_sim, N=n, draw_function=draw_fcn, samples=samples_dict, processes=processes)
+    out_tmp = model.sim(end_sim, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
     # Add 4% observational noise and store
     out.append(add_gaussian_noise(out_tmp, 0.04, relative=True))
 
