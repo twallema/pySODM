@@ -301,11 +301,11 @@ if __name__ == '__main__':
     data=[df_influenza[start_date:end_calibration], ]
     states = ["Im_inc",]
     log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [5*[0.03,],]
+    log_likelihood_fnc_args = [4*[0.03,],]
 
     # Calibated parameters and bounds
-    pars = ['beta', 'f_a']
-    labels = ['$\\beta$', '$f_a$']
+    pars = ['beta', 'f_ud']
+    labels = ['$\\beta$', '$f_{ud}$']
     bounds = [(1e-6,0.06), (0,0.99)]
 
     # Setup objective function (no priors --> uniform priors based on bounds)

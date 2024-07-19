@@ -160,7 +160,7 @@ if __name__ == '__main__':
     # Assign results to model
     model.parameters = assign_theta(model.parameters, pars, theta)
     # Simulate model
-    out = model.sim([start_calibration, end_visualisation], samples={}, N=n, tau=tau, output_timestep=1)
+    out = model.sim([start_calibration, end_visualisation], N=n, tau=tau)
     # Add poisson obervational noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize
@@ -223,7 +223,8 @@ if __name__ == '__main__':
         parameters['f_ud'] = np.array([slice[idx] for slice in samples['f_ud']])
         return parameters
     # Simulate model
-    out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1,
+                    draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
     # Add negative binomial observation noise
     out_noise = add_negative_binomial_noise(out, alpha)
 
