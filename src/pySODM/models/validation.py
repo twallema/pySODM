@@ -27,7 +27,7 @@ def validate_simulation_time(time, warmup):
             if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
                 time = [round(item) for item in time]
                 time[0] -= warmup
-            # If they are all timestamps
+            # If they are all datetime
             elif all([isinstance(item, datetime) for item in time]):
                 actual_start_date = time[0] - timedelta(days=warmup)
                 time = [0, date_to_diff(actual_start_date, time[1])]
