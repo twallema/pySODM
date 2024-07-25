@@ -56,14 +56,14 @@ Installing pySODM from pyPI does not give you acces to the tutorials and case st
 
 - Download the [source code](https://github.com/twallema/pySODM) from GitHub. When all went fine, you should have the code on your computer in a directory called `pySODM`.
 
-- An environment with the dependencies for the tutorials is available inside the `~/environment.yml` file (environment name: PYSODM). Open a terminal in the root folder and create the PYSODM environment:
+- An environment with the dependencies for the tutorials is available inside the `~/tutorial_env.yml` file (environment name: PYSODM-TUTORIALS). Open a terminal in the root folder and create the PYSODM environment:
      ```
-     conda env create -f environment.yml
+     conda env create -f tutorial_env.yml
      ```
 
 - Activate the environment and install pySODM from source in it:
      ```
-     conda activate PYSODM
+     conda activate PYSODM-TUTORIALS
      pip install -e.
      ```
 
@@ -75,7 +75,7 @@ Installing pySODM from pyPI does not give you acces to the tutorials and case st
 
 When all went fine, you should have the code on your computer in a directory called `pySODM`. This folder contains a file `tutorials_env.yml` containing all the dependencies necessary to recreate the tutorials on this website. Install pySODM in this environment with the development requirements (necessary to work on the documentation),
 ```
-conda env create -f tutorials_env.yml
-conda activate PYSODM
+conda env create -f tutorial_env.yml
+conda activate PYSODM-TUTORIALS
 pip install -e ".[develop]"
 ```
