@@ -1,5 +1,5 @@
 """
-This script contains a spatially-explicit SIR model.
+This script contains implementations of a age- and space stratified SIR model.
 """
 
 __author__      = "Tijs Alleman"
@@ -73,7 +73,6 @@ class spatial_ODE_SIR(ODE):
 ###################
 ### Stochastic ###
 ###################
-
 
 class spatial_TL_SIR(JumpProcess):
     """
