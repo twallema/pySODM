@@ -64,7 +64,7 @@ The [enzyme kinetics](enzyme_kinetics.md) and [influenza 17-18](influenza_1718.m
     - Version 0.2.4 (2023-12-04, PR #62)
         > Validated the use of Python 3.11. Efficiency gains in simulation of jump processes. Ommitted dependency on Numba. All changes related to publishing our software manuscript in Journal of Computational Science. Improved nomenclature in model defenition.
     - IN PROGRESS: 0.2.5
-        > Validated the use of Python 3.12. Validated pySODM on macOS Sonoma 14.5. Input arguments of 'draw functions' must now be named 'parameters' and 'samples' instead of 'param_dict' and 'samples_dict'.
+        > Validated the use of Python 3.12. Validated pySODM on macOS Sonoma 14.5. 'draw functions' only have 'parameters' as mandatory input, followed by an arbitrary number of additional parameters (PR #75). Tutorial environment can now be found in `tutorial_env.yml` and was renamed `PYSODM-TUTORIALS` (PR #76).
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODE, JumpProcess and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
