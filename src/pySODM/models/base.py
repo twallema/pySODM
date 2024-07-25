@@ -19,7 +19,7 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
 
 class JumpProcess:
     """
-    Initialise a stochastic differential equations model
+    Initialise a jump process solved using Gillespie's SSA or Tau-Leaping
 
     Parameters
     ----------
