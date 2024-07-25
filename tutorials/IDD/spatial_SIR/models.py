@@ -117,7 +117,7 @@ def matmul_2D_3D_matrix(X, W):
     ======
     X_out : np.ndarray
         Matrix product of size (n, m). 
-        Element-wise equivalent operation: O_{ij} = \sum_{l} [ s_{il} * w_{lji} ]
+        Element-wise equivalent operation: O_{ij} = sum_{l} [ s_{il} * w_{lji} ]
     """
     W = np.atleast_3d(W)
     return np.einsum('ik,kji->ij', X, np.broadcast_to(W, (W.shape[0], W.shape[0], X.shape[0])))
