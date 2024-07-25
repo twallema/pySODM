@@ -10,7 +10,7 @@ In this tutorial, we'll use the simple SIR disease model without dimensions from
 6. Visualize the goodness-of-fit
 7. Perform a scenario analysis
 
-By using a simple model, we can focus on the general workflow and on the most important functions of pySODM, which will be similar in the more advanced [enzyme kinetics](enzyme_kinetics.md) and [Influenza](influenza_1718.md) case studies available on this documentation website. This tutorial can be reproduced by running `~/tutorials/SIR/workflow_tutorial.py`
+By using a simple model, we can focus on the general workflow and on the most important functions of pySODM, which will be similar in the more advanced [enzyme kinetics](enzyme_kinetics.md) and [Influenza](influenza_1718.md) case studies available on this documentation website. This tutorial can be reproduced by running `~/tutorials/SIR/workflow_tutorial.py`, an environment containing the dependencies needed to run this tutorial is provided in `~/tutorial_env.yml`.
 
 ### Import dependencies
 

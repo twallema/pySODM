@@ -20,7 +20,8 @@ setup(
         'matplotlib',
         'xarray',
         'emcee',
-        'h5py'
+        'h5py',
+        'tqdm'
     ],
     extras_require={
         "develop":  ["pytest",
