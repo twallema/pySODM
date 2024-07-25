@@ -1,4 +1,4 @@
-name: PYSODM
+name: PYSODM-TUTORIALS
 channels:
   - conda-forge
   - defaults
@@ -6,11 +6,6 @@ dependencies:
   - python=3.12
   - pandas
   - numpy
-  - scipy
-  - numba   
   - xarray
   - matplotlib
-  - emcee
-  - h5py  
-  - tqdm
   - corner
