@@ -89,12 +89,8 @@ class spatial_TL_SIR(JumpProcess):
         # distribute the number of new infections on visited patch to the home patch 
         S_work_to_home = S * np.transpose(np.atleast_2d(M) @ np.transpose(transitionings['S_work'][0]/S_work))
         # the resulting matrix is an N x M matrix with each element of row n, column m representing the total number of people infected from work that need to be returned to age-group n, location m. 
-        
-        
-        #################################################
-        ## CREATE THE NEW VALUES FOR S, Swork, I AND R ##
-        #################################################
 
+        # Calculate new states
         S_new = S - transitionings['S'][0] - S_work_to_home[0]
         S_work_new =  matmul_2D_3D_matrix(S_new, M)
         I_new = I + transitionings['S'][0] + S_work_to_home[0] - transitionings['I'][0]
