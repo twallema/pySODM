@@ -23,7 +23,7 @@ This part of the tutorial can be replicated by running
 ```bash
 python calibrate_intrinsic_kinetics.py
 ```
-located in `~/tutorials/enzyme_kinetics/`.
+located in `~/tutorials/enzyme_kinetics/`. An environment containing the dependencies needed to run this tutorial is provided in `~/tutorial_env.yml`.
 
 ### Experiments and model equations
 

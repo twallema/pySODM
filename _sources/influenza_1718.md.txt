@@ -13,7 +13,7 @@ This tutorial can be replicated by running
 ```bash
 python calibration.py
 ```
-located in `~/tutorials/influenza_1718/`.
+located in `~/tutorials/influenza_1718/`. An environment containing the dependencies needed to run this tutorial is provided in `~/tutorial_env.yml`.
 
 ## Data
 
