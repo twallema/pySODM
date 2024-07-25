@@ -48,7 +48,7 @@ from pySODM.models.base import ODE
 # Define the model equations
 class ODE_SIR(ODE):
     """
-    Simple SIR model without dimensions
+    An SIR model
     """
     
     states = ['S','I','R']
@@ -172,10 +172,12 @@ if __name__ == '__main__':
 
     # Define draw function
     def draw_fcn(parameters, samples):
-        parameters['beta'] = np.random.choice(samples['beta'])
+        parameters['beta'] = np.random.choice(samples)
         return parameters
+    
     # Simulate model
-    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, draw_function=draw_fcn,
+                    draw_function_kwargs={'samples': samples_dict['beta']}, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize result
@@ -205,9 +207,9 @@ if __name__ == '__main__':
             return param/2
 
     # Define draw function
-    def draw_fcn(parameters, samples):
-        parameters['beta'] = np.random.choice(samples['beta'])
-        parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
+    def draw_fcn(parameters, samples, ramp_length):
+        parameters['beta'] = np.random.choice(samples)
+        parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=ramp_length))
         return parameters
 
     # Attach its arguments to the parameter dictionary
@@ -217,7 +219,8 @@ if __name__ == '__main__':
     model_with = ODE_SIR(states=model.initial_states, parameters=model.parameters, time_dependent_parameters={'beta': lower_infectivity})
 
     # Simulate the model
-    out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, samples=samples_dict, draw_function=draw_fcn, processes=processes)
+    out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, draw_function=draw_fcn,
+                              draw_function_kwargs={'samples': samples_dict['beta'], 'ramp_length': 21}, processes=processes)
 
     # Add negative binomial observation noise
     out_with = add_negative_binomial_noise(out_with, alpha)

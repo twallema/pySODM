@@ -4,13 +4,13 @@ In this tutorial, we'll use the simple SIR disease model without dimensions from
 
 1. Import dependencies
 2. Load the dataset
-3. Load/Define a model
+3. Define a pySODM model
 4. Initialize the model
 5. Calibrate the model (PSO/NM + MCMC)
 6. Visualize the goodness-of-fit
 7. Perform a scenario analysis
 
-By using a simple model, we can focus on the general workflow and on the most important functions of pySODM, which will be similar in the more research-driven [enzyme kinetics](enzyme_kinetics.md) and [Influenza](influenza_1718.md) case studies available on this documentation website. This tutorial can be reproduced using `~/tutorials/SIR/workflow_tutorial.py`
+By using a simple model, we can focus on the general workflow and on the most important functions of pySODM, which will be similar in the more advanced [enzyme kinetics](enzyme_kinetics.md) and [Influenza](influenza_1718.md) case studies available on this documentation website. This tutorial can be reproduced by running `~/tutorials/SIR/workflow_tutorial.py`
 
 ### Import dependencies
 
@@ -24,13 +24,13 @@ import matplotlib.pyplot as plt
 
 ### Load the dataset
 
-For the purpose of this tutorial, we'll generate a sythetic dataset of disease cases. We'll accomplish this by assuming the disease is generating cases exponentially with a doubling time of 10 days. Alternatively, the output of the SIR model could be used to generate a dataset of disease cases. Mathematically,
+For the purpose of this tutorial, we'll generate a sythetic dataset containing disease incidence. We assume the disease is generating cases exponentially with a doubling time of 10 days. Mathematically,
 
 ```{math}
 n_{cases}(t) = \exp \Big( t *  \dfrac{\log 2}{t_d} \Big)
 ```
 
-We'll assume the first case was detected on December 1st, 2022 and data was collected on every weekday until December 21st, 2022. Then, we'll add observational noise to the synthetic data. For count based data, observational noise is typically the result of a poisson or negative binomial proces, depending on the occurence of overdispersion. For a poisson proces, the variance in the data is equal to the mean: {math}`\sigma^2 = \mu`, while for a negative binomial proces the mean-variance relationship is quadratic: {math}`\sigma^2 = \mu + \alpha \mu^2`. For this example we'll use the negative binomial distribution with a dispersion factor of `alpha=0.03`, which was representative for the data used during the COVID-19 pandemic in Belgium. Note that for {math}`\alpha=0`, the variance of the negative binomial distribution is equal to the variance of the poisson distribution.
+We'll assume the first case was detected on December 1st, 2022 and data was collected on weekdays only until December 21st, 2022. Then, we'll add observational noise to the synthetic data. For count based data, observational noise is typically the result of a poisson or negative binomial proces, depending on the occurence of overdispersion. In case the observations result from a poisson proces, the variance in the data is equal to the mean: {math}`\sigma^2 = \mu`, while for a negative binomial proces the mean-variance relationship is quadratic: {math}`\sigma^2 = \mu + \alpha \mu^2`. For this example we'll use the negative binomial distribution with a dispersion factor of `alpha=0.03`, which was representative for the data used during the COVID-19 pandemic in Belgium. Note that for {math}`\alpha=0`, the variance of the negative binomial distribution is equal to the variance of the poisson distribution.
 
 ```python
 # Parameters 
@@ -44,7 +44,7 @@ y = np.random.negative_binomial(1/alpha, (1/alpha)/(np.exp(t*np.log(2)/t_d) + (1
 d = pd.Series(index=dates, data=y, name='CASES')
 # Index name must be date for calibration to work
 d.index.name = 'date'
-# Data collection only on weekdays
+# Only retain weekdays
 d = d[d.index.dayofweek < 5]
 ```
 
@@ -86,16 +86,16 @@ N &=& S + I + R, \\
 \end{eqnarray}
 ```
 
-The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a model is based on the class inheritance, the user must first load the `ODE` class from `~/src/models/base.by`. Then, the user must define his/her own class which must contain (minimally),
-- A list containing the state names `states`,
-- A list containing the parameter names `parameter_names`,
-- An `integrate()` function where the differentials of the model are computed,
+The model has three states: 1) The number of individuals susceptible to the disease (S), 2) the number of infectious individuals (I), and 3) the number of removed individuals (R). The model has two parameters: 1) `beta`, the rate of transmission and, 2) `gamma`, the duration of infectiousness. Building a pySODM model is based on class inheritance, you load the `ODE` class from `~/src/models/base.by`. Then, you define your own model class which must contain (minimally),
+- A list containing the state names, named `states`,
+- A list containing the parameter names, named `parameter_names`,
+- A function named `integrate()` where you compute your model's differentials.
 
-and take the `ODE` class as its input. Checkout the documentation of the ODE class [here](models.md). There are some important formatting requirements to the integrate function, which are verified when the model is initialized,
+This class takes pySODM's `ODE` class as its input. The `ODE` class is recognizes the components of your custom model class which will aid in performing input checks. Checkout the documentation of the [ODE class](models.md) for an overview of the class methods. There are some important formatting requirements to the integrate function, which are verified when the model is initialized,
 1. The integrate function must have the timestep `t` as its first input
-2. The model states and parameters must also be given as input, their order does not make a difference
+2. Followed by all model states and parameters, their order does not matter
 3. The integrate function must return a differential for every model state, arranged in the same order as the state names defined in `states`
-4. The integrate function must be a static method (include `@staticmethod`)
+4. The integrate function must be a static method (done by decorating with `@staticmethod`)
 
 ```python
 # Import the ODE class
@@ -104,7 +104,7 @@ from pySODM.models.base import ODE
 # Define the model equations
 class ODE_SIR(ODE):
     """
-    Simple SIR model without dimensions
+    An SIR model
     """
     
     states = ['S','I','R']
@@ -123,7 +123,7 @@ class ODE_SIR(ODE):
         return dS, dI, dR
 ```
 
-After defining our model, we'll initialize it by supplying a dictionary of initial states and a dictionary of model parameters. In our example, we'll assume the disease spreads in a relatively small population of 1000 individuals. At the start of the simulation we'll assume there is one "patient zero". We don't have to define the number of recovered individuals as undefined states are automatically set to zero by pySODM.
+After defining our model, we'll initialize it by supplying a dictionary of initial states and a dictionary of model parameters. In this example, we'll assume the disease spreads in a relatively small population of 1000 individuals. At the start of the simulation we'll assume there is one "patient zero". There's no need to define the number of recovered individuals as undefined states are automatically set to zero by pySODM.
 
 ```python
 model = ODE_SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
@@ -131,19 +131,21 @@ model = ODE_SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5
 
 ### Calibrating the model
 
-#### The posterior probability 
+#### The posterior probability function
 
-Before we can have our computer find a set of model parameters that aligns the model with the data, we must instruct it what deviations between the data and model prediction are tolerated. Such function is often referred to as an *objective function* or *likelihood function*. In all tutorials we will set up and attempt to maximize the *posterior probability* of our model's parameters in light of the data {math}`p(\theta | y_{\text{data}})`. It contrasts with the *likelihood function* {math}`p(y_{\text{data}} | \theta)`, which is the probability of the data given a fixed set of the model's parameter values. The two are related as follows by Bayes' theorem,
+Before we can have our computer find a set of model parameters that aligns the model with the data, we must instruct it what deviations between the data and model prediction are tolerated. Such function is often referred to as an *objective function* or *likelihood function*. In all tutorials we will set up and attempt to maximize the *posterior probability* of our model's simulations in light of the data {math}`p(\tilde{x}(\theta) | x)`, which is mathematically defined as,
+$$ p (\tilde{x}(\theta) | x) = \frac{p( x | \tilde{x}(\theta)) p(\theta)}{p(x)}, $$
+where {math}`x` represents the data, {math}`\theta` the model's parameters, and {math}`\tilde{x}(\theta)` a model simulation made using parameters {math}`\theta`. {math}`p(x | \tilde{x}(\theta))` is the *likelihood function*, {math}`p(\theta)` is the *prior probability* of the model parameters and contains any prior beliefs about the probability density distribution of the parameters {math}`\theta`. Finally, {math}`p(x)` is the probability of the data, which is used for normalization and can be ignored for all practical purposes. What is therefore important to remember is that the *posterior probability* is proportional to the product of the *likelihood*  and the parameter *prior probability*. We'll maximize the logarithm of the *posterior probability*, which can be computed as the sum of the logarithm of the *prior probability* and the logarithm of the *likelihood*. Therefore,
 
-$$ p (\theta | y_{\text{data}}) = \frac{p(y_{\text{data}} | \theta) p(\theta)}{p(y_{\text{data}})}. $$
+$$\log p (\tilde{x}(\theta) | x) \propto \log p( x | \tilde{x}(\theta)) + \log p(\theta)$$
 
-Here, {math}`p(y_{\text{data}})` is used for normalization and can be ignored for all practical purposes. {math}`p(\theta)` is referred to as the *prior probability* of the model parameters and contains any prior beliefs about the probability density distribution of the parameters {math}`\theta`. What is really important to remember is that the *posterior probability* {math}`p(\theta | y_{\text{data}})` is proportional to the product of the *likelihood* {math}`p(y_{\text{data}} | \theta)` and the parameter *prior probability* {math}`p(\theta)`. We'll maximize the logarithm of the *posterior probability*, computed as the sum of the logarithm of the *prior probability* and the logarithm of the *likelihood*. For an introduction to Bayesian inference, I recommend reading the following [article](https://towardsdatascience.com/a-gentle-introduction-to-bayesian-inference-6a7552e313cb). I also recommend going through the following tutorial of [emcee](https://emcee.readthedocs.io/en/stable/tutorials/line/).
+Just remember: LOG POSTERIOR = LOG PRIOR + LOG LIKELIHOOD
 
-Remember: LOG POSTERIOR = LOG PRIOR + LOG LIKELIHOOD
+For an introduction to Bayesian inference, I recommend reading the following [article](https://towardsdatascience.com/a-gentle-introduction-to-bayesian-inference-6a7552e313cb). I also recommend going through the following tutorial of [emcee](https://emcee.readthedocs.io/en/stable/tutorials/line/).
 
 #### Choosing an appropriate prior function
 
-For every calibrated model parameter we will need to provide a probability function expressing our prior believes with regard to the probability distribution of that parameter. pySODM includes uniform, normal, triangular, gamma and weibull priors, which can be imported as follows (reside in `~/src/pySODM/optimization/objective_functions.py`),
+For every model parameter we'll try to calibrate, we'll need to provide a probability function expressing our prior believes with regard to the probability distribution of that parameter. pySODM includes uniform, normal, triangular, gamma and weibull priors, which can be imported as follows (reside in `~/src/pySODM/optimization/objective_functions.py`),
 
 ```
 from pySODM.optimization.objective_functions import log_prior_uniform, log_prior_normal, log_prior_triangle, log_prior_gamma, log_prior_weibull, log_prior_custom
@@ -153,15 +155,15 @@ For most problems, uniform prior probabilities, which simply constraint the para
 
 #### Choosing an appropriate likelihood function
 
-The next step is to choose an appropriate log likelihood function {math}` \log [ p(y_{\text{data}} | \theta) ]`. The log likelihood function is a function that describes the magnitude of the error when model prediction and data deviate. The bread and butter log likelihood function is the sum of squared errors (SSE),
+The next step is to choose an appropriate log likelihood function. The log likelihood function is a function that describes the magnitude of the error when model prediction and data deviate. The bread and butter log likelihood function is the sum of squared errors (SSE),
 ```{math}
 SSE = \sum_i (y_{data,i} - y_{model,i})^2,
 ```
-this is actually a simplified case of the following Guassian log likelihood function,
+which is actually a simplified case of the following Guassian log likelihood function,
 ```{math}
 \log \big[ p(y_{data} | y_{model}, \sigma) \big] = - \frac{1}{2} \sum_i \Bigg[ \frac{(y_{data,i} - y_{model,i})^2}{\sigma_i^2} + \log (2 \pi \sigma_i^2) \Bigg].
 ```
-from the above equations we can deduce that the SSEs's use is only appropriate when the error on all datapoints are the same (i.e. {math}`\sigma_i^2 = 1`). If the errors ({math}`\sigma_i`) of all datapoints ({math}`y_{data,i}`) are known, then the Gaussian log likelihood function is the most appropriate objective function. When the error of the datapoints are unknown, we must analyze the mean-variance relationship in our dataset to choose the appropriate likelihood function or make an assumption. For epidemiological case data, dispersion tends to grow with the magnitude of the data and only one datapoint is available per day (so no error is readily available). In that case, pySODM's [`variance_analysis()` function](optimization.md) includes the necessary tools to approximate the mean-variance relationship in a dataset of counts. By dividing the dataset in discrete windows and comparing an exponential moving average to the data, mean-variance couples can be approximated. Then, the appropriate likelihood function can be found by fitting the following candidate models,
+from the above equations we can deduce that the SSEs's use is only appropriate when the error on all datapoints are the same (i.e. {math}`\sigma_i^2 = 1`). If the errors ({math}`\sigma_i`) of all datapoints ({math}`y_{data,i}`) are known, then the Gaussian log likelihood function is the most appropriate objective function. When the error of the datapoints are unknown, we can analyze the mean-variance relationship in our dataset to choose the appropriate likelihood function or make an assumption. For epidemiological case data, dispersion tends to grow with the magnitude of the data and only one datapoint is available per day (so no error is readily available). In that case, pySODM's [`variance_analysis()` function](optimization.md) includes the necessary tools to approximate the mean-variance relationship in a dataset of counts. By dividing the dataset in discrete windows and comparing an exponential moving average to the data, mean-variance couples can be approximated. Then, the appropriate likelihood function can be found by fitting the following candidate models,
 
 | Mean-Variance model          | Relationship                               |
 |------------------------------|--------------------------------------------|
@@ -343,28 +345,30 @@ plt.close()
 
 #### Goodness-of-fit: draw functions
 
-Next, let's visualize how well our simple SIR model fits the data. To this end, we'll simulate the model a number of times, and at each time we'll update the value of `beta` with a sample drawn by the MCMC. Then, assuming our model is an adequate representation of the modeled proces, we'll add observational noise to each model trajectory using `add_negative_binomial()`. Finally, we'll visualize the individual model trajectories and the data to asses the goodness-of-fit.
+Next, let's visualize how well our simple SIR model fits the data. To this end, we'll simulate the model a number of times, and we'll update the value of `beta` with a sample from its posterior probability distribution obtained using the MCMC. Then, we'll add the noise introduced by observing the epidemiological process to each simulated model trajectory using `add_negative_binomial()`. Finally, we'll visualize the individual model trajectories and the data to asses the goodness-of-fit.
 
-To repeatedly simulate a model and update a parameter value in each consecutive run, we'll use what is called a *draw function*. This function always takes two input arguments, the model parameters dictionary `parameters` and a dictionary containing samples `samples`, and must always return the model parameters dictionary `parameters` (unaltered dictionary keys). The draw function defines how the samples dictionary can be used to update the model parameters dictionary. In our case, we'll use `np.random.choice()` to sample a random value of `beta` from the dictionary of samples and assign it to the model parameteres dictionary, as follows,
+To repeatedly simulate a model and update a parameter value in each consecutive run, you can use pySODM's *draw function*. These functions always takes `parameters` as its first input argument, representing the dictionary of model parameters. This can then be followed by an arbitrary number of user-defined parameters to aid in the draw function. A draw function must always return the model parameters dictionary `parameters`, without alterations to the dictionaries keys. The draw function defines how values of parameters can change during consecutive simulations of the model, i.e. it updates parameter values in the model parameters dictionary. This feature is useful to perform sensitivty analysis.
+
+In this example, we'll use a draw function to replace `beta` with a random value obtained from its posterior probability distribution obtained during calibration. We accomplish this by defining a draw function with one additional argument, `samples`, which is a list containing the samples of the posterior probability distribution of `beta`. `np.random.choice()` is used to sample a random value of `beta` and assign it to the model parameteres dictionary,
 
 ```python
 # Define draw function
 def draw_fcn(parameters, samples):
-    parameters['beta'] = np.random.choice(np.array(samples['beta']))
+    parameters['beta'] = np.random.choice(np.array(samples))
     return parameters
 ```
 
-Then, we'll provide four additional arguments to `sim()`,
+To use this draw function, you provide four additional arguments to the `sim()` function,
 1. `N`: the number of repeated simulations,
-2. `samples`: the dictionary containing the samples of `beta` generated with the MCMC,
-3. `draw_fcn`: our defined draw function,
+2. `draw_function`: the draw function,
+2. `draw_function_kwargs`: a dictionary containing all parameters of the draw function not equal to `parameters` (passed internally by the `sim()` function).
 4. `processes`: the number of cores to divide the `N` simulations over.
 
 As demonstrated in the quickstart example, the `xarray` containing the model output will now contain an additional dimension to accomodate the repeated simulations: `draws`.
 
 ```python
 # Simulate model
-out = model.sim([d.index.min(), d.index.max()+pd.Timedelta(days=28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+out = model.sim([d.index.min(), d.index.max()+pd.Timedelta(days=28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict['beta']}, processes=processes)
 # Add negative binomial observation noise
 out = add_negative_binomial_noise(out, dispersion)
 # Visualize result
@@ -378,7 +382,7 @@ plt.show()
 plt.close()
 ```
 
-Our simple SIR model seems to fit the data very well. From the projection we can deduce that the peak number of infectees will fall around February 7th, 2023 and there will be between 30-50 infectees.
+Our simple SIR model fits the data well. From the projection we can deduce that the peak number of infectees will fall around February 7th, 2023 and there will be between 30-50 infectees.
 
 ![MCMC](/_static/figs/workflow/MCMC_fit.png)
 
@@ -397,9 +401,9 @@ def lower_infectivity(t, states, param, start_measures):
         return 0.50*param
 ```
 
-This simple function reduces the parameter `param` with a factor two if the simulation date is larger than `start_measures`. A time-dependent model parameter function must always have the arguments `t` (simulation timestep), `states` (dictionary of model states) and `param` (value of the parameter the function is applied to) as inputs. In addition, the user can supply additional arguments to the function, which need to be added to the dictionary of model parameters.
+This simple function reduces the parameter `param` with a factor two if the simulation date is larger than `start_measures`. A time-dependent model parameter function must always have the arguments `t` (simulation timestep), `states` (dictionary of model states) and `param` (original value of the parameter the function is applied to) as inputs. In addition, the user can supply additional arguments to the function, which need to be added to the dictionary of model parameters when the model is initialised.
 
-We will apply this function to the infectivity parameter `beta` by using the `time_dependent_parameters` argument of `sim()`.
+We will apply this function to the infectivity parameter `beta`, and declare this using the `time_dependent_parameters` argument when initialising the model.
 ```python
 # Attach the additional arguments of the time-depenent function to the parameter dictionary
 model.parameters.update({'start_measures': '2023-01-21'})
@@ -413,7 +417,7 @@ Next, we compare the simulations with and without the use of our time-dependent 
 
 ```python
 # Simulate the model
-out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, samples=samples_dict, draw_fcn=draw_fcn, processes=processes)
+out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict['beta']} processes=processes)
 
 # Add negative binomial observation noise
 out_with = add_negative_binomial_noise(out_with, alpha)
@@ -437,30 +441,31 @@ As we could reasonably expect, if we could implement some form of preventive mea
 ![scenario](/_static/figs/workflow/scenario.png)
 
 However, it is unlikely that people would adopt these preventive measures instantly. Adoptation of measures is more gradual in the real world. We could tackle this problem in two ways using pySODM,
-- Implementing a ramp function to lower the infectivity in our time-dependent model parameter function,
+- Implementing a ramp function to gradually lower the infectivity in our time-dependent model parameter function,
 - Using *draw functions* to sample `start_measures` stochastically in every simulation. We'll demonstrate this option.
 
-To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of 21 days. All we have to do is add one line to the draw function,
+To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of `ramp_length` days. All we have to do is add one line to the draw function,
 
 ```python
 # Define draw function
-def draw_fcn(parameters, samples):
-    parameters['beta'] = np.random.choice(samples['beta'])
-    parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=21))
+def draw_fcn(parameters, samples, ramp_length):
+    parameters['beta'] = np.random.choice(samples)
+    parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=ramp_length))
     return parameters
 ```
 
-Gradually adopting the preventive measures results in a more realistic simulation,
+Don't forget to add the new parameter `ramp_length` to the dictionary of `draw_function_kwargs` when simulating the model! Gradually adopting the preventive measures results in a more realistic simulation,
 
 ![scenario_gradual](/_static/figs/workflow/scenario_gradual.png)
 
 ### Conclusion
 
-I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions so this example was very rudimentary. pySODM allows to tackle much more convoluted problems across different fields. However, the basic syntax of our workflow remains practically unchanged. I illustrate this with the following tutorials,
+I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions (0-dimensional) so this example was very rudimentary. However, pySODM allows to tackle higher-dimensional problems using the same basic syntax. This allows to tackle complex problems in different scientific disciplines, I illustrate this with the following tutorials,
 
 | Case study                                     | Features                                                                                          |
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| Enzyme kinetics: intrinsic kinetics            | Dimensionless ODE model. Calibration to multiple datasets with changing initial conditions.       |
-| Enzyme kinetics: 1D Plug-Flow Reactor          | Use the method of lines to discretise a PDE model into an ODE model with one dimension.           |
-| Influenza 2017-2018                            | stochastic jump process model with one dimension. Calibration of a 1D model parameters on a 1D dataset.               |
-| SIR-SI Model (see `~/tutorials/SIR_SI/`)       | ODE model where states have different dimensions and thus different shapes.                       |
+| Enzyme kinetics: intrinsic kinetics            | Calibration of a model to multiple datasets with changing initial conditions.       |
+| Enzyme kinetics: 1D Plug-Flow Reactor          | Use the method of lines to discretise a PDE model into an ODE model and simulate it using pySODM.           |
+| Influenza 2017-2018                            | Stochastic jump process epidemiological model with age groups (1D model). Calibration of a 1D model parameter to a 1D dataset.               |
+| SIR-SI Model       | ODE model where states have different dimensions and thus different shapes.                       |
+| Spatial SIR model       | (Coming soon) An epidemiological model with age and space stratification (2D model).                       |
