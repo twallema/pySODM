@@ -238,24 +238,24 @@ class SIR(JumpProcess):
 
 ### Draw functions
 
-The `sim()` method of the `ODE` and `JumpProcess` classes can be used to perform {math}`N` repeated simulations by using the optional argument `N`. A *draw function* can be used to alter the value of a model parameters during consecutive model runs by drawing them rrandomly from a list of samples, thereby offering a powerful tool for sensitivity analysis and uncertainty propagation.
+The simulation functions of the `ODE` and `JumpProcess` classes (`sim()`) can be used to perform {math}`N` repeated simulations by using the optional argument `N`. A *draw function* can be used to instruct the model on how to alter the value of a model parameters during consecutive model runs, thereby offering a powerful tool for sensitivity analysis and uncertainty propagation.
 
-Draw functions **always** take two dictionaries as input: 1) The dictionary of model parameters, 2) A dictionary containing samples of a model parameter. Assuming we have a list containing 100 samples of the parameter `gamma`, drawn randomly from 0 to 5,
+Draw functions **always** take the dictionary of model parameters, `parameters` as their first argument, input checks are used to ensure you provide the correct name and type. This can be followed an arbitrary number of user-defined parameters, which are supplied to the `sim()` function by using its `draw_function_kwargs` argument. The output of a draw function is **always** the dictionary of model parameters, without alterations to the dictionaries keys (no new parameters introduced or parameters deleted). In the example below, we attempt to draw a model parameter `gamma` randomly from 0 to 5,
 
 ```python
-# make an example of a dictionary containing parameter samples
-samples_dict = {'gamma': np.random.uniform(low=0, high=5, n=100)}
+# make an example of a dictionary containing samples of a parameter `gamma`
+samples = np.random.uniform(low=0, high=5, n=100)
 
 # define a 'draw function'
 def draw_function(parameters, samples):
     """ randomly selects a sample of 'gamma' from the provided dictionary of samples and
         assigns it to the dictionary of model parameters
     """
-    parameters['gamma'] = np.random.choice(samples['gamma'])
+    parameters['gamma'] = np.random.choice(samples)
     return parameters
 
 # simulate 10 trajectories, exploit 10 cores to speed up the computation
-out = model.sim(121, N=10, draw_function=draw_function, samples=samples_dict, processes=10)
+out = model.sim(121, N=10, draw_function=draw_function, draw_function_kwargs={'samples': samples}, processes=10)
 print(out)   
 ```
 
@@ -274,20 +274,18 @@ Data variables:
     R           (draws, age_groups, time) float64 0.0 0.3439 ... 684.0 684.0
 ```
 
-This example is more easily coded up by drawing the random values within the *draw function*,
+This example can also be coded up by drawing the random values within the *draw function*,
 
 ```python
 # define a 'draw function'
-def draw_function(parameters, samples):
+def draw_function(parameters):
     parameters['gamma'] = np.random.uniform(low=0, high=5)
     return parameters
 
 # simulate the model
-out = model.sim(121, N=10, draw_function=draw_function, samples={})
+out = model.sim(121, N=10, draw_function=draw_function)
 ```
-**_NOTE_** Internally, a call to `draw_function` is made within the `sim()` function, where it is given the dictionary of model parameters and the input argument `samples` of the `sim()` function.
-
-**_NOTE:_** Technically, you can supply any input you'd like to a *draw function* by exploiting its `samples` dictionary input. Aside from its name and type, `samples` is not subject to any input checks.
+**_NOTE_** Internally, a call to `draw_function` is made within the `sim()` function, where it is given the dictionary of model parameters `parameters`, followed by the `draw_function_kwargs`.
 
 ### Time-dependent parameter functions
 
