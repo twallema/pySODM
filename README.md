@@ -21,7 +21,7 @@ All the simulation projects I've undertaken over the past six years required me 
 
 all these features required me to wrap code around an ODE solver, typically `scipy.solve_ivp`, and I got tired of recycling the same code over and over again, so I packaged it into pySODM.
 
-Does other simulation software exist in Python? Sure, but most of them hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in a **generically applicable** way. 
+Does other simulation software exist in Python? Sure, but most of them hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in a **generically applicable** way so that I'd never hit a software wall mid-project.
 
 ### Overview of features
 
