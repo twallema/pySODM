@@ -1,6 +1,6 @@
 ## Installation
 
-### Quick and dirty installation
+### Fast & Furious
 
 ```
 pip install pySODM
