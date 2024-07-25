@@ -1,11 +1,13 @@
 # An stochastic jump process model for the 2017-2018 Influenza Season in Belgium
 
-In this tutorial, we'll set up a stochastic age-stratified model for seasonal Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional charateristics of seasonal Influenza and we'll use the concept of *dimensions* to include four age groups in our model. Opposed to the simple SIR tutorial, where changes in the number of social contacts were not considered, we'll use a *time-dependent parameter function* to include the effects of school closures during school holidays in our Influenza model. Finally, we'll calibrate two of the model's parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge at our disposal. One of the calibrated model parameters is a 1D vector, pySODM allows users to easily calibrate n-dimensional model parameters.
+This tutorial is showcased in our [software paper](https://www.sciencedirect.com/science/article/pii/S1877750323002089).
+
+We'll set up a simple stochastic model for Influenza in Belgium. First, we'll expand the dynamics of the [simple SIR model](workflow.md) to account for additional disease charateristics of Influenza, and we'll use the concept of *dimensions* to include four age groups in our model (called 'age strata'). Opposed to the simple SIR tutorial, where changes in the number of social contacts were not considered, we'll demonstrate how to use a *time-dependent parameter function* to include the effects of school closures during school holidays in our Influenza model. Finally, we'll calibrate two of the model's parameters to incrementally larger sets of incidence data and asses how the goodness-of-fit evolves with the amount of knowledge at our disposal. One of the calibrated model parameters will be a 1D vector, pySODM allows users to easily calibrate n-dimensional model parameters.
 
 This tutorial introduces the following concepts,
-- Building a stochastic model and simulate it with Gillespie's Tau-Leaping method (which is a form of jump process)
-- Adding age groups to a dynamic transmission model of disease
-- Calibrating n-D parameters to n-D datasets
+1. Building a stochastic model and simulate it with Gillespie's Tau-Leaping method
+2. Extending an SIR model with age strata and using a social contact matrix
+3. Calibrating an n-D model parameter to an n-D dataset
 
 This tutorial can be replicated by running
 ```bash

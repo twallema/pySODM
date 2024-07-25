@@ -1,6 +1,6 @@
 # A model for the enzymatic esterification of D-glucose and Lauric acid in a continuous-flow reactor
 
-This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (master dissertation). Ghent University, Ghent, BE.
+This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (master dissertation). Ghent University, Ghent, BE, and is showcased in our [software paper](https://www.sciencedirect.com/science/article/pii/S1877750323002089).
 
 ## Introduction
 
