@@ -73,9 +73,9 @@ Installing pySODM from pyPI does not give you acces to the tutorials and case st
 - On the [pySODM Github repository page](https://github.com/twallema/pySODM) click the `Fork` button.
 - From your own repository page (your account) of `pySODM`, use [`git`](https://git-scm.com/) to download the code to your own computer. See the [Github documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on how to clone/download a repository.
 
-When all went fine, you should have the code on your computer in a directory called `pySODM`. This folder contains an `environment.yml` file containing all the dependencies necessary to recreate the tutorials and case studies. Install pySODM in this environment with the development requirements (necessary to work on the documentation),
+When all went fine, you should have the code on your computer in a directory called `pySODM`. This folder contains a file `tutorials_env.yml` containing all the dependencies necessary to recreate the tutorials on this website. Install pySODM in this environment with the development requirements (necessary to work on the documentation),
 ```
-conda env create -f environment.yml
+conda env create -f tutorials_env.yml
 conda activate PYSODM
 pip install -e ".[develop]"
 ```
