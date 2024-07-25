@@ -2,7 +2,7 @@
 
 ## Set up a dimensionless ODE model
 
-To set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,
+Load pySODM's [`ODE` class](models.md) and define your model. As an example, we'll set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,
 
 <img src="./_static/figs/quickstart/quickstart_SIR_flowchart.png" width="500" />
 
@@ -15,8 +15,6 @@ N &=& S + I + R, \\
 \frac{dR}{dt} &=& (1/\gamma)I.
 \end{eqnarray}
 ```
-
-Load pySODM's [`ODE`](models.md) class, and define a new class inheriting the `ODE` object to define your model. Minimally, you must provide: 1) A list containing the names of your model's states, 2) a list containing the names of your model's parameters, 3) an `integrate` function integrating your model's states. To learn more about the `ODE` class' formatting, check out the [`ODE`](models.md) class description.
 
 ```python
 # Import the ODE class
@@ -47,7 +45,7 @@ To initialize the model, provide a dictionary containing the initial values of t
 model = SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
-Simulate the model using its `sim()` method. pySODM supports the use of `datetime` types as timesteps.
+Simulate the model using the `sim()` method. The solver method and tolerance of `scipy.solve_ivp()`, as well as the timesteps included in the output can be tailored. pySODM supports the use of `datetime` types as timesteps.
 
 ```python
 # Timesteps
@@ -65,9 +63,12 @@ In some situations, the use of a discrete timestep with a fixed length may be pr
 ```python
 # Use a discrete timestepper with step size 1
 out = model.sim(121, tau=1)
+
+# Is equivalent to (`tau` overwrites `method`!):
+out = model.sim(121, method='RK45', rtol='1e-4', tau=1)
 ```
 
-Simulations are sent to an `xarray.Dataset`, for more information on indexing and selecting data using `xarray`, [see](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
+Results are sent to an `xarray.Dataset`, for more information on indexing and selecting data using `xarray`, [see](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
 ```bash
 <xarray.Dataset>
 Dimensions:  (time: 122)
@@ -80,12 +81,11 @@ Data variables:
 ```
 
 The simulation above results in the following trajectories for the number of susceptibles, infected and recovered individuals.
-
 ![SIR_time](/_static/figs/quickstart/quickstart_SIR.png)
 
 ## Set up an ODE model with a labeled dimension
 
-To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimensions` keyword to the model declaration. In the example below, we add a dimension representing the age groups individuals belong to. This turns all model states in the `integrate` function into 1D vectors.
+To transform all our SIR model's states in 1D vectors, referred to as a *dimension* throughout the documentation, add the `dimensions` keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.
 
 ```python
 # Import the ODE class
@@ -95,7 +95,7 @@ from pySODM.models.base import ODE
 class stratified_SIR(ODE):
     
     states = ['S','I','R']
-    parameters = ['beta', 'gamma']
+    parameters = ['beta', 'gamma]
     dimensions = ['age_groups']
 
     @staticmethod
@@ -111,7 +111,7 @@ class stratified_SIR(ODE):
         return dS, dI, dR
 ```
 
-When initializing the model, provide a dictionary containing coordinates for every dimension declared previously. In the example below, we'll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. **All** model states are now 1D vectors of shape `(4,)`.
+When initializing the model, additionally provide a dictionary containing coordinates for every dimension declared previously. In our example, we'll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. **All** model states are now 1D vectors of shape `(4,)`.
 
 ```python
 model = stratified_SIR(states={'S': 1000*np.ones(4), 'I': np.ones(4)},
@@ -138,8 +138,6 @@ Data variables:
 pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the `dimensions_per_state` variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and infected vectors are able to transmit a disease to the humans. In turn, infected humans can pass the disease back to the vector (see flowchart). Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.
 
 <img src="./_static/figs/quickstart/quickstart_SIR_SI_flowchart.png" width="700" />
-
-In the example below, the states S, I and R will be 1D vectors in the `integrate` function, while the states S_v and I_v will be scalars.
 
 ```python
 class ODE_SIR_SI(ODE):
@@ -184,7 +182,7 @@ out = model.sim(120)
 print(out)
 ```
 
-results in the following `xarray.Dataset`,
+results in the following `xarray.Dataset`. Here it can be seen that the S, I and R state have `age_group` and `time` as dimensions and their shape is thus `(4,)`, while S_v and I_v only have `time` as dimension and their shape is thus `(1,)`.
  
 ```bash
 <xarray.Dataset>
@@ -199,11 +197,10 @@ Data variables:
     S_v        (time) float64 1e+06 1e+06 1e+06 ... 8.635e+05 8.562e+05
     I_v        (time) float64 2.0 1.798 1.725 ... 1.292e+05 1.365e+05 1.438e+05
 ```
-Here, S, I and R state have `age_group` and `time` as dimensions and their shape is thus `(4,)`, while S_v and I_v only have `time` as dimension and their shape is thus `(1,)`.
 
 ## Set up a dimensionless stochastic jump process Model
 
-To stochastically simulate the simple SIR model, pySODM's `JumpProcess` class is loaded and two functions, `compute_rates` and `apply_transitionings`, must be defined instead of one. For a detailed mathematical description of implenting models using Gillespie's tau-leaping method (example of a jump proces), we refer to the [peer-reviewed paper](https://www.sciencedirect.com/science/article/pii/S1877750323002089). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained within a list so that a state may have multiple transitionings. To learn more about the `JumpProcess` class' formatting, check out the [`JumpProcess`](models.md) class description.
+To stochastically simulate the simple SIR model, the `JumpProcess` class is loaded and two functions `compute_rates` and `apply_transitionings` must be defined. For a detailed mathematical description of implenting models using Gillespie's tau-leaping method (example of a jump proces), we refer to the [manuscript](https://arxiv.org/abs/2301.10664). The rates dictionary defined in `compute_rates` contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings. Further, the transitioning for state `I` is a float and this should be a `numpy.float`. I'm still figuring out if I want to introduce the overhead to check and correct this behavior (likely not).
 
 ```python
 # Import the ODE class
@@ -239,30 +236,20 @@ class SIR(JumpProcess):
 
 ## Advanced simulation features
 
-### Draw functions
+### Draw function
 
-The simulation functions of the `ODE` and `JumpProcess` classes can be used to perform {math}`N` repeated simulations by using the optional argument `N`. A *draw function* can be used to instruct the model on how to alter the value of a model parameters during consecutive model runs, thereby offering a powerful tool for sensitivity analysis and uncertainty propagation.
-
-Draw functions **always** take the dictionary of model parameters, `parameters` as their first argument, input checks are used to ensure you provide the correct name and type. This can be followed an arbitrary number of user-defined parameters, which are supplied to the `sim()` function by using its `draw_function_kwargs` argument. The output of a draw function is **always** the dictionary of model parameters, without alterations to the dictionaries keys (no new parameters introduced or parameters deleted). In the example below, we attempt to draw a model parameter `gamma` randomly from 0 to 5,
+The `sim()` method of `ODE` and `JumpProcess` can be used to perform {math}`N` repeated simulations (keyword `N`). Additionally a *draw function* can be used to update model parameters during every run. A draw function to randomly draw `gamma` from a uniform simulation before every run is implemented as follows,
 
 ```python
-# make an example of a dictionary containing samples of a parameter `gamma`
-samples = np.random.uniform(low=0, high=5, n=100)
+def draw_function(param_dict, samples_dict):
+    param_dict['gamma'] = np.random.uniform(low=1, high=5)
+    return param_dict
 
-# define a 'draw function'
-def draw_function(parameters, samples):
-    """ randomly selects a sample of 'gamma' from the provided dictionary of samples and
-        assigns it to the dictionary of model parameters
-    """
-    parameters['gamma'] = np.random.choice(samples)
-    return parameters
-
-# simulate 10 trajectories, exploit 10 cores to speed up the computation
-out = model.sim(121, N=10, draw_function=draw_function, draw_function_kwargs={'samples': samples}, processes=10)
+out = model.sim(121, N=10, draw_function=draw_function, samples={})
 print(out)   
 ```
 
-An additional dimension `'draws'` will be added to the `xarray.Dataset` to accomodate the results of the repeated simulations.
+An additional dimension `'draws'` has been added to the `xarray.Dataset` to accomodate the results of the repeated simulations.
 
 ```bash
 <xarray.Dataset>
@@ -277,26 +264,13 @@ Data variables:
     R           (draws, age_groups, time) float64 0.0 0.3439 ... 684.0 684.0
 ```
 
-This example can also be coded up by drawing the random values within the *draw function*,
+### Time-dependent parameter function
 
-```python
-# define a 'draw function'
-def draw_function(parameters):
-    parameters['gamma'] = np.random.uniform(low=0, high=5)
-    return parameters
-
-# simulate the model
-out = model.sim(121, N=10, draw_function=draw_function)
-```
-**_NOTE_** Internally, a call to `draw_function` is made within the `sim()` function, where it is given the dictionary of model parameters `parameters`, followed by the `draw_function_kwargs`.
-
-### Time-dependent parameter functions
-
-Parameters can also be varied through the course of one simulation using a *time-dependent parameter function* (TDPF), which can be an arbitrarily complex function. A time-dependent parameter function **always** has the current timestep (`t`), the dictionary containing the model states (`states`) at time `t`, and the original value of the parameter it is applied to (`param`) as its inputs. Additionally, the function can take any number of additional user-defined arguments (including other model parameters).
+Parameters can also be varied through the course of one simulation using a *time-dependent parameter function*, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments (including other model parameters).
 
 ```python
 def vary_my_parameter(t, states, param, an_additional_parameter):
-    """A function to implement a time-dependency on a parameter"""
+    """A function to vary a model parameter during a simulation"""
 
     # Do any computation
     param = ...
@@ -304,10 +278,10 @@ def vary_my_parameter(t, states, param, an_additional_parameter):
     return param
 ```
 
-When initialising the model, all we need to do is use the `time_dependent_parameters` keyword to declare what parameter our TDPF should be applied to. Additional parameters introduced in TDPFs, in this example `an_additional_parameter`, should be added to the parameters dictionary.
+All we need to do is use the `time_dependent_parameters` keyword to declare the parameter our function should be applied to. Additionally, `an_additional_parameter` should be added to the parameters dictionary.
 
 ```python
 model = SIR(states={'S': 1000, 'I': 1},
-            parameters={'beta': 0.35, 'gamma': 5, 'an_additional_parameter': any_datatype_you_want},
+            parameters={'beta': 0.35, 'gamma': 5, 'an_additional_parameter': anything_you_want},
             time_dependent_parameters={'beta': vary_my_parameter})
 ```
