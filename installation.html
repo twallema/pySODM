@@ -156,13 +156,13 @@
 <p>Installing pySODM from pyPI does not give you acces to the tutorials and case studies as these are located in the source on Github. To try them out,</p>
 <ul>
 <li><p>Download the <a class="reference external" href="https://github.com/twallema/pySODM">source code</a> from GitHub. When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>.</p></li>
-<li><p>An environment with the dependencies for the tutorials is available inside the <code class="docutils literal notranslate"><span class="pre">~/environment.yml</span></code> file (environment name: PYSODM). Open a terminal in the root folder and create the PYSODM environment:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">f</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
+<li><p>An environment with the dependencies for the tutorials is available inside the <code class="docutils literal notranslate"><span class="pre">~/tutorial_env.yml</span></code> file (environment name: PYSODM-TUTORIALS). Open a terminal in the root folder and create the PYSODM environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">f</span> <span class="n">tutorial_env</span><span class="o">.</span><span class="n">yml</span>
 </pre></div>
 </div>
 </li>
 <li><p>Activate the environment and install pySODM from source in it:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">PYSODM</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">PYSODM</span><span class="o">-</span><span class="n">TUTORIALS</span>
 <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span><span class="o">.</span>
 </pre></div>
 </div>
@@ -176,9 +176,9 @@
 <li><p>On the <a class="reference external" href="https://github.com/twallema/pySODM">pySODM Github repository page</a> click the <code class="docutils literal notranslate"><span class="pre">Fork</span></code> button.</p></li>
 <li><p>From your own repository page (your account) of <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>, use <a class="reference external" href="https://git-scm.com/"><code class="docutils literal notranslate"><span class="pre">git</span></code></a> to download the code to your own computer. See the <a class="reference external" href="https://help.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository">Github documentation</a> on how to clone/download a repository.</p></li>
 </ul>
-<p>When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>. This folder contains an <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> file containing all the dependencies necessary to recreate the tutorials and case studies. Install pySODM in this environment with the development requirements (necessary to work on the documentation),</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">f</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
-<span class="n">conda</span> <span class="n">activate</span> <span class="n">PYSODM</span>
+<p>When all went fine, you should have the code on your computer in a directory called <code class="docutils literal notranslate"><span class="pre">pySODM</span></code>. This folder contains a file <code class="docutils literal notranslate"><span class="pre">tutorials_env.yml</span></code> containing all the dependencies necessary to recreate the tutorials on this website. Install pySODM in this environment with the development requirements (necessary to work on the documentation),</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">f</span> <span class="n">tutorial_env</span><span class="o">.</span><span class="n">yml</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">PYSODM</span><span class="o">-</span><span class="n">TUTORIALS</span>
 <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="s2">&quot;.[develop]&quot;</span>
 </pre></div>
 </div>
