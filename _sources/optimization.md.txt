@@ -257,7 +257,7 @@
 Samples path, identifier and run_date are combined to find the right .hdf5 `emcee` backend and the `.json` containing the settings. 
 
 >   **Returns:**
->   * **samples_dict** (dict) - Dictionary containing the discarded and thinned MCMC samples and settings.
+>   * **samples** (dict) - Dictionary containing the discarded and thinned MCMC samples and settings.
  
 ## utils.py
 
