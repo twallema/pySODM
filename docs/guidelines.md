@@ -66,9 +66,9 @@ Documentation consists of both the technical matter about the code as well as ba
 
 The Sphinx setup provides the usage of both `.rst` file, i.e. [restructuredtext](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html) as well as `.md` files, i.e. [Markdown](https://www.markdownguide.org/basic-syntax/). The latter is generally experienced as easier to write, while the former provides more advanced functionalities. Existing pages of the documentation reside in `~/docs/` and can be adjusted directly. In case you want to build the documentation locally, make sure you have the development dependencies installed (`pip install -e ".[develop]"`) to run the sphinx build script. To build locally, run the following command in the home directory,
 ```bash
-python setup.py build_sphinx
+python sphinx-build docs build/sphinx/
 ```
-which compiles the html-website in the directory `build/html`. Double click any of the `html` file in the folder to open the website in your browser (no server required). Or alternatively, run the following command in the 'docs' directory,
+which compiles the html-website in the directory `build/sphinx/html`. Double click any of the `html` file in the folder to open the website in your browser (no server required). Or alternatively, run the following command in the 'docs' directory,
 ```bash
 make html
 ```
