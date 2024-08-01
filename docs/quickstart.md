@@ -111,7 +111,7 @@ class stratified_SIR(ODE):
         return dS, dI, dR
 ```
 
-When initializing the model, provide a dictionary containing coordinates for every dimension declared previously. In the example below, we'll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. **All** model states are now 1D vectors of shape `(4,)`.
+When initializing your model, provide a dictionary containing coordinates for every dimension declared previously. In the example below, we'll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. **All** model states are now 1D vectors of shape `(4,)`.
 
 ```python
 model = stratified_SIR(states={'S': 1000*np.ones(4), 'I': np.ones(4)},
