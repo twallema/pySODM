@@ -136,7 +136,7 @@ def log_prior_uniform(x, bounds):
     prob = 1/(bounds[1]-bounds[0])
     condition = bounds[0] <= x <= bounds[1]
     if condition == True:
-        # Can also be set to zero: value doesn't matter much because its constant --> should be set to zero, bounds = np.inf --> prob is inf!!!
+        # should be set to zero to accomodate bounds = np.inf --> prob is inf!!!
         return 0
     else:
         return -np.inf
