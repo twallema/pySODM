@@ -14,7 +14,7 @@ from pySODM.models.validation import validate_initial_states
 
 def ll_gaussian(ymodel, ydata, sigma):
     """
-    Loglikelihood of a Gaussian distribution, can be used homoskedastically or heteroskedastically.
+    Loglikelihood of a Gaussian distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
 
     Parameters
     ----------
