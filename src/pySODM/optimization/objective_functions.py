@@ -268,7 +268,7 @@ class log_posterior_probability():
     # TODO: fully document docstring
     """
     def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
+                 start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
 
         ############################################################################################################
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
@@ -314,7 +314,10 @@ class log_posterior_probability():
         # Get additional axes beside time axis in dataset.
         data, self.time_index, self.additional_axes_data = validate_dataset(data)
         # Extract start- and enddate of simulations
-        self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
+        if not start_sim:
+            self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
+        else:
+            self.start_sim = start_sim
         self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data])
 
         ########################################
