@@ -58,18 +58,9 @@ def ll_poisson(ymodel, ydata):
         Loglikelihood belonging to the comparison of the data points and the model prediction.
     """
 
-    # Convert datatype to float
-    ymodel = ymodel.astype('float64')
-    ydata = ydata.astype('float64')
-    # Raise ymodel or ydata if there are negative values present
-    if ((np.min(ymodel) < 0) | (np.min(ydata) < 0)):
-        offset_value = (-1 - 1e-6)*np.min([np.min(ymodel), np.min(ydata)])
-        ymodel += offset_value
-        ydata += offset_value
-        #warnings.warn(f"One or more values in the prediction were negative thus the prediction was offset, minimum predicted value: {min(ymodel)}")
-    elif ((np.min(ymodel) == 0) | (np.min(ydata) == 0)):
-        ymodel += 1e-6
-        ydata += 1e-6
+    # Convert datatype to float and add one
+    ymodel = ymodel.astype('float64') + 1
+    ydata = ydata.astype('float64') + 1
 
     return - np.sum(ymodel) + np.sum(ydata*np.log(ymodel)) - np.sum(gammaln(ydata))
 
