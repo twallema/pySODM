@@ -149,13 +149,28 @@
 </section>
 <section id="log-likelihood">
 <h3>Log likelihood<a class="headerlink" href="#log-likelihood" title="Link to this heading">¶</a></h3>
-<p><strong><em>function</em> ll_gaussian(ymodel, ydata, sigma)</strong></p>
+<p><strong><em>function</em> ll_normal(ymodel, ydata, sigma)</strong></p>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>ymodel</strong> (list/np.ndarray) - Mean values of the Gaussian distribution (i.e. “mu” values), as predicted by the model</p></li>
+<li><p><strong>ymodel</strong> (list/np.ndarray) - Mean values of the normal distribution (i.e. “mu” values), as predicted by the model</p></li>
 <li><p><strong>ydata</strong> (list/np.ndarray) - Data time series values to be matched with the model predictions.</p></li>
-<li><p><strong>sigma</strong> (float/list of floats/np.ndarray) - Standard deviation(s) of the Gaussian distribution around the data ‘ydata’. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.</p></li>
+<li><p><strong>sigma</strong> (float/list of floats/np.ndarray) - Standard deviation(s) of the normal distribution around the data ‘ydata’. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.</p></li>
+</ul>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Returns:</strong></p>
+<ul class="simple">
+<li><p><strong>ll</strong> (float) - Loglikelihood associated with the comparison of the data points and the model prediction.</p></li>
+</ul>
+</div></blockquote>
+<p><strong><em>function</em> ll_lognormal(ymodel, ydata, sigma)</strong></p>
+<blockquote>
+<div><p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><strong>ymodel</strong> (list/np.ndarray) - Mean values of the lognormal distribution (i.e. “mu” values), as predicted by the model</p></li>
+<li><p><strong>ydata</strong> (list/np.ndarray) - Data time series values to be matched with the model predictions.</p></li>
+<li><p><strong>sigma</strong> (float/list of floats/np.ndarray) - Standard deviation(s) of the lognormal distribution around the data ‘ydata’. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -394,7 +409,7 @@
 </section>
 <section id="mcmc-py">
 <h2>mcmc.py<a class="headerlink" href="#mcmc-py" title="Link to this heading">¶</a></h2>
-<p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.50),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method=’scott’), 0.25)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
+<p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.25),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method=’scott’), 0.50)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
 <blockquote>
 <div><p>Wrapper function to setup an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> and handle all backend-related tasks.</p>
 </div></blockquote>
@@ -417,7 +432,7 @@
 <blockquote>
 <div><p><strong>Hyperparameters:</strong></p>
 <ul class="simple">
-<li><p><strong>moves</strong> (list) - optional - Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a differential evolution move 50% of the time, a differential evolution snooker move 25% of the time, and a kernel-density estimate move 25% of the time. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a> for an overview of all moves.</p></li>
+<li><p><strong>moves</strong> (list) - optional - Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a differential evolution move 25% of the time, a differential evolution snooker move 25% of the time, and a kernel-density estimate move 50% of the time. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a> for an overview of all moves.</p></li>
 <li><p><strong>backend</strong> (<code class="docutils literal notranslate"><span class="pre">emcee.backends.HDFBackend</span></code>) - optional - Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/backends/">emcee documentation</a>.</p></li>
 <li><p><strong>progress</strong> (bool) - optional - Enables the progress bar.</p></li>
 </ul>

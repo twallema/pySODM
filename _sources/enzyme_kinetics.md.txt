@@ -130,7 +130,7 @@ here {math}`y_{i,j}` is the glucose laurate ester concentration of the {math}`j`
 We'll load the datasets using a `for` statement and immediately extract two inputs to our log posterior probability function: 1) The glucose laurate ester observations as `data`, 2) The glucose laurate ester measurement error, computed as 4% relative to the glucose laurate ester observations and, 3) the initial concentrations used in the experiment in `initial_states`. We will also construct the list of model states to match our datasets to (`states`), which is a list containing eight instances of the Ester state names `'Es'`. 
 
 ```python
-from pySODM.optimization.objective_functions import ll_gaussian
+from pySODM.optimization.objective_functions import ll_normal
 
 # Extract and sort the names
 names = os.listdir(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'))
@@ -144,7 +144,7 @@ initial_states=[]
 for name in names:
     df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'+name), index_col=0)
     data.append(df['Es'][1:]) # Cut out zero's!
-    log_likelihood_fnc.append(ll_gaussian)
+    log_likelihood_fnc.append(ll_normal)
     log_likelihood_fnc_args.append(0.04*df['Es'][1:]) # 4% Relative noise
     states.append('Es')
     initial_states.append(
