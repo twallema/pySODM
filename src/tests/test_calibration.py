@@ -526,8 +526,8 @@ def test_correct_approach_with_two_dimensions():
     # Variables that don't really change
     states = ["I",]
     weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha*np.ones([2,3]),]
+    log_likelihood_fnc = [ll_normal,]
+    log_likelihood_fnc_args = [np.ones([2,3]),]
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
