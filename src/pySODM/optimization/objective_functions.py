@@ -469,7 +469,7 @@ class log_posterior_probability():
                 thetas[i] = self.expanded_bounds[i][0]
 
         # Unflatten thetas
-        thetas_dict = list_to_dict(thetas, self.parameter_shapes)
+        thetas_dict = list_to_dict(thetas, self.parameter_shapes, retain_floats=True)
 
         # Assign and remove warmup
         if 'warmup' in thetas_dict.keys():
