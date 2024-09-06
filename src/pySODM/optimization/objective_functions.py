@@ -3,10 +3,9 @@ import itertools
 import pandas as pd
 import numpy as np
 import xarray as xr
-from scipy.stats import norm, weibull_min, triang, gamma
+from scipy.stats import norm, triang, gamma
 from scipy.special import gammaln
 from pySODM.models.utils import list_to_dict
-from pySODM.optimization.utils import _thetas_to_thetas_dict
 from pySODM.models.validation import validate_initial_states
 
 ##############################
