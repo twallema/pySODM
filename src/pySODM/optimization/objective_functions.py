@@ -12,18 +12,18 @@ from pySODM.models.validation import validate_initial_states
 ## Log-likelihood functions ##
 ##############################
 
-def ll_gaussian(ymodel, ydata, sigma):
+def ll_lognormal(ymodel, ydata, sigma):
     """
-    Loglikelihood of a Gaussian distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
+    Loglikelihood of a lognormal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
 
     Parameters
     ----------
     ymodel: np.ndarray
-        mean values of the Gaussian distribution (i.e. "mu" values), as predicted by the model
+        mean values of the lognormal distribution (i.e. "mu" values), as predicted by the model
     ydata: np.ndarray
         time series to be matched with the model predictions
     sigma: float/list of floats/np.ndarray
-        Standard deviation of the Gaussian distribution around the mean value 'ymodel'
+        Standard deviation of the lognormal distribution around the mean value 'ymodel'
 
     Returns
     -------
@@ -31,14 +31,45 @@ def ll_gaussian(ymodel, ydata, sigma):
         Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
     """
 
-    # Expand first dimensions on 'alpha' to match the axes
+    # expand first dimensions on 'sigma' to match the axes
     sigma = np.array(sigma)
     if not sigma.shape == ymodel.shape:
         sigma = sigma[np.newaxis, ...]  
-    # Check for zeros (TODO: move to a higher layer)
+    # check for zeros
     if len(sigma[sigma<=0]) != 0:
         raise ValueError(
-            'the standard deviation used in `ll_gaussian` contains values smaller than or equal to zero'
+            'the standard deviation used in `ll_lognormal` contains values smaller than or equal to zero'
+        )
+    
+    return - 1/2 * np.sum((np.log(ydata+1)-np.log(ymodel+1))**2/sigma**2 + np.log(2*np.pi*sigma**2) + np.log(ydata+1))
+
+def ll_normal(ymodel, ydata, sigma):
+    """
+    Loglikelihood of a normal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
+
+    Parameters
+    ----------
+    ymodel: np.ndarray
+        mean values of the normal distribution (i.e. "mu" values), as predicted by the model
+    ydata: np.ndarray
+        time series to be matched with the model predictions
+    sigma: float/list of floats/np.ndarray
+        Standard deviation of the normal distribution around the mean value 'ymodel'
+
+    Returns
+    -------
+    ll: float
+        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
+    """
+
+    # expand first dimensions on 'sigma' to match the axes
+    sigma = np.array(sigma)
+    if not sigma.shape == ymodel.shape:
+        sigma = sigma[np.newaxis, ...]  
+    # check for zeros
+    if len(sigma[sigma<=0]) != 0:
+        raise ValueError(
+            'the standard deviation used in `ll_normal` contains values smaller than or equal to zero'
         )
     return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
 
@@ -963,7 +994,7 @@ def validate_log_likelihood_funtion(log_likelihood_function):
     Parameters
     ----------
     log_likelihood_function: callable function
-        The log likelihood function. F.i. Gaussian, Poisson, etc.
+        The log likelihood function. F.i. Normal, Poisson, etc.
 
     Returns
     -------
@@ -972,7 +1003,7 @@ def validate_log_likelihood_funtion(log_likelihood_function):
     """
 
     # Check that log_likelihood_fnc always has ymodel as the first argument and ydata as the second argument
-    # Find out how many additional arguments are needed for the log_likelihood_fnc (f.i. sigma for gaussian model, alpha for negative binomial)
+    # Find out how many additional arguments are needed for the log_likelihood_fnc (f.i. sigma for normal model, alpha for negative binomial)
     n_log_likelihood_extra_args=[]
     for idx,fnc in enumerate(log_likelihood_function):
         sig = inspect.signature(fnc)
@@ -1013,7 +1044,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                     )
         else:
             if not additional_axes_data[idx]:
-                # ll_poisson, ll_gaussian, ll_negative_binomial take int/float, but ll_gaussian can also take an error for every datapoint (= weighted least-squares)
+                # ll_poisson, ll_normal, ll_negative_binomial take int/float, but ll_normal can also take an error for every datapoint (= weighted least-squares)
                 # Thus, its additional argument must be a np.array of the same dimensions as the data
                 if not isinstance(log_likelihood_fnc_args[idx], (int,float,np.ndarray,pd.Series)):
                     raise ValueError(

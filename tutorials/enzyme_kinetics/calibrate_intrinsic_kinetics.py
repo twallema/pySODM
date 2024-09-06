@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_gaussian_noise, assign_theta
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
-from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_gaussian
+from pySODM.optimization.objective_functions import log_posterior_probability, log_prior_uniform, ll_normal
 # pySODM dependecies
 import corner
 
@@ -75,7 +75,7 @@ initial_states=[]
 for name in names:
     df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'+name), index_col=0)
     data.append(df['Es'][1:]) # Cut out zero's!
-    log_likelihood_fnc.append(ll_gaussian)
+    log_likelihood_fnc.append(ll_normal)
     log_likelihood_fnc_args.append(0.04*df['Es'][1:]) # 4% Relative noise
     y_err.append(df['sigma'][1:])
     states.append('Es')

@@ -1,12 +1,10 @@
 import pytest
-import datetime
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
-from pySODM.optimization.objective_functions import log_posterior_probability, ll_poisson, ll_negative_binomial
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 
 # Only tested for ODE but the model output is identical so this shouldn't matter
@@ -528,8 +526,8 @@ def test_correct_approach_with_two_dimensions():
     # Variables that don't really change
     states = ["I",]
     weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha*np.ones([2,3]),]
+    log_likelihood_fnc = [ll_normal,]
+    log_likelihood_fnc_args = [np.ones([2,3]),]
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
