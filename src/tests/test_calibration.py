@@ -1,12 +1,10 @@
 import pytest
-import datetime
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
-from pySODM.optimization.objective_functions import log_posterior_probability, ll_poisson, ll_negative_binomial
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 
 # Only tested for ODE but the model output is identical so this shouldn't matter
