@@ -324,7 +324,7 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>.</p></li>
+<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended <code class="docutils literal notranslate"><span class="pre">pySODM.optimization.log_posterior_probability</span></code>.</p></li>
 <li><p><strong>x_start</strong> (list or 1D np.ndarray) - Starting estimate for the search algorithm. Length must equal the number of provided bounds.</p></li>
 <li><p><strong>step</strong> (list or 1D np.ndarray) - (Relative) size of the initial search simplex.</p></li>
 <li><p><strong>bounds</strong> (list) - optional - The bounds of the design variable(s). In form <code class="docutils literal notranslate"><span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>. If class <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code> is used as <code class="docutils literal notranslate"><span class="pre">func</span></code>, it already contains bounds. If bounds are provided these will overwrite the bounds available in the ‘log_posterior_probability’ object.</p></li>
@@ -356,7 +356,7 @@
 <h2>pso.py<a class="headerlink" href="#pso-py" title="Link to this heading">¶</a></h2>
 <p><strong><em>function</em> optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={}, processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,  debug=False, particle_output=False, transform_pars=None)</strong></p>
 <blockquote>
-<div><p>Perform a <a class="reference external" href="https://en.wikipedia.org/wiki/Particle_swarm_optimization">Particle Swarm Optimization</a>. If a PSO with more options is desired, coupling to <a class="reference external" href="https://pyswarms.readthedocs.io/en/latest/examples/tutorials/basic_optimization.html#Optimizing-a-function">pySwarms</a> is straightforward.</p>
+<div><p>Perform a <a class="reference external" href="https://en.wikipedia.org/wiki/Particle_swarm_optimization">Particle Swarm Optimization</a>.</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
@@ -394,7 +394,7 @@
 </section>
 <section id="mcmc-py">
 <h2>mcmc.py<a class="headerlink" href="#mcmc-py" title="Link to this heading">¶</a></h2>
-<p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.5),(emcee.moves.KDEMove(bw_method=’scott’), 0.5)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
+<p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.50),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method=’scott’), 0.25)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
 <blockquote>
 <div><p>Wrapper function to setup an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> and handle all backend-related tasks.</p>
 </div></blockquote>
@@ -417,7 +417,7 @@
 <blockquote>
 <div><p><strong>Hyperparameters:</strong></p>
 <ul class="simple">
-<li><p><strong>moves</strong> (list) - optional - Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a>.</p></li>
+<li><p><strong>moves</strong> (list) - optional - Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a differential evolution move 50% of the time, a differential evolution snooker move 25% of the time, and a kernel-density estimate move 25% of the time. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a> for an overview of all moves.</p></li>
 <li><p><strong>backend</strong> (<code class="docutils literal notranslate"><span class="pre">emcee.backends.HDFBackend</span></code>) - optional - Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/backends/">emcee documentation</a>.</p></li>
 <li><p><strong>progress</strong> (bool) - optional - Enables the progress bar.</p></li>
 </ul>
