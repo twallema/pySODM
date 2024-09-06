@@ -202,7 +202,7 @@
 
 ## mcmc.py
 
-***function* run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.25), (emcee.moves.DESnookerMove(),0.25)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})**
+***function* run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.50),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method='scott'), 0.25)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})**
 
 > Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
 
