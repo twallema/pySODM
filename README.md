@@ -3,7 +3,7 @@
 
 Resources: [documentation](https://twallema.github.io/pySODM), [peer-reviewed paper](https://www.sciencedirect.com/science/article/pii/S1877750323002089), [pyPI](https://pypi.org/project/pySODM/)
 
-![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg) [![HitCount](https://hits.dwyl.com/twallema/pySODM.svg)](https://hits.dwyl.com/twallema/pySODM)
+![build](https://github.com/twallema/pySODM/actions/workflows/tests.yml/badge.svg) ![docs](https://github.com/twallema/pySODM/actions/workflows/deploy.yml/badge.svg)
 
 ### Quick installation 
 ```
