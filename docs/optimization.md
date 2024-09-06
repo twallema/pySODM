@@ -35,7 +35,7 @@
 
 ### Log likelihood
 
-***function* ll_gaussian(ymodel, ydata, sigma)**
+***function* ll_normal(ymodel, ydata, sigma)**
 
 >    **Parameters:**
 >   * **ymodel** (list/np.ndarray) - Mean values of the Gaussian distribution (i.e. "mu" values), as predicted by the model
