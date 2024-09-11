@@ -40,7 +40,7 @@ def validate_simulation_time(time, warmup):
                 types = [type(t) for t in time]
                 raise ValueError(
                     "simulation start and stop must have the format: time=[start, stop]."
-                    " 'start' and 'stop' must have the same datatype: int/float, str, or datetime."
+                    " 'start' and 'stop' must have the same datatype: int/float, str ('yyyy-mm-dd'), or datetime."
                     f" mixing of types is not allowed. you supplied: {types} "
                     )
     else:
