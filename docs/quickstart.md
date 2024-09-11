@@ -56,7 +56,7 @@ out = model.sim(121)
 # String representation of dates: 'yyyy-mm-dd' only
 out = model.sim(['2022-12-01', '2023-05-01'])
 
-# Datetime representation of time + dates
+# Datetime representation of time + date
 from datetime import datetime as datetime
 out = model.sim([datetime(2022, 12, 1), datetime(2023, 5, 1)])
 
