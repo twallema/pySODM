@@ -47,14 +47,18 @@ To initialize the model, provide a dictionary containing the initial values of t
 model = SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
-Simulate the model using its `sim()` method. pySODM supports the use of `datetime` types as timesteps.
+Simulate the model using its `sim()` method. pySODM supports the use of dates to index simulations, string representations of dates with the format `'yyyy-mm-dd'` as well as `datetime.datetime()` can be used. 
 
 ```python
 # Timesteps
 out = model.sim(121)
 
-# Dates
+# String representation of dates: 'yyyy-mm-dd' only
 out = model.sim(['2022-12-01', '2023-05-01'])
+
+# Datetime representation of time + dates
+from datetime import datetime as datetime
+out = model.sim([datetime(2022, 12, 1), datetime(2023, 5, 1)])
 
 # Tailor method and tolerance of integrator
 out = model.sim(121, method='RK45', rtol='1e-4')
