@@ -11,7 +11,7 @@ from pySODM.models.utils import int_to_date, list_to_dict
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
-                                                validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings
+                                                validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess
 
 class JumpProcess:
     """
@@ -375,7 +375,7 @@ class JumpProcess:
         np.random.seed(seed)
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=0.5, output_timestep=1):
+    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
 
         """
         Simulate a model during a given time period.
@@ -422,27 +422,15 @@ class JumpProcess:
         output: xarray.Dataset
             Simulation output
         """
-
-        # Input checks on solution method and timestep
-        if not isinstance(method, str):
-            raise TypeError(
-                "solver method 'method' must be of type string"
-                )
-        if not isinstance(tau, (int,float)):
-            raise TypeError(
-                "discrete timestep 'tau' must be of type int or float"
-                )
+        
+        # Input checks on solution settings
+        validate_solution_methods_JumpProcess(method, tau)
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
         # Input checks related to draw functions
         if draw_function:
             # validate function
             validate_draw_function(draw_function, draw_function_kwargs, self.parameters)
-            # function provided but N=1 --> user likely forgot 'N'
-            if N == 1:
-                raise ValueError(
-                    "you specified a draw function but N=1, have you forgotten 'N'?"
-                )
 
         # Copy parameter dictionary --> dict is global
         cp = copy.deepcopy(self.parameters)
@@ -682,7 +670,7 @@ class ODE:
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1):
+    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-4, tau=None, output_timestep=1):
         """
         Simulate a model during a given time period.
         Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
@@ -732,32 +720,15 @@ class ODE:
         output: xarray.Dataset
             Simulation output
         """
-
-        # Input checks on solver settings
-        if not isinstance(rtol, float):
-            raise TypeError(
-                "relative solver tolerance 'rtol' must be of type float"
-                )
-        if not isinstance(method, str):
-            raise TypeError(
-                "solver method 'method' must be of type string"
-                )
-        if tau != None:
-            if not isinstance(tau, (int,float)):
-                raise TypeError(
-                    "discrete timestep 'tau' must be of type int or float"
-                )
+            
+        # Input checks on solution settings
+        validate_solution_methods_ODE(rtol, method, tau)
         # Input checks on supplied simulation time
         time, actual_start_date = validate_simulation_time(time, warmup)
         # Input checks related to draw functions
         if draw_function:
             # validate function
             validate_draw_function(draw_function, draw_function_kwargs, self.parameters)
-            # function provided but N=1 --> user likely forgot 'N'
-            if N == 1:
-                raise ValueError(
-                    "you specified a draw function but N=1, have you forgotten 'N'?"
-                )
         # provinding 'N' but no draw function: wasteful of resources
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))

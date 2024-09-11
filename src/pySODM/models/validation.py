@@ -58,6 +58,66 @@ def validate_simulation_time(time, warmup):
         )
     return time, actual_start_date
 
+def validate_solution_methods_ODE(rtol, method, tau):
+    """
+    Validates the input arguments of the ODE.sim() function
+
+    input
+    -----
+
+    rtol: float
+        Relative solver tolerance
+
+    method: str
+        Solver method: 'RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA'
+
+    tau: int/float
+        Discrete integration size of timestep. 
+    """
+
+    if not isinstance(rtol, float):
+        raise TypeError(
+            "relative solver tolerance 'rtol' must be of type float"
+            )
+    if not isinstance(method, str):
+        raise TypeError(
+            "solver method 'method' must be of type string"
+            )
+    if method not in ['RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA']:
+        raise ValueError(
+            f"invalid solution method '{method}'. valid methods: 'RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA'"
+        )
+    if tau != None:
+        if not isinstance(tau, (int,float)):
+            raise TypeError(
+                "discrete timestep 'tau' must be of type int or float"
+            )
+
+def validate_solution_methods_JumpProcess(method, tau):
+    """
+    Validates the input arguments of the JumpProcess.sim() function
+
+    method: str
+        Solver method: 'SSA' or 'tau_leap'
+
+    tau: int/float
+        If method == 'tau_leap' --> leap size
+    """
+
+    # Input checks on solution method and timestep
+    if not isinstance(method, str):
+        raise TypeError(
+            "solver method 'method' must be of type string"
+            )
+    if method not in ['tau_leap', 'SSA']:
+        raise ValueError(
+            f"invalid solution method '{method}'. valid methods: 'SSA' and 'tau_leap'"
+        )
+    if not isinstance(tau, (int,float)):
+        raise TypeError(
+            "discrete timestep 'tau' must be of type int or float"
+            )
+    
 def validate_draw_function(draw_function, draw_function_kwargs, parameters):
     """Validates the draw function's input and output. For use in the sim() functions of the ODE and JumpProcess classes (base.py).
     
