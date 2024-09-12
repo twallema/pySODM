@@ -7,7 +7,7 @@ from datetime import datetime
 from scipy.stats import norm, triang, gamma
 from scipy.special import gammaln
 from pySODM.models.utils import list_to_dict
-from pySODM.models.validation import validate_initial_states, validate_simulation_time
+from pySODM.models.validation import validate_initial_states
 
 ##############################
 ## Log-likelihood functions ##
@@ -319,31 +319,7 @@ class log_posterior_probability():
         ## Extract start and end of simulations ##
         ##########################################
 
-        # extract startdate
-        if not start_sim:
-            if self.time_index == 'time':
-                self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
-            elif self.time_index == 'date':
-                self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data]).to_pydatetime() # <class 'pandas._libs.tslibs.timestamps.Timestamp'> --> <class 'datetime.datetime'>
-        else:
-            # assert user input has right datatype
-            assert isinstance(start_sim, (int, float, datetime, str)), "'start_sim' must be of type int, float, str or datetime"
-            # convert to datetime if string
-            if isinstance(start_sim, str):
-                self.start_sim = datetime.strptime(start_sim,"%Y-%m-%d")
-            else:
-                self.start_sim = start_sim
-        # extract enddate
-        if self.time_index == 'time':
-            self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data])
-        elif self.time_index == 'date':
-            self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data]).to_pydatetime() 
-
-        # if time_index are dates
-        assert type(self.start_sim) == type(self.end_sim), f"'start_sim' ({type(self.start_sim)}) and 'end_sim' ({type(self.end_sim)}) must have the same type"
-
-        # assert startdate before enddate
-        assert self.start_sim < self.end_sim, f"'start_sim' ({self.start_sim}) must be smaller than 'end_sim' ({self.end_sim})"
+        self.start_sim, self.end_sim = validate_simulation_time_lpp(start_sim, self.time_index, data)
 
         ########################################
         ## Validate the calibrated parameters ##
@@ -636,6 +612,69 @@ def validate_dataset(data):
 
     return data, time_index, additional_axes_data
 
+def validate_simulation_time_lpp(start_sim, time_index, data):
+    """
+    Determines and validates what the start and end of the simulations should be
+
+    input
+    -----
+
+    start_sim: None (default) or int/float (time_index: 'time') or str/datetime  (time_index: 'date')
+        user-defined start of the simulation
+
+    time_index: str
+        'time': if float-like time index. 'date': if datetime-like time index.
+
+    data: list
+        List containing the datasets.
+
+    output
+    ------
+
+    start_sim: float (time_index: 'time') or datetime (time_index: 'date')
+        start of the simulations
+
+    end_sim : idem
+        idem
+    """
+
+    # extract startdate
+    if not start_sim:
+        if time_index == 'time':
+            start_sim = float(min([df.index.get_level_values(time_index).unique().min() for df in data]))
+        elif time_index == 'date':
+            start_sim = min([df.index.get_level_values(time_index).unique().min() for df in data]).to_pydatetime() # <class 'pandas._libs.tslibs.timestamps.Timestamp'> --> <class 'datetime.datetime'>
+    else:
+        # assert user input has right datatype
+        assert isinstance(start_sim, (int, float, datetime, str)), "'start_sim' must be of type int, float, str or datetime"
+        # convert to datetime if string
+        if isinstance(start_sim, str):
+            start_sim = datetime.strptime(start_sim,"%Y-%m-%d")
+        # convert to float if int
+        elif isinstance(start_sim, int):
+            start_sim = float(start_sim)
+        else:
+            start_sim = start_sim
+        # only float (time_index: 'time') and datetime (time_index: 'date') remain 
+
+    # extract enddate from datasets
+    if time_index == 'time':
+        end_sim = float(max([df.index.get_level_values(time_index).unique().max() for df in data]))
+    elif time_index == 'date':
+        end_sim = max([df.index.get_level_values(time_index).unique().max() for df in data]).to_pydatetime() 
+
+    # give user pointers on what type to use
+    if time_index == 'time':
+        if not isinstance(start_sim, float):
+            raise TypeError("'start_sim' must be of type int/float")
+    elif time_index == 'date':
+        if not isinstance(start_sim, datetime):
+            raise TypeError("'start_sim' must be of type datetime.datetime or a string representation of a date ('yyyy-mm-dd')")
+
+    # assert startdate before enddate
+    assert start_sim < end_sim, f"'start_sim' ({start_sim}) must be smaller than 'end_sim' ({end_sim})"
+
+    return start_sim, end_sim
 
 def validate_calibrated_parameters(parameters_function, parameters_model):
     """
