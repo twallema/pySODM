@@ -21,7 +21,7 @@ def validate_simulation_time(time, warmup):
         time = [0-warmup, time]
     elif isinstance(time, list):
         if not len(time) == 2:
-            raise ValueError(f"'Time' must be of format: time=[start, stop]. You have supplied: time={time}.")
+            raise ValueError(f"wrong length of list-like simulation start and stop (length: {len(time)}). correct format: time=[start, stop] (length: 2).")
         else:
             # If they are all int or flat (or commonly occuring np.int64/np.float64)
             if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
@@ -37,29 +37,87 @@ def validate_simulation_time(time, warmup):
                 actual_start_date = time[0] - timedelta(days=warmup)
                 time = [0, date_to_diff(actual_start_date, time[1])]
             else:
+                types = [type(t) for t in time]
                 raise ValueError(
-                    f"List-like input of simulation start and stop must contain either all int/float or all str/datetime, not a combination of the two "
+                    "simulation start and stop must have the format: time=[start, stop]."
+                    " 'start' and 'stop' must have the same datatype: int/float, str ('yyyy-mm-dd'), or datetime."
+                    f" mixing of types is not allowed. you supplied: {types} "
                     )
-    elif isinstance(time, (str,datetime)):
-        raise TypeError(
-            "You have only provided one date as input 'time', how am I supposed to know when to start/end this simulation?"
-        )
     else:
         raise TypeError(
-                "Input argument 'time' must be a single number (int or float), a list of format: time=[start, stop], a string representing of a timestamp, or a timestamp"
+                "'time' must be 1) a single int/float representing the end of the simulation, 2) a list of format: time=[start, stop]."
             )
 
     if time[1] < time[0]:
         raise ValueError(
-            "Start of simulation is chronologically after end of simulation"
+            "start of simulation is chronologically after end of simulation"
         )
     elif time[0] == time[1]:
-        # TODO: Might be usefull to just return the initial condition in this case?
         raise ValueError(
-            "Start of simulation is the same as the end of simulation"
+            "start of simulation is the same as the end of simulation"
         )
     return time, actual_start_date
 
+def validate_solution_methods_ODE(rtol, method, tau):
+    """
+    Validates the input arguments of the ODE.sim() function
+
+    input
+    -----
+
+    rtol: float
+        Relative solver tolerance
+
+    method: str
+        Solver method: 'RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA'
+
+    tau: int/float
+        Discrete integration size of timestep. 
+    """
+
+    if not isinstance(rtol, float):
+        raise TypeError(
+            "relative solver tolerance 'rtol' must be of type float"
+            )
+    if not isinstance(method, str):
+        raise TypeError(
+            "solver method 'method' must be of type string"
+            )
+    if method not in ['RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA']:
+        raise ValueError(
+            f"invalid solution method '{method}'. valid methods: 'RK23', 'RK45', 'DOP853', 'Radau', 'BDF', 'LSODA'"
+        )
+    if tau != None:
+        if not isinstance(tau, (int,float)):
+            raise TypeError(
+                "discrete timestep 'tau' must be of type int or float"
+            )
+
+def validate_solution_methods_JumpProcess(method, tau):
+    """
+    Validates the input arguments of the JumpProcess.sim() function
+
+    method: str
+        Solver method: 'SSA' or 'tau_leap'
+
+    tau: int/float
+        If method == 'tau_leap' --> leap size
+    """
+
+    # Input checks on solution method and timestep
+    if not isinstance(method, str):
+        raise TypeError(
+            "solver method 'method' must be of type string"
+            )
+    if method not in ['tau_leap', 'SSA']:
+        raise ValueError(
+            f"invalid solution method '{method}'. valid methods: 'SSA' and 'tau_leap'"
+        )
+    if not isinstance(tau, (int,float)):
+        raise TypeError(
+            "discrete timestep 'tau' must be of type int or float"
+            )
+    
 def validate_draw_function(draw_function, draw_function_kwargs, parameters):
     """Validates the draw function's input and output. For use in the sim() functions of the ODE and JumpProcess classes (base.py).
     

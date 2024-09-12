@@ -3,6 +3,7 @@ import itertools
 import pandas as pd
 import numpy as np
 import xarray as xr
+from datetime import datetime
 from scipy.stats import norm, triang, gamma
 from scipy.special import gammaln
 from pySODM.models.utils import list_to_dict
@@ -268,7 +269,7 @@ class log_posterior_probability():
     # TODO: fully document docstring
     """
     def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                 weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
+                 start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
 
         ############################################################################################################
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
@@ -313,9 +314,12 @@ class log_posterior_probability():
 
         # Get additional axes beside time axis in dataset.
         data, self.time_index, self.additional_axes_data = validate_dataset(data)
-        # Extract start- and enddate of simulations
-        self.start_sim = min([df.index.get_level_values(self.time_index).unique().min() for df in data])
-        self.end_sim = max([df.index.get_level_values(self.time_index).unique().max() for df in data])
+
+        ##########################################
+        ## Extract start and end of simulations ##
+        ##########################################
+
+        self.start_sim, self.end_sim = validate_simulation_time_lpp(start_sim, self.time_index, data)
 
         ########################################
         ## Validate the calibrated parameters ##
@@ -518,9 +522,11 @@ class log_posterior_probability():
 def validate_dataset(data):
     """
     Validates a dataset:
-        - Correct datatype?
-        - No Nan's?
-        - Is the index level 'date'/'time present? (obligated)
+        - Does the dataset itself have the right type?
+        - Does it contain Nan's?
+        - Is the index level 'time'/'date' present? (obligated)
+        - Are the indices in 'time' all int/float? Are the indices in 'date' all datetime?
+
     Extracts and returns the additional dimensions in dataset besides the time axis.
 
     Parameters
@@ -535,10 +541,10 @@ def validate_dataset(data):
         List containing the datasets. xarray.DataArray have been converted to pd.DataFrame
 
     additional_axes_data: list
-        Contains the index levels beside 'date'/'time' present in the dataset
+        Contains the index levels beside 'time'/'date' present in the dataset
 
     time_index: str
-        'date': datetime-like time index. 'time': float-like time index.
+        'time': if float-like time index. 'date': if datetime-like time index.
     """
 
     additional_axes_data=[] 
@@ -582,17 +588,97 @@ def validate_dataset(data):
             raise ValueError(
                 f"Index of {idx}th dataset has both 'date' and 'time' as index level (index levels: {df.index.names})."
                 )
-    # Are all time index levels equal to 'date' or 'time'?
+    # Are all time index levels equal to 'date' or 'time' (i.e. no mixing)?
     if all(index == 'date' for index in time_index):
         time_index='date'
     elif all(index == 'time' for index in time_index):
         time_index='time'
     else:
         raise ValueError(
-            "Some datasets have 'time' as time index, other have 'date as time index. pySODM does not allow mixing."
+            "Some datasets have 'time' as temporal index while others have 'date' as temporal index. pySODM does not allow mixing."
         )
+    
+    # Do the types of the time axis make sense?
+    for idx, df in enumerate(data):
+        time_index_vals = df.index.get_level_values(time_index).unique().values
+        # 'time' --> can only be (np.)int/float
+        if time_index=='time':
+            if not all([isinstance(t, (int, float, np.int32, np.int64, np.float32, np.float64)) for t in time_index_vals]):
+                raise ValueError(f"index level 'time' of the {idx}th dataset contains values not of type 'int/float'")
+        # 'date' --> can only be (np.)datetime; no str representations --> gets very messy if we allow this
+        if time_index=='date':
+            if not all([isinstance(t, (datetime, np.datetime64)) for t in time_index_vals]):
+                raise ValueError(f"index level 'date' of the {idx}th dataset contains values not of type 'datetime'")
+
     return data, time_index, additional_axes_data
 
+def validate_simulation_time_lpp(start_sim, time_index, data):
+    """
+    Determines and validates what the start and end of the simulations should be
+
+    Simulation start: user-defined (start_sim is not None) or earliest time/date found in dataasets
+    Simulation end: always latest time/date found in dataasets
+
+    input
+    -----
+
+    start_sim: None (default) or int/float or str/datetime (user-defined)
+        None: start of the simulation is set to the earliest time/date found in dataasets
+        int/float or str/datetime: user-defined start of the simulation
+
+    time_index: str
+        'time': if float-like time index in datasets. 'date': if datetime-like time index in datasets.
+
+    data: list
+        List containing the datasets.
+
+    output
+    ------
+
+    start_sim: float (time_index: 'time') or datetime (time_index: 'date')
+        start of simulations. earliest time/date found in dataasets or user-defined
+
+    end_sim : idem
+        end of simulations. latest time/date found in dataasets
+    """
+
+    # extract startdate
+    if not start_sim:
+        if time_index == 'time':
+            start_sim = float(min([df.index.get_level_values(time_index).unique().min() for df in data]))
+        elif time_index == 'date':
+            start_sim = min([df.index.get_level_values(time_index).unique().min() for df in data]).to_pydatetime() # <class 'pandas._libs.tslibs.timestamps.Timestamp'> --> <class 'datetime.datetime'>
+    else:
+        # assert user input has right datatype
+        assert isinstance(start_sim, (int, float, datetime, str)), "'start_sim' must be of type int, float, str or datetime"
+        # convert to datetime if string
+        if isinstance(start_sim, str):
+            start_sim = datetime.strptime(start_sim,"%Y-%m-%d")
+        # convert to float if int
+        elif isinstance(start_sim, int):
+            start_sim = float(start_sim)
+        else:
+            start_sim = start_sim
+        # only float (time_index: 'time') and datetime (time_index: 'date') remain 
+
+    # extract enddate from datasets
+    if time_index == 'time':
+        end_sim = float(max([df.index.get_level_values(time_index).unique().max() for df in data]))
+    elif time_index == 'date':
+        end_sim = max([df.index.get_level_values(time_index).unique().max() for df in data]).to_pydatetime() 
+
+    # give user pointers on what type to use
+    if time_index == 'time':
+        if not isinstance(start_sim, float):
+            raise TypeError("'start_sim' must be of type int/float")
+    elif time_index == 'date':
+        if not isinstance(start_sim, datetime):
+            raise TypeError("'start_sim' must be of type datetime.datetime or a string representation of a date ('yyyy-mm-dd')")
+
+    # assert startdate before enddate
+    assert start_sim < end_sim, f"'start_sim' ({start_sim}) must be smaller than 'end_sim' ({end_sim})"
+
+    return start_sim, end_sim
 
 def validate_calibrated_parameters(parameters_function, parameters_model):
     """

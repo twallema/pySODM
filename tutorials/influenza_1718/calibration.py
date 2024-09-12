@@ -134,7 +134,6 @@ if __name__ == '__main__':
     # Define dataset
     data=[df_influenza[start_calibration:end_calibration], ]
     states = ["Im_inc",]
-    weights = np.array([1,])
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [len(age_groups)*[alpha,],]
     # Calibated parameters and bounds
@@ -142,7 +141,7 @@ if __name__ == '__main__':
     labels = ['$\\beta$', '$f_{ud}$']
     bounds = [(1e-6,0.08), (1e-3,1-1e-3)]
     # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,labels=labels)
     # Extract expanded bounds and labels
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   

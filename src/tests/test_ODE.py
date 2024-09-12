@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from pySODM.models.base import ODE
 
 #############################
@@ -58,28 +59,46 @@ def test_SIR_time():
     assert S.shape == (51, )
 
     # Do it wrong
-    # Start before end
-    with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
+    # dates and times
+    ## Start before end
+    with pytest.raises(ValueError, match="start of simulation is chronologically after end of simulation"):
         model.sim([20,5])
 
-    # Start same as end
-    with pytest.raises(ValueError, match="Start of simulation is the same as the end of simulation"):
+    ## Start same as end
+    with pytest.raises(ValueError, match="start of simulation is the same as the end of simulation"):
         model.sim([0,0])
 
-    # Wrong type
-    with pytest.raises(TypeError, match="Input argument 'time' must be a"):
+    ## Wrong type
+    with pytest.raises(TypeError, match="a single int/float representing the end of the simulation"):
         model.sim(np.zeros(2))    
 
-    # If list: wrong length
-    with pytest.raises(ValueError, match="You have supplied:"):
+    ## If list: wrong length
+    with pytest.raises(ValueError, match="wrong length of list-like simulation start and stop"):
         model.sim([0, 50, 100])    
 
-    # Combination of datetime and int/float
-    with pytest.raises(ValueError, match="List-like input of simulation start and stop"):
-        model.sim([0, pd.to_datetime('2020-03-15')])
+    ## Combination of datetime and int/float
+    with pytest.raises(ValueError, match="simulation start and stop must have the format:"):
+        model.sim([0, datetime(2020,3,15)])
+
+    # simulation method
+    ## Wrong type for input argument `rtol`
+    with pytest.raises(TypeError, match="relative solver tolerance 'rtol' must be of type float"):
+         model.sim(50, rtol='hello')
+
+    ## Wrong type for input argument `method`
+    with pytest.raises(TypeError, match="solver method 'method' must be of type string"):
+         model.sim(50, method=3)
+
+    ## Right type for input argument 'method' but non-existing method
+    with pytest.raises(ValueError, match="invalid solution method 'bliblablu'. valid methods:"):
+        model.sim(50, method='bliblablu')
+
+    ## Wrong type for discrete timestep 'tau'
+    with pytest.raises(TypeError, match="discrete timestep 'tau' must be of type int or float"):
+        model.sim(50, tau='bliblablu')
 
 def test_SIR_date():
-    """Test the use of str/datetime time indexing
+    """ Test the use of str/datetime time indexing
     """
 
     # Define parameters and initial states
@@ -90,7 +109,7 @@ def test_SIR_date():
 
     # Do it right
     output = model.sim(['2020-01-01', '2020-02-20'])
-    output = model.sim([pd.Timestamp('2020-01-01'), pd.Timestamp('2020-02-20')])
+    output = model.sim([datetime(2020,1,1), datetime(2020,2,20)])
 
     # Validate
     assert 'date' in list(output.sizes.keys())
@@ -103,19 +122,27 @@ def test_SIR_date():
     assert S.shape == (51, )
 
     # Do it wrong
-
-    # Start before end
-    with pytest.raises(ValueError, match="Start of simulation is chronologically after end of simulation"):
+    # dates and times
+    ## Start before end
+    with pytest.raises(ValueError, match="start of simulation is chronologically after end of simulation"):
         model.sim(['2020-03-15','2020-03-01'])
 
-    # Combination of str/datetime
-    with pytest.raises(ValueError, match="List-like input of simulation start and stop must contain either"):
-        model.sim([pd.to_datetime('2020-01-01'), '2020-05-01'])
+    ## Start same as end
+    with pytest.raises(ValueError, match="start of simulation is the same as the end of simulation"):
+        model.sim([datetime(2020,1,1),datetime(2020,1,1)])
 
-    # Simulate using a mixture of timestamp and string
-    with pytest.raises(TypeError, match="You have only provided one date as input"):
-        model.sim(pd.to_datetime('2020-01-01'))
+    ## Combination of str/datetime
+    with pytest.raises(ValueError, match="simulation start and stop must have the format:"):
+        model.sim([datetime(2020,1,1), '2020-05-01'])
 
+    ## string not formatted 'yyyy-mm-dd'
+    with pytest.raises(ValueError, match="time data '2020/03/01' does not match format"):
+        model.sim(['2020/03/01', '2020-05-01'])
+
+    ## Only providing one date
+    with pytest.raises(TypeError, match="a single int/float representing the end of the simulation"):
+        model.sim(datetime(2020,1,1))
+ 
 def test_SIR_discrete_stepper():
     """ Test the use of the discrete timestepper, `_solve_discrete()`
     """
@@ -570,15 +597,6 @@ def test_draw_function():
     model = SIRstratified(initial_states, parameters, coordinates=coordinates)
     with pytest.raises(ValueError, match="keys in output dictionary of draw function 'draw_function' must match the keys in input dictionary 'parameters'."):
         model.sim(time, draw_function=draw_function, N=5)
-
-    # correct draw function but user does not provide N
-    def draw_function(parameters):
-        return parameters
-    # simulate model
-    time = [0, 10]
-    model = SIRstratified(initial_states, parameters, coordinates=coordinates)
-    with pytest.raises(ValueError, match="you specified a draw function but N=1, have you forgotten 'N'"):
-        model.sim(time, draw_function=draw_function)
 
     # user provides N but no draw function
     with pytest.raises(ValueError, match="attempting to perform N=100 repeated simulations without using a draw function"):

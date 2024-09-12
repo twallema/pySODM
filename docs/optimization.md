@@ -4,22 +4,23 @@
 
 ### Log posterior probability
 
-***class* log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)**
+***class* log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)**
 
 **Parameters:**
 
-* **model** (object) - An initialized ODE or JumpProcess.
+* **model** (object) - An initialized `pySODM.models.base.ODE` or `pySODM.models.base.JumpProcess` model.
 * **parameter_names** (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
-* **bounds** (list) - Lower and upper bound of calibrated parameters provided as lists/tuples containing lower and upper bound: example: `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. Values falling outside these bounds will be restricted to the provided ranges before simulating the model.
-* **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use `[dataset,]`. Must contain a time index named `time` or `date`. Additional axes must be implemented using a `pd.Multiindex` and must bear the names/contain the coordinates of a valid model dimension.
-* **states** (list) - Names of the model states (type: str) the respective datasets should be matched to.
-* **log_likelihood_fnc** (list) - Contains a log likelihood function for every provided dataset.
-* **log_likelihood_fnc_args** (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (`ll_poisson`), provide an empty list.
+* **bounds** (list) - Lower and upper bound of calibrated parameters. Provided as a list or tuple containing lower and upper bound: example: `bounds = [(lb_1, ub_1), ..., (lb_n, ub_n)]`.
+* **data** (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. If there is only one dataset use `data = [df,]`. Dataframe must contain an index named `time` or `date`. Stratified data can be incorporated using a `pd.Multiindex`, whose index levels must have names corresponding to valid model dimensions, and whose indices must be valid dimension coordinates.
+* **states** (list) - Names of the model states (type: str) the respective datasets should be matched to. Must have the same length as `data`.
+* **log_likelihood_fnc** (list) - Contains a log likelihood function for every provided dataset. Must have the same length as `data`.
+* **log_likelihood_fnc_args** (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (such as `ll_poisson`), provide an empty list. Must have the same length as `data`.
+* **start_sim** (int/float or str/datetime) - optional - Can be used to alter the start of the simulation. By default, the start of the simulation is chosen as the earliest time/date found in the datasets. 
 * **weights** (list) - optional - Contains the weights of every dataset in the final log posterior probability. Defaults to one for every dataset.
 * **log_prior_prob_fnc** (list) - optional - Contains a prior probability function for every calibrated parameter. Defaults to a uniform prior using the provided bounds.
 * **log_prior_prob_fnc_args** (list) - optional - Contains the arguments of the provided prior probability functions.
-* **initial_states** (list) - optional - Contains a dictionary of initial states for every dataset. 
-* **aggregation_function** (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an `xarray.DataArray`, resulting from selecting the simulation output at the state we wish to match to the dataset (`model_output_xarray_Dataset['state_name']`), as its input. The output of the function must also be an `xarray.DataArray`. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a high spatial resolutioni. However, data is only available on a lower level of spatial resolution. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument `aggregation_function`are: 1) one callable function --> applied to every dataset. 2) A list containing one callable function --> applied to every dataset. 3) A list containing a callable function for every dataset --> every dataset has its own aggregation function.
+* **initial_states** (list) - optional - Contains a dictionary of initial states for every dataset.
+* **aggregation_function** (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an `xarray.DataArray`, resulting from selecting the simulation output at the state we wish to match to the dataset (`model_output_xarray_Dataset['state_name']`), as its input. The output of the function must also be an `xarray.DataArray`. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a fine spatial resolution. However, data is only available on a coarser level. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument `aggregation_function`are: 1) one callable function --> applied to every dataset. 2) A list containing one callable function --> applied to every dataset. 3) A list containing a callable function for every dataset --> every dataset has its own aggregation function.
 * **labels** (list) - optional - Contains a custom label for the calibrated parameters. Defaults to the names provided in `parameter_names`.
 
 **Methods:**

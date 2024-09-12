@@ -1,6 +1,7 @@
 import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+from datetime import datetime
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
@@ -20,12 +21,12 @@ warmup = starttime
 n_datapoints = 20
 alpha = 0.05
 
-###################################################################################
+##############################################################################
 ## Dummy dataset consisting of two dimensions: age groups and spatial units ##
-###################################################################################
+##############################################################################
 
 # Generate a multiindex dataframe with three index levels: time, age groups, spatial componenet
-time = np.linspace(starttime, endtime, num=20)
+time = np.linspace(starttime, endtime, num=n_datapoints)
 age_groups = ['0-20', '20-120']
 spatial_units = [0, 1, 2]
 index = pd.MultiIndex.from_product([time, age_groups, spatial_units], names=['time', 'age_groups', 'spatial_units'])
@@ -70,22 +71,47 @@ def test_weights():
     log_likelihood_fnc_args = [alpha,]
     # Calibated parameters and bounds
     pars = ['beta',]
-    labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
 
     # Correct: list
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,[1,],labels=labels)
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,])
     # Correct: np.array
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,np.array([1,]),labels=labels)
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.array([1,]))
     # Incorrect: list of wrong length
     with pytest.raises(ValueError, match="the extra arguments of the log likelihood function"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,[1,1],labels=labels)
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,1])
     # Incorrect: numpy array with more than one dimension
     with pytest.raises(TypeError, match="Expected a 1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,np.ones([3,3]),labels=labels)
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.ones([3,3]))
     # Incorrect: datatype string
     with pytest.raises(TypeError, match="Expected a list/1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,'hey',labels=labels)
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights='hey')
+
+def test_start_sim():
+
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    bounds = [(1e-6,1),]
+
+    # Correct: int/float (dataset uses 'time' as temporal index)
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=0)
+    # Incorrect: datetime (wrong type)
+    with pytest.raises(TypeError, match="'start_sim' must be of type int/float"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=datetime(2020,1,1))  
+    # Incorrect: startdate after enddate
+    with pytest.raises(AssertionError, match="must be smaller than 'end_sim'"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=100)  
+
 
 def test_correct_approach_wo_dimension():
 
@@ -106,7 +132,7 @@ def test_correct_approach_wo_dimension():
     bounds = [(1e-6,1),]
     # Setup objective function without priors and with negative weights 
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels)
 
     # PSO
     theta = pso.optimize(objective_function, kwargs={'simulation_kwargs':{'warmup': warmup}},
@@ -125,7 +151,7 @@ def test_correct_approach_wo_dimension():
         fig_path='sampler_output/'
         identifier = 'username'
         # initialize objective function
-        objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+        objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels)
         # Perturbate previously obtained estimate
         ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), bounds=objective_function.expanded_bounds, multiplier=multiplier_mcmc)
         # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
@@ -161,7 +187,7 @@ def break_stuff_wo_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(Exception, match="is not a valid model parameter!"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # Axes in data not present in model
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -178,7 +204,7 @@ def break_stuff_wo_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(Exception, match="Your model has no dimensions."):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
     
     # Wrong type of dataset
     # ~~~~~~~~~~~~~~~~~~~~~
@@ -196,7 +222,7 @@ def break_stuff_wo_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(Exception, match="expected pd.Series, pd.DataFrame"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # pd.DataFrame with more than one column
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -217,7 +243,7 @@ def break_stuff_wo_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(Exception, match="expected one column."):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
 def break_log_likelihood_functions_wo_dimension():
 
@@ -244,28 +270,28 @@ def break_log_likelihood_functions_wo_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(ValueError, match="The number of datasets"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # wrong type: float
     log_likelihood_fnc = [ll_poisson,]
     log_likelihood_fnc_args = [alpha,]
     with pytest.raises(ValueError, match="dataset has no extra arguments. Expected an empty list"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # wrong type: list
     log_likelihood_fnc = [ll_poisson,]
     log_likelihood_fnc_args = [[alpha,],]
     with pytest.raises(ValueError, match="dataset has no extra arguments. Expected an empty list"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # wrong type: np.array
     log_likelihood_fnc = [ll_poisson,]
     log_likelihood_fnc_args = [np.array([alpha,]),]
     with pytest.raises(ValueError, match="dataset has no extra arguments. Expected an empty list"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # Negative binomial log likelihood
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -282,7 +308,7 @@ def break_log_likelihood_functions_wo_dimension():
     log_likelihood_fnc_args = [[alpha,]]
     with pytest.raises(ValueError, match="accepted types are int, float, np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
 def test_xarray_datasets():
     """ Test the use of an xarray.DataArray as dataset
@@ -304,7 +330,7 @@ def test_xarray_datasets():
     bounds = [(1e-6,1),]
     # Setup objective function without priors and with negative weights 
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels)
 
 class SIR_nd_beta(ODE):
 
@@ -342,7 +368,7 @@ def test_calibration_nd_parameter():
     bounds = [(1e-6,1),]
     # Setup objective function without priors and with negative weights 
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels)
     # PSO
     theta = pso.optimize(objective_function,
                         swarmsize=10, max_iter=20, processes=1, debug=True)[0]
@@ -393,7 +419,7 @@ def test_correct_approach_with_one_dimension_0():
     data=[df.groupby(by=['time','age_groups']).sum(),]
     # Setup objective function without priors and with negative weights 
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels)
     # Extract formatted parameter_names, bounds and labels
     labels = objective_function.expanded_labels 
     bounds = objective_function.expanded_bounds
@@ -430,7 +456,7 @@ def break_stuff_with_one_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(Exception, match="0th dataset coordinate 'spatial_units' is"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
     
     # Coordinate in dataset not found in the model
     # Setup model
@@ -443,7 +469,7 @@ def break_stuff_with_one_dimension():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(Exception, match="coordinate '0-20' of dimension 'age_groups' in the 0th"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
 def break_log_likelihood_functions_with_one_dimension():
 
@@ -472,27 +498,27 @@ def break_log_likelihood_functions_with_one_dimension():
     log_likelihood_fnc_args = []
     with pytest.raises(ValueError, match="The number of datasets"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # wrong type: list of incorrect length
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [[alpha,]]
     with pytest.raises(ValueError, match="length of list/1D np.array containing arguments of the log likelihood"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # wrong type: np.array of wrong dimensionality
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [alpha*np.ones([5,5]), ]
     with pytest.raises(ValueError, match="np.ndarray containing arguments of the log likelihood function"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)    
 
     # correct type: np.array of right size
     log_likelihood_fnc = [ll_negative_binomial,]
     log_likelihood_fnc_args = [alpha*np.ones([2]), ]
     log_posterior_probability(model,pars,bounds,data,states,
-                                log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)        
+                                log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)        
 
 ####################################
 ## Model with two dimensions ##
@@ -536,7 +562,7 @@ def test_correct_approach_with_two_dimensions():
     data=[df,]
     # Setup objective function without priors and with negative weights 
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels)
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels)
     # Extract formatted parameter_names, bounds and labels
     pars_postprocessing = objective_function.parameters_names_postprocessing
     labels = objective_function.expanded_labels 
@@ -573,14 +599,14 @@ def test_aggregation_function():
         return output.sum(dim='spatial_units')
     # Correct use
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=aggregation_function)
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels,aggregation_function=aggregation_function)
     # Correct use
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=[aggregation_function,])
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels,aggregation_function=[aggregation_function,])
     # Misuse
     with pytest.raises(ValueError, match="number of aggregation functions must be equal to one or"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
 
 def break_log_likelihood_functions_with_two_dimensions():
 
@@ -607,7 +633,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(ValueError, match="Shape of np.array containing arguments of the log likelihood function"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
     
     # np.array with too many dimensions
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -617,7 +643,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(ValueError, match="Shape of np.array containing arguments of the log likelihood function"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # np.array with too little dimensions
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -627,7 +653,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(ValueError, match="Shape of np.array containing arguments of the log likelihood function"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
     # float
     # ~~~~~
@@ -637,7 +663,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)    
 
     # float in a list
     # ~~~~~~~~~~~~~~~
@@ -647,7 +673,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)    
 
     # list
     # ~~~~
@@ -657,7 +683,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)    
 
     # np.array placed inside too many lists
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -667,7 +693,7 @@ def break_log_likelihood_functions_with_two_dimensions():
     # Setup objective function without priors and with negative weights 
     with pytest.raises(TypeError, match="accepted types are np.ndarray and pd.Series"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,-weights,labels=labels)
+                                    log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)
 
 ##################################################
 ## Model where states have different dimensions ##
@@ -728,4 +754,4 @@ def test_SIR_SI():
     # Vector population --> calibrate to unstratified data
     data=[df.groupby(by=['time','age_groups']).sum(), df.groupby(by=['time']).sum()]
     # Correct use
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights,labels=labels,)
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=weights,labels=labels,)
