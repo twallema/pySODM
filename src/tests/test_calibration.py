@@ -1,6 +1,7 @@
 import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+from datetime import datetime
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise
@@ -20,12 +21,12 @@ warmup = starttime
 n_datapoints = 20
 alpha = 0.05
 
-###################################################################################
+##############################################################################
 ## Dummy dataset consisting of two dimensions: age groups and spatial units ##
-###################################################################################
+##############################################################################
 
 # Generate a multiindex dataframe with three index levels: time, age groups, spatial componenet
-time = np.linspace(starttime, endtime, num=20)
+time = np.linspace(starttime, endtime, num=n_datapoints)
 age_groups = ['0-20', '20-120']
 spatial_units = [0, 1, 2]
 index = pd.MultiIndex.from_product([time, age_groups, spatial_units], names=['time', 'age_groups', 'spatial_units'])
@@ -70,22 +71,47 @@ def test_weights():
     log_likelihood_fnc_args = [alpha,]
     # Calibated parameters and bounds
     pars = ['beta',]
-    labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
 
     # Correct: list
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,],labels=labels)
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,])
     # Correct: np.array
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.array([1,]),labels=labels)
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.array([1,]))
     # Incorrect: list of wrong length
     with pytest.raises(ValueError, match="the extra arguments of the log likelihood function"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,1],labels=labels)
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,1])
     # Incorrect: numpy array with more than one dimension
     with pytest.raises(TypeError, match="Expected a 1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.ones([3,3]),labels=labels)
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.ones([3,3]))
     # Incorrect: datatype string
     with pytest.raises(TypeError, match="Expected a list/1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights='hey',labels=labels)
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights='hey')
+
+def test_start_sim():
+
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    bounds = [(1e-6,1),]
+
+    # Correct: int/float (dataset uses 'time' as temporal index)
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=0)
+    # Incorrect: datetime (wrong type)
+    with pytest.raises(TypeError, match="'start_sim' must be of type int/float"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=datetime(2020,1,1))  
+    # Incorrect: startdate after enddate
+    with pytest.raises(AssertionError, match="must be smaller than 'end_sim'"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=100)  
+
 
 def test_correct_approach_wo_dimension():
 
