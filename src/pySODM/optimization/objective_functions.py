@@ -616,14 +616,18 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
     """
     Determines and validates what the start and end of the simulations should be
 
+    Simulation start: user-defined (start_sim is not None) or earliest time/date found in dataasets
+    Simulation end: always latest time/date found in dataasets
+
     input
     -----
 
-    start_sim: None (default) or int/float (time_index: 'time') or str/datetime  (time_index: 'date')
-        user-defined start of the simulation
+    start_sim: None (default) or int/float or str/datetime (user-defined)
+        None: start of the simulation is set to the earliest time/date found in dataasets
+        int/float or str/datetime: user-defined start of the simulation
 
     time_index: str
-        'time': if float-like time index. 'date': if datetime-like time index.
+        'time': if float-like time index in datasets. 'date': if datetime-like time index in datasets.
 
     data: list
         List containing the datasets.
@@ -632,10 +636,10 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
     ------
 
     start_sim: float (time_index: 'time') or datetime (time_index: 'date')
-        start of the simulations
+        start of simulations. earliest time/date found in dataasets or user-defined
 
     end_sim : idem
-        idem
+        end of simulations. latest time/date found in dataasets
     """
 
     # extract startdate
