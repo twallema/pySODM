@@ -662,11 +662,14 @@ class ODE:
         # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
+    def _mp_sim_single(self, drawn_parameters, drawn_initial_states, time, actual_start_date, method, rtol, output_timestep, tau):
         """
-        A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionary and runs `_sim_single`
+        A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionaries and runs `_sim_single`
         """
+        # set sampled parameters/initial states
         self.parameters.update(drawn_parameters)
+        self.initial_states.update(drawn_initial_states)
+        # simulate model
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
@@ -720,7 +723,7 @@ class ODE:
         output: xarray.Dataset
             Simulation output
         """
-            
+
         # Input checks on solution settings
         validate_solution_methods_ODE(rtol, method, tau)
         # Input checks on supplied simulation time
@@ -733,26 +736,28 @@ class ODE:
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
 
-        # Construct list of drawn dictionaries
-        # Copy parameter dictionary --> dict is global
-        cp = copy.deepcopy(self.parameters)
+        # Construct list of drawn parameters and initial states
         drawn_dictionaries=[]
         for n in range(N):
-            cp_draws=copy.deepcopy(self.parameters)
             if draw_function:
                 drawn_dictionaries.append(draw_function(self.parameters.copy(), self.initial_states.copy(), **draw_function_kwargs))
             else:
                 drawn_dictionaries.append({})
-            self.parameters=cp_draws
+        drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
+        drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
+
+        # save a copy before altering to reset after simulation
+        cp_pars = self.parameters.copy()
+        cp_init_states = self.initial_states.copy()        
 
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_dictionaries)
+                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), zip(drawn_parameters, drawn_initial_states))
         else:
             output=[]
-            for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
+            for pars, init_states in zip(drawn_parameters, drawn_initial_states):
+                output.append(self._mp_sim_single(pars, init_states, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
 
         # Append results
         out = output[0]
@@ -760,7 +765,8 @@ class ODE:
             out = xarray.concat([out, xarr], "draws")
 
         # Reset parameter dictionary
-        self.parameters = cp
+        self.parameters = cp_pars
+        self.initial_states = cp_init_states
 
         return out
 
