@@ -728,7 +728,7 @@ class ODE:
         # Input checks related to draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, self.parameters)
+            validate_draw_function(draw_function, draw_function_kwargs, self.parameters.copy(), self.initial_states.copy(), self.state_shapes)
         # provinding 'N' but no draw function: wasteful of resources
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
@@ -740,9 +740,7 @@ class ODE:
         for n in range(N):
             cp_draws=copy.deepcopy(self.parameters)
             if draw_function:
-                out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_function(self.parameters,**draw_function_kwargs))
-                drawn_dictionaries.append(out)
+                drawn_dictionaries.append(draw_function(self.parameters.copy(), self.initial_states.copy(), **draw_function_kwargs))
             else:
                 drawn_dictionaries.append({})
             self.parameters=cp_draws
