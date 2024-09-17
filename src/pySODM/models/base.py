@@ -367,12 +367,16 @@ class JumpProcess:
 
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, seed, time, actual_start_date, method, tau, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, drawn_initial_states, seed, time, actual_start_date, method, tau, output_timestep):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
+        # set sampled parameters/initial states
         self.parameters.update(drawn_parameters)
+        self.initial_states.update(drawn_initial_states)
+        # set seed
         np.random.seed(seed)
+        # simulate model
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
     def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
@@ -430,31 +434,31 @@ class JumpProcess:
         # Input checks related to draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, self.parameters)
+            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)
 
-        # Copy parameter dictionary --> dict is global
-        cp = copy.deepcopy(self.parameters)
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
-        for n in range(N):
-            cp_draws=copy.deepcopy(self.parameters)        
+        for _ in range(N):      
             if draw_function:
-                out={} # Need because of global dictionaries and voodoo magic
-                out.update(draw_function(self.parameters,**draw_function_kwargs))
-                drawn_dictionaries.append(out)
+                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
             else:
                 drawn_dictionaries.append({})
-            self.parameters=cp_draws    
+        drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
+        drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
+
+        # save a copy before altering to reset after simulation
+        cp_pars = copy.deepcopy(self.parameters)
+        cp_init_states = copy.deepcopy(self.initial_states)   
 
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:      # 'fork' instead of 'spawn' to run on Apple Silicon
                 seeds = np.random.randint(0, 2**32, size=N)     # requires manual reseeding of the random number generators used in the stochastic algorithms in every child process
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_dictionaries, seeds))
+                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_parameters, drawn_initial_states, seeds))
         else:
             output=[]
-            for dictionary in drawn_dictionaries:
-                output.append(self._mp_sim_single(dictionary, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
+            for pars, init_states in zip(drawn_parameters, drawn_initial_states):
+                output.append(self._mp_sim_single(pars, init_states, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
 
         # Append results
         out = output[0]
@@ -462,7 +466,8 @@ class JumpProcess:
             out = xarray.concat([out, xarr], "draws")
 
         # Reset parameter dictionary
-        self.parameters = cp
+        self.parameters = cp_pars
+        self.initial_states = cp_init_states
 
         return out
 
@@ -731,24 +736,24 @@ class ODE:
         # Input checks related to draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, self.parameters.copy(), self.initial_states.copy(), self.state_shapes)
+            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)
         # provinding 'N' but no draw function: wasteful of resources
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
 
         # Construct list of drawn parameters and initial states
         drawn_dictionaries=[]
-        for n in range(N):
+        for _ in range(N):
             if draw_function:
-                drawn_dictionaries.append(draw_function(self.parameters.copy(), self.initial_states.copy(), **draw_function_kwargs))
+                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
             else:
                 drawn_dictionaries.append({})
         drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
         drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
 
         # save a copy before altering to reset after simulation
-        cp_pars = self.parameters.copy()
-        cp_init_states = self.initial_states.copy()        
+        cp_pars = copy.deepcopy(self.parameters)
+        cp_init_states = copy.deepcopy(self.initial_states)   
 
         # Run simulations
         if processes: # Needed 
