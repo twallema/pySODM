@@ -347,7 +347,7 @@ plt.close()
 
 Next, let's visualize how well our simple SIR model fits the data. To this end, we'll simulate the model a number of times, and we'll update the value of `beta` with a sample from its posterior probability distribution obtained using the MCMC. Then, we'll add the noise introduced by observing the epidemiological process to each simulated model trajectory using `add_negative_binomial()`. Finally, we'll visualize the individual model trajectories and the data to asses the goodness-of-fit.
 
-To repeatedly simulate a model and update a parameter value in each consecutive run, you can use pySODM's *draw function*. These functions always takes `parameters` as its first input argument, representing the dictionary of model parameters. This can then be followed by an arbitrary number of user-defined parameters to aid in the draw function. A draw function must always return the model parameters dictionary `parameters`, without alterations to the dictionaries keys. The draw function defines how values of parameters can change during consecutive simulations of the model, i.e. it updates parameter values in the model parameters dictionary. This feature is useful to perform sensitivty analysis.
+To repeatedly simulate a model and update a parameter value in each consecutive run, you can use pySODM's *draw function*. These functions **always** take the model `parameters` as its first input argument, and the `initial_states` as the second argument, followed by an arbitrary number of user-defined parameters to aid in the draw function. A draw function must always return the dictionary of model `parameters` and the dictionary of `initial_states`, without alterations to the dictionaries keys. The draw function defines how parameters and initial conditions can change during consecutive simulations of the model, i.e. it updates parameter values in the model parameters dictionary. This feature is useful to perform sensitivty analysis.
 
 In this example, we'll use a draw function to replace `beta` with a random value obtained from its posterior probability distribution obtained during calibration. We accomplish this by defining a draw function with one additional argument, `samples`, which is a list containing the samples of the posterior probability distribution of `beta`. `np.random.choice()` is used to sample a random value of `beta` and assign it to the model parameteres dictionary,
 
@@ -361,7 +361,7 @@ def draw_fcn(parameters, initial_states, samples):
 To use this draw function, you provide four additional arguments to the `sim()` function,
 1. `N`: the number of repeated simulations,
 2. `draw_function`: the draw function,
-2. `draw_function_kwargs`: a dictionary containing all parameters of the draw function not equal to `parameters` (passed internally by the `sim()` function).
+2. `draw_function_kwargs`: a dictionary containing all parameters of the draw function not equal to `parameters` or `initial_states`.
 4. `processes`: the number of cores to divide the `N` simulations over.
 
 As demonstrated in the quickstart example, the `xarray` containing the model output will now contain an additional dimension to accomodate the repeated simulations: `draws`.
