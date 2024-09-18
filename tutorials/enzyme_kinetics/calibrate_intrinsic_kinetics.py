@@ -10,10 +10,9 @@ __copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent Universit
 ## Load required packages ##
 ############################
 
-import sys,os
+import os
 import random
 import datetime
-import emcee
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
@@ -140,13 +139,13 @@ if __name__ == '__main__':
     ## Visualize result ##
     ######################
 
-    def draw_fcn(parameters, samples):
+    def draw_fcn(parameters, initial_states, samples):
         idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
         parameters['R_AS'] = samples['R_AS'][idx]
         parameters['R_AW'] = samples['R_AW'][idx]
         parameters['R_Es'] = samples['R_Es'][idx]
         parameters['K_eq'] = samples['K_eq'][idx]
-        return parameters
+        return parameters, initial_states
 
     # Loop over datasets
     for i,df in enumerate(data):

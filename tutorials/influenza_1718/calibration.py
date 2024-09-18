@@ -216,11 +216,11 @@ if __name__ == '__main__':
     ######################
  
     # Define draw function
-    def draw_fcn(parameters, samples):
+    def draw_fcn(parameters, initial_states, samples):
         # Sample model parameters
         idx, parameters['beta'] = random.choice(list(enumerate(samples['beta'])))
         parameters['f_ud'] = np.array([slice[idx] for slice in samples['f_ud']])
-        return parameters
+        return parameters, initial_states
     # Simulate model
     out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1,
                     draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
