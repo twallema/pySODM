@@ -118,9 +118,12 @@ def validate_solution_methods_JumpProcess(method, tau):
             "discrete timestep 'tau' must be of type int or float"
             )
     
-def validate_draw_function(draw_function, draw_function_kwargs, parameters):
-    """Validates the draw function's input and output. For use in the sim() functions of the ODE and JumpProcess classes (base.py).
+def validate_draw_function(draw_function, draw_function_kwargs, parameters, initial_states, state_shapes):
+    """
+    Validates the draw function's input and output. Used in the sim() functions of the ODE and JumpProcess classes (base.py).
     
+    Makes a call to `validate_initial_states`
+
     input
     -----
 
@@ -133,12 +136,12 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters):
     
     parameters: dict
         the dictionary of model parameters
-    
-    output
-    ------
-    
-    parameters: dict
-        an updated dictionary of model parameters
+
+    initial_states: dict
+        the dictionary of initial model states
+
+    state_shapes: dict
+        contains the shape of every model state.
     """
 
     # check that the draw_function is a function
@@ -150,38 +153,62 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters):
     args = list(inspect.signature(draw_function).parameters.keys())
     if args[0] != "parameters":
         raise ValueError(
-            f"your draw function '{draw_function.__name__}' must have 'parameters' as its first input. Its current inputs are: {args}"
+            f"your draw function '{draw_function.__name__}' must have 'parameters' as its first input. Its current inputs are: '{args}'"
     )
-    # check that draw_function_kwargs is a 'dict'
+    # check that it's second argument is named 'initial_states'
+    args = list(inspect.signature(draw_function).parameters.keys())
+    if args[1] != "initial_states":
+        raise ValueError(
+            f"your draw function '{draw_function.__name__}' must have 'initial_states' as its second input. Its current inputs are: '{args}'"
+    )
+    # check that `draw_function_kwargs` is a 'dict'
     if not isinstance(draw_function_kwargs, dict):
         raise TypeError(
-            f"your draw function kwargs must be of type 'dict' but are of type {type(draw_function_kwargs)}"
+            f"your `draw_function_kwargs` must be of type 'dict' but are of type '{type(draw_function_kwargs)}'"
         )
     # if draw_functions_kwargs is an empty dict and draw_function has additional kwargs the user has most likely forgotten to pass draw_function_kwargs to the sim() function
-    if ((len(args[1:]) > 0) & (len(list(draw_function_kwargs.keys())) == 0)):
+    if ((len(args[2:]) > 0) & (len(list(draw_function_kwargs.keys())) == 0)):
         raise ValueError(
-            f"the draw function '{draw_function.__name__}' has {len(args[1:])} arguments in addition to the mandatory 'parameters' argument\n"
-            f"have you forgotten to pass 'draw_function_kwargs' to the sim() function?"
+            f"the draw function '{draw_function.__name__}' has {len(args[2:])} arguments in addition to the mandatory 'parameters' and 'initial_states' arguments\n"
+            f"have you forgotten to pass `draw_function_kwargs` to the sim() function?"
         )
-    # check that it's keys have the same name as the inputs of draw_function that follow 'parameters'
-    if set(args[1:]) != set(list(draw_function_kwargs.keys())):
+    # check that it's keys have the same name as the inputs of draw_function that follow `parameters` and `initial_states`
+    if set(args[2:]) != set(list(draw_function_kwargs.keys())):
         raise ValueError(
             f"incorrect arguments passed to draw function '{draw_function.__name__}'\n"
-            "keys missing in 'draw_function_kwargs': {0}. redundant keys: {1}".format(set(args[1:]).difference(list(draw_function_kwargs.keys())), set(list(draw_function_kwargs.keys())).difference(set(args[1:])))
+            "keys missing in 'draw_function_kwargs': {0}. redundant keys: {1}".format(set(args[2:]).difference(list(draw_function_kwargs.keys())), set(list(draw_function_kwargs.keys())).difference(set(args[2:])))
         )
     # call draw function and check its outputs
-    cp_draws=copy.deepcopy(parameters)
-    d = draw_function(parameters, **draw_function_kwargs)
-    parameters = cp_draws
-    if not isinstance(d, dict):
+    output = draw_function(copy.deepcopy(parameters), copy.deepcopy(initial_states), **draw_function_kwargs)
+    # check if it returns two outputs
+    if not ((isinstance(output, tuple)) & (len(output) == 2)):
+        raise TypeError(f"a draw function must return two dictionaries: 1) parameters, 2) initial_states")
+    # check they're both dicts
+    if not ((isinstance(output[0], dict)) & (isinstance(output[1], dict))):
         raise TypeError(
-            f"a draw function must return a dictionary. found type {type(d)}"
+            "a draw function must return two dictionaries: 1) parameters, 2) initial_states\n"
+            f"found the following types: ('{type(output[0])}', '{type(output[1])}')."
         )
-    if set(d.keys()) != set(parameters.keys()):
+    # verify keys are the same on input/output 'parameters'
+    if set(output[0].keys()) != set(parameters.keys()):
         raise ValueError(
-            f"keys in output dictionary of draw function '{draw_function.__name__}' must match the keys in input dictionary 'parameters'.\n"
-            "keys missing in draw function output: {0}. redundant keys: {1}".format(set(parameters.keys()).difference(set(d.keys())), set(d.keys()).difference(set(parameters.keys())))
+            f"a draw function must return two dictionaries: 1) parameters, 2) initial_states"
+            f"keys in first output dictionary of draw function '{draw_function.__name__}' must match the keys in input dictionary 'parameters'.\n"
+            "keys missing in draw function output: {0}. redundant keys: {1}".format(set(parameters.keys()).difference(set(output[0].keys())), set(output[0].keys()).difference(set(parameters.keys())))
         )
+    # verify keys are the same on input/output 'initial_states'
+    if set(output[1].keys()) != set(initial_states.keys()):
+        raise ValueError(
+            f"a draw function must return two dictionaries."
+            f"keys in second output dictionary of draw function '{draw_function.__name__}' must match the keys in input dictionary 'initial_states'.\n"
+            "keys missing in draw function output: {0}. redundant keys: {1}".format(set(initial_states.keys()).difference(set(output[1].keys())), set(output[1].keys()).difference(set(initial_states.keys())))
+        )
+    # verify the initial states sizes
+    try:
+        _ = validate_initial_states(state_shapes, output[1])
+    except Exception as e:
+        error_message = f"your draw function did not return a valid initial state.\nfound error: {str(e)}"
+        raise RuntimeError(error_message) from e
 
 def fill_initial_state_with_zero(state_names, initial_states):
     for state in state_names:

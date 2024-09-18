@@ -171,9 +171,9 @@ if __name__ == '__main__':
     ##############################
 
     # Define draw function
-    def draw_fcn(parameters, samples):
+    def draw_fcn(parameters, initial_states, samples):
         parameters['beta'] = np.random.choice(samples)
-        return parameters
+        return parameters, initial_states
     
     # Simulate model
     out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, draw_function=draw_fcn,
@@ -207,10 +207,10 @@ if __name__ == '__main__':
             return param/2
 
     # Define draw function
-    def draw_fcn(parameters, samples, ramp_length):
+    def draw_fcn(parameters, initial_states, samples, ramp_length):
         parameters['beta'] = np.random.choice(samples)
         parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=ramp_length))
-        return parameters
+        return parameters, initial_states
 
     # Attach its arguments to the parameter dictionary
     model.parameters.update({'start_measures': end_date})

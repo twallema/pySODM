@@ -38,13 +38,13 @@ f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-0
 samples_dict = json.load(f)
 
 # Define draw function
-def draw_fcn(parameters, samples):
+def draw_fcn(parameters, initial_states, samples):
     idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
     parameters['R_AS'] = samples['R_AS'][idx]
     parameters['R_AW'] = samples['R_AW'][idx]
     parameters['R_Es'] = samples['R_Es'][idx]
     parameters['K_eq'] = samples['K_eq'][idx]
-    return parameters
+    return parameters, initial_states
 
 ###################
 ## Load the data ##
