@@ -442,7 +442,7 @@ class JumpProcess:
             if draw_function:
                 drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
             else:
-                drawn_dictionaries.append({})
+                drawn_dictionaries.append([{},{}])
         drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
         drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
 
@@ -747,7 +747,7 @@ class ODE:
             if draw_function:
                 drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
             else:
-                drawn_dictionaries.append({})
+                drawn_dictionaries.append([{},{}])
         drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
         drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
 

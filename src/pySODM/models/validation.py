@@ -164,7 +164,7 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters, init
     # check that `draw_function_kwargs` is a 'dict'
     if not isinstance(draw_function_kwargs, dict):
         raise TypeError(
-            f"your `draw_function_kwargs`1` must be of type 'dict' but are of type '{type(draw_function_kwargs)}'"
+            f"your `draw_function_kwargs` must be of type 'dict' but are of type '{type(draw_function_kwargs)}'"
         )
     # if draw_functions_kwargs is an empty dict and draw_function has additional kwargs the user has most likely forgotten to pass draw_function_kwargs to the sim() function
     if ((len(args[2:]) > 0) & (len(list(draw_function_kwargs.keys())) == 0)):
@@ -179,7 +179,7 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters, init
             "keys missing in 'draw_function_kwargs': {0}. redundant keys: {1}".format(set(args[2:]).difference(list(draw_function_kwargs.keys())), set(list(draw_function_kwargs.keys())).difference(set(args[2:])))
         )
     # call draw function and check its outputs
-    output = draw_function(parameters, initial_states, **draw_function_kwargs)
+    output = draw_function(copy.deepcopy(parameters), copy.deepcopy(initial_states), **draw_function_kwargs)
     # check if it returns two outputs
     if not ((isinstance(output, tuple)) & (len(output) == 2)):
         raise TypeError(f"a draw function must return two dictionaries: 1) parameters, 2) initial_states")
@@ -201,7 +201,7 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters, init
         raise ValueError(
             f"a draw function must return two dictionaries."
             f"keys in second output dictionary of draw function '{draw_function.__name__}' must match the keys in input dictionary 'initial_states'.\n"
-            "keys missing in draw function output: {0}. redundant keys: {1}".format(set(parameters.keys()).difference(set(output[1].keys())), set(output[1].keys()).difference(set(parameters.keys())))
+            "keys missing in draw function output: {0}. redundant keys: {1}".format(set(initial_states.keys()).difference(set(output[1].keys())), set(output[1].keys()).difference(set(initial_states.keys())))
         )
     # verify the initial states sizes
     try:
