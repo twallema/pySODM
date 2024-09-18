@@ -254,12 +254,12 @@ Draw functions **always** take the dictionary of model parameters, `parameters` 
 samples = np.random.uniform(low=0, high=5, n=100)
 
 # define a 'draw function'
-def draw_function(parameters, samples):
-    """ randomly selects a sample of 'gamma' from the provided dictionary of samples and
-        assigns it to the dictionary of model parameters
+def draw_function(parameters, initial_states, samples):
+    """ randomly selects a sample of 'gamma' from the provided dictionary of `samples` and
+        assigns it to the dictionary of model `parameters`
     """
     parameters['gamma'] = np.random.choice(samples)
-    return parameters
+    return parameters, initial_states
 
 # simulate 10 trajectories, exploit 10 cores to speed up the computation
 out = model.sim(121, N=10, draw_function=draw_function, draw_function_kwargs={'samples': samples}, processes=10)
@@ -285,9 +285,9 @@ This example can also be coded up by drawing the random values within the *draw 
 
 ```python
 # define a 'draw function'
-def draw_function(parameters):
+def draw_function(parameters, initial_states):
     parameters['gamma'] = np.random.uniform(low=0, high=5)
-    return parameters
+    return parameters, initial_states
 
 # simulate the model
 out = model.sim(121, N=10, draw_function=draw_function)
