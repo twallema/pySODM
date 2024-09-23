@@ -56,8 +56,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#set-up-an-ode-model-with-multiple-dimensions">Set up an ODE model with multiple dimensions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#set-up-a-dimensionless-stochastic-jump-process-model">Set up a dimensionless stochastic jump process Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#advanced-simulation-features">Advanced simulation features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#draw-functions">Draw functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#time-dependent-parameter-functions">Time-dependent parameter functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#draw-function">Draw function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#time-dependent-parameter-function">Time-dependent parameter function</a></li>
 </ul>
 </li>
 </ul>
@@ -112,7 +112,7 @@
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h1>
 <section id="set-up-a-dimensionless-ode-model">
 <h2>Set up a dimensionless ODE model<a class="headerlink" href="#set-up-a-dimensionless-ode-model" title="Link to this heading">¶</a></h2>
-<p>To set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,</p>
+<p>Load pySODM’s <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code> class</span></a> and define your model. As an example, we’ll set up a simple Susceptible-Infectious-Removed (SIR) disease model, schematically represented as follows,</p>
 <img src="./_static/figs/quickstart/quickstart_SIR_flowchart.png" width="500" />
 <p>and governed by the following equations,</p>
 <div class="math notranslate nohighlight">
@@ -122,7 +122,6 @@ N &amp;=&amp; S + I + R, \\
 \frac{dI}{dt} &amp;=&amp; \beta S (I/N) - (1/\gamma)I, \\
 \frac{dR}{dt} &amp;=&amp; (1/\gamma)I.
 \end{eqnarray}\end{split}\]</div>
-<p>Load pySODM’s <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code></span></a> class, and define a new class inheriting the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> object to define your model. Minimally, you must provide: 1) A list containing the names of your model’s states, 2) a list containing the names of your model’s parameters, 3) an <code class="docutils literal notranslate"><span class="pre">integrate</span></code> function integrating your model’s states. To learn more about the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> class’ formatting, check out the <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code></span></a> class description.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODE class</span>
 <span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
 
@@ -149,16 +148,12 @@ N &amp;=&amp; S + I + R, \\
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>Simulate the model using its <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method. pySODM supports the use of dates to index simulations, string representations of dates with the format <code class="docutils literal notranslate"><span class="pre">'yyyy-mm-dd'</span></code> as well as <code class="docutils literal notranslate"><span class="pre">datetime.datetime()</span></code> can be used.</p>
+<p>Simulate the model using the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method. The solver method and tolerance of <code class="docutils literal notranslate"><span class="pre">scipy.solve_ivp()</span></code>, as well as the timesteps included in the output can be tailored. pySODM supports the use of <code class="docutils literal notranslate"><span class="pre">datetime</span></code> types as timesteps.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timesteps</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
 
-<span class="c1"># String representation of dates: &#39;yyyy-mm-dd&#39; only</span>
+<span class="c1"># Dates</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">([</span><span class="s1">&#39;2022-12-01&#39;</span><span class="p">,</span> <span class="s1">&#39;2023-05-01&#39;</span><span class="p">])</span>
-
-<span class="c1"># Datetime representation of time + date</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">datetime</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">([</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2022</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2023</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
 
 <span class="c1"># Tailor method and tolerance of integrator</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;RK45&#39;</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="s1">&#39;1e-4&#39;</span><span class="p">)</span>
@@ -167,9 +162,12 @@ N &amp;=&amp; S + I + R, \\
 <p>In some situations, the use of a discrete timestep with a fixed length may be preferred,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use a discrete timestepper with step size 1</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Is equivalent to (`tau` overwrites `method`!):</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;RK45&#39;</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="s1">&#39;1e-4&#39;</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Simulations are sent to an <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>, for more information on indexing and selecting data using <code class="docutils literal notranslate"><span class="pre">xarray</span></code>, <a class="reference external" href="https://docs.xarray.dev/en/stable/user-guide/indexing.html">see</a>.</p>
+<p>Results are sent to an <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>, for more information on indexing and selecting data using <code class="docutils literal notranslate"><span class="pre">xarray</span></code>, <a class="reference external" href="https://docs.xarray.dev/en/stable/user-guide/indexing.html">see</a>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
 Dimensions:<span class="w">  </span><span class="o">(</span>time:<span class="w"> </span><span class="m">122</span><span class="o">)</span>
 Coordinates:
@@ -180,12 +178,12 @@ Data<span class="w"> </span>variables:
 <span class="w">    </span>R<span class="w">        </span><span class="o">(</span><span class="nb">time</span><span class="o">)</span><span class="w"> </span>float64<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">0</span>.2157<span class="w"> </span><span class="m">0</span>.4662<span class="w"> </span><span class="m">0</span>.7569<span class="w"> </span>...<span class="w"> </span><span class="m">713</span>.6<span class="w"> </span><span class="m">713</span>.7<span class="w"> </span><span class="m">713</span>.7<span class="w"> </span><span class="m">713</span>.7
 </pre></div>
 </div>
-<p>The simulation above results in the following trajectories for the number of susceptibles, infected and recovered individuals.</p>
-<p><img alt="SIR_time" src="_images/quickstart_SIR.png" /></p>
+<p>The simulation above results in the following trajectories for the number of susceptibles, infected and recovered individuals.
+<img alt="SIR_time" src="_images/quickstart_SIR.png" /></p>
 </section>
 <section id="set-up-an-ode-model-with-a-labeled-dimension">
 <h2>Set up an ODE model with a labeled dimension<a class="headerlink" href="#set-up-an-ode-model-with-a-labeled-dimension" title="Link to this heading">¶</a></h2>
-<p>To transform all our SIR model’s states in 1D vectors, referred to as a <em>dimension</em> throughout the documentation, add the <code class="docutils literal notranslate"><span class="pre">dimensions</span></code> keyword to the model declaration. In the example below, we add a dimension representing the age groups individuals belong to. This turns all model states in the <code class="docutils literal notranslate"><span class="pre">integrate</span></code> function into 1D vectors.</p>
+<p>To transform all our SIR model’s states in 1D vectors, referred to as a <em>dimension</em> throughout the documentation, add the <code class="docutils literal notranslate"><span class="pre">dimensions</span></code> keyword to the model declaration. Here, we add a dimension representing the age groups individuals belong to.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODE class</span>
 <span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
 
@@ -193,7 +191,7 @@ Data<span class="w"> </span>variables:
 <span class="k">class</span> <span class="nc">stratified_SIR</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
     
     <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
-    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma]</span>
     <span class="n">dimensions</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;age_groups&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
@@ -209,7 +207,7 @@ Data<span class="w"> </span>variables:
         <span class="k">return</span> <span class="n">dS</span><span class="p">,</span> <span class="n">dI</span><span class="p">,</span> <span class="n">dR</span>
 </pre></div>
 </div>
-<p>When initializing your model, provide a dictionary containing coordinates for every dimension declared previously. In the example below, we’ll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. <strong>All</strong> model states are now 1D vectors of shape <code class="docutils literal notranslate"><span class="pre">(4,)</span></code>.</p>
+<p>When initializing the model, additionally provide a dictionary containing coordinates for every dimension declared previously. In our example, we’ll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. <strong>All</strong> model states are now 1D vectors of shape <code class="docutils literal notranslate"><span class="pre">(4,)</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">stratified_SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="p">)},</span>
                        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
                        <span class="n">coordinates</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;age_groups&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;0-5&#39;</span><span class="p">,</span><span class="s1">&#39;5-15&#39;</span><span class="p">,</span> <span class="s1">&#39;15-65&#39;</span><span class="p">,</span><span class="s1">&#39;65-120&#39;</span><span class="p">]})</span>
@@ -234,7 +232,6 @@ Data<span class="w"> </span>variables:
 <h2>Set up an ODE model with multiple dimensions<a class="headerlink" href="#set-up-an-ode-model-with-multiple-dimensions" title="Link to this heading">¶</a></h2>
 <p>pySODM allows model states to have different coordinates and thus different sizes. As an example (without mathematical details), consider an extension of the SIR model for vector borne disease: the SIR-SI model. In the example, the S, I and R states represent the humans, and we use the <code class="docutils literal notranslate"><span class="pre">dimensions_per_state</span></code> variable to declare the humans are distributed in four age groups. The S_v and I_v states represent the vectors and infected vectors are able to transmit a disease to the humans. In turn, infected humans can pass the disease back to the vector (see flowchart). Because in some contexts having age groups for our vectors is not relevant (f.i. mosquitos), we thus assign no dimensions to the S_v and I_v states.</p>
 <img src="./_static/figs/quickstart/quickstart_SIR_SI_flowchart.png" width="700" />
-<p>In the example below, the states S, I and R will be 1D vectors in the <code class="docutils literal notranslate"><span class="pre">integrate</span></code> function, while the states S_v and I_v will be scalars.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ODE_SIR_SI</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    An age-stratified SIR model for humans, an unstratified SI model for a disease vector (f.i. mosquito)</span>
@@ -275,7 +272,7 @@ Data<span class="w"> </span>variables:
 <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>results in the following <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>,</p>
+<p>results in the following <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>. Here it can be seen that the S, I and R state have <code class="docutils literal notranslate"><span class="pre">age_group</span></code> and <code class="docutils literal notranslate"><span class="pre">time</span></code> as dimensions and their shape is thus <code class="docutils literal notranslate"><span class="pre">(4,)</span></code>, while S_v and I_v only have <code class="docutils literal notranslate"><span class="pre">time</span></code> as dimension and their shape is thus <code class="docutils literal notranslate"><span class="pre">(1,)</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
 Dimensions:<span class="w">    </span><span class="o">(</span>age_group:<span class="w"> </span><span class="m">4</span>,<span class="w"> </span>time:<span class="w"> </span><span class="m">121</span><span class="o">)</span>
 Coordinates:
@@ -289,11 +286,10 @@ Data<span class="w"> </span>variables:
 <span class="w">    </span>I_v<span class="w">        </span><span class="o">(</span><span class="nb">time</span><span class="o">)</span><span class="w"> </span>float64<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span><span class="m">1</span>.798<span class="w"> </span><span class="m">1</span>.725<span class="w"> </span>...<span class="w"> </span><span class="m">1</span>.292e+05<span class="w"> </span><span class="m">1</span>.365e+05<span class="w"> </span><span class="m">1</span>.438e+05
 </pre></div>
 </div>
-<p>Here, S, I and R state have <code class="docutils literal notranslate"><span class="pre">age_group</span></code> and <code class="docutils literal notranslate"><span class="pre">time</span></code> as dimensions and their shape is thus <code class="docutils literal notranslate"><span class="pre">(4,)</span></code>, while S_v and I_v only have <code class="docutils literal notranslate"><span class="pre">time</span></code> as dimension and their shape is thus <code class="docutils literal notranslate"><span class="pre">(1,)</span></code>.</p>
 </section>
 <section id="set-up-a-dimensionless-stochastic-jump-process-model">
 <h2>Set up a dimensionless stochastic jump process Model<a class="headerlink" href="#set-up-a-dimensionless-stochastic-jump-process-model" title="Link to this heading">¶</a></h2>
-<p>To stochastically simulate the simple SIR model, pySODM’s <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> class is loaded and two functions, <code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> and <code class="docutils literal notranslate"><span class="pre">apply_transitionings</span></code>, must be defined instead of one. For a detailed mathematical description of implenting models using Gillespie’s tau-leaping method (example of a jump proces), we refer to the <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S1877750323002089">peer-reviewed paper</a>. The rates dictionary defined in <code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> contains the rates of the possible transitionings in the system. These are contained within a list so that a state may have multiple transitionings. To learn more about the <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> class’ formatting, check out the <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code></span></a> class description.</p>
+<p>To stochastically simulate the simple SIR model, the <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> class is loaded and two functions <code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> and <code class="docutils literal notranslate"><span class="pre">apply_transitionings</span></code> must be defined. For a detailed mathematical description of implenting models using Gillespie’s tau-leaping method (example of a jump proces), we refer to the <a class="reference external" href="https://arxiv.org/abs/2301.10664">manuscript</a>. The rates dictionary defined in <code class="docutils literal notranslate"><span class="pre">compute_rates</span></code> contains the rates of the possible transitionings in the system. These are contained in a list because a state may have multiple possible transitionings. Further, the transitioning for state <code class="docutils literal notranslate"><span class="pre">I</span></code> is a float and this should be a <code class="docutils literal notranslate"><span class="pre">numpy.float</span></code>. I’m still figuring out if I want to introduce the overhead to check and correct this behavior (likely not).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODE class</span>
 <span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">JumpProcess</span>
 
@@ -328,27 +324,18 @@ Data<span class="w"> </span>variables:
 </section>
 <section id="advanced-simulation-features">
 <h2>Advanced simulation features<a class="headerlink" href="#advanced-simulation-features" title="Link to this heading">¶</a></h2>
-<section id="draw-functions">
-<h3>Draw functions<a class="headerlink" href="#draw-functions" title="Link to this heading">¶</a></h3>
-<p>The simulation functions of the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> and <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> classes can be used to perform <span class="math notranslate nohighlight">\(N\)</span> repeated simulations by using the optional argument <code class="docutils literal notranslate"><span class="pre">N</span></code>. A <em>draw function</em> can be used to instruct the model on how to alter the model parameters and the initial states during consecutive model runs, thereby offering a powerful tool for sensitivity analysis and uncertainty propagation.</p>
-<p>Draw functions <strong>always</strong> take the dictionary of model <code class="docutils literal notranslate"><span class="pre">parameters</span></code> as their first argument and the dictionary of <code class="docutils literal notranslate"><span class="pre">initial_states</span></code> as their second argument. This can be followed an arbitrary number of user-defined parameters, which must be supplied to the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function through the <code class="docutils literal notranslate"><span class="pre">draw_function_kwargs</span></code> argument. The output of a draw function is <strong>always</strong> the dictionary of model <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and the dictionary of <code class="docutils literal notranslate"><span class="pre">initial</span> <span class="pre">states</span></code>, without alterations to the dictionaries keys (no new introductions or deletions). In the example below, we attempt to draw a model parameter <code class="docutils literal notranslate"><span class="pre">gamma</span></code> randomly from 0 to 5 and don’t make alterations to the initial states,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># make an example of a dictionary containing samples of a parameter `gamma`</span>
-<span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<section id="draw-function">
+<h3>Draw function<a class="headerlink" href="#draw-function" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method of <code class="docutils literal notranslate"><span class="pre">ODE</span></code> and <code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code> can be used to perform <span class="math notranslate nohighlight">\(N\)</span> repeated simulations (keyword <code class="docutils literal notranslate"><span class="pre">N</span></code>). Additionally a <em>draw function</em> can be used to update model parameters during every run. A draw function to randomly draw <code class="docutils literal notranslate"><span class="pre">gamma</span></code> from a uniform simulation before every run is implemented as follows,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">draw_function</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span> <span class="n">samples_dict</span><span class="p">):</span>
+    <span class="n">param_dict</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">param_dict</span>
 
-<span class="c1"># define a &#39;draw function&#39;</span>
-<span class="k">def</span> <span class="nf">draw_function</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; randomly selects a sample of &#39;gamma&#39; from the provided dictionary of `samples` and</span>
-<span class="sd">        assigns it to the dictionary of model `parameters`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">initial_states</span>
-
-<span class="c1"># simulate 10 trajectories, exploit 10 cores to speed up the computation</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_function</span><span class="p">,</span> <span class="n">draw_function_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;samples&#39;</span><span class="p">:</span> <span class="n">samples</span><span class="p">},</span> <span class="n">processes</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_function</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="p">{})</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>   
 </pre></div>
 </div>
-<p>An additional dimension <code class="docutils literal notranslate"><span class="pre">'draws'</span></code> will be added to the <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code> to accomodate the results of the repeated simulations.</p>
+<p>An additional dimension <code class="docutils literal notranslate"><span class="pre">'draws'</span></code> has been added to the <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code> to accomodate the results of the repeated simulations.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
 Dimensions:<span class="w">     </span><span class="o">(</span>time:<span class="w"> </span><span class="m">122</span>,<span class="w"> </span>age_groups:<span class="w"> </span><span class="m">4</span>,<span class="w"> </span>draws:<span class="w"> </span><span class="m">10</span><span class="o">)</span>
 Coordinates:
@@ -361,23 +348,12 @@ Data<span class="w"> </span>variables:
 <span class="w">    </span>R<span class="w">           </span><span class="o">(</span>draws,<span class="w"> </span>age_groups,<span class="w"> </span><span class="nb">time</span><span class="o">)</span><span class="w"> </span>float64<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">0</span>.3439<span class="w"> </span>...<span class="w"> </span><span class="m">684</span>.0<span class="w"> </span><span class="m">684</span>.0
 </pre></div>
 </div>
-<p>This example can also be coded up by drawing the random samples of <code class="docutils literal notranslate"><span class="pre">gamma</span></code> within the <em>draw function</em>,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># define a &#39;draw function&#39;</span>
-<span class="k">def</span> <span class="nf">draw_function</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">):</span>
-    <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">initial_states</span>
-
-<span class="c1"># simulate the model</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">draw_function</span><span class="o">=</span><span class="n">draw_function</span><span class="p">)</span>
-</pre></div>
-</div>
-<p><strong><em>NOTE</em></strong> Internally, a call to <code class="docutils literal notranslate"><span class="pre">draw_function</span></code> is made within the <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function, where it is given the dictionary of model <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">initial_states</span></code>, followed by the <code class="docutils literal notranslate"><span class="pre">draw_function_kwargs</span></code>.</p>
 </section>
-<section id="time-dependent-parameter-functions">
-<h3>Time-dependent parameter functions<a class="headerlink" href="#time-dependent-parameter-functions" title="Link to this heading">¶</a></h3>
-<p>Parameters can also be varied through the course of one simulation using a <em>time-dependent parameter function</em> (TDPF), which can be an arbitrarily complex function. A time-dependent parameter function <strong>always</strong> has the current timestep (<code class="docutils literal notranslate"><span class="pre">t</span></code>), the dictionary containing the model states (<code class="docutils literal notranslate"><span class="pre">states</span></code>) at time <code class="docutils literal notranslate"><span class="pre">t</span></code>, and the original value of the parameter it is applied to (<code class="docutils literal notranslate"><span class="pre">param</span></code>) as its inputs. Additionally, the function can take any number of additional user-defined arguments (including other model parameters).</p>
+<section id="time-dependent-parameter-function">
+<h3>Time-dependent parameter function<a class="headerlink" href="#time-dependent-parameter-function" title="Link to this heading">¶</a></h3>
+<p>Parameters can also be varied through the course of one simulation using a <em>time-dependent parameter function</em>, which can be an arbitrarily complex function. A generic time-dependent parameter function has the timestep, the dictionary of model states and the value of the varied parameter as its inputs. Additionally, the function can take any number of arguments (including other model parameters).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">vary_my_parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">an_additional_parameter</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A function to implement a time-dependency on a parameter&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A function to vary a model parameter during a simulation&quot;&quot;&quot;</span>
 
     <span class="c1"># Do any computation</span>
     <span class="n">param</span> <span class="o">=</span> <span class="o">...</span>
@@ -385,9 +361,9 @@ Data<span class="w"> </span>variables:
     <span class="k">return</span> <span class="n">param</span>
 </pre></div>
 </div>
-<p>When initialising the model, all we need to do is use the <code class="docutils literal notranslate"><span class="pre">time_dependent_parameters</span></code> keyword to declare what parameter our TDPF should be applied to. Additional parameters introduced in TDPFs, in this example <code class="docutils literal notranslate"><span class="pre">an_additional_parameter</span></code>, should be added to the parameters dictionary.</p>
+<p>All we need to do is use the <code class="docutils literal notranslate"><span class="pre">time_dependent_parameters</span></code> keyword to declare the parameter our function should be applied to. Additionally, <code class="docutils literal notranslate"><span class="pre">an_additional_parameter</span></code> should be added to the parameters dictionary.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;an_additional_parameter&#39;</span><span class="p">:</span> <span class="n">any_datatype_you_want</span><span class="p">},</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;an_additional_parameter&#39;</span><span class="p">:</span> <span class="n">anything_you_want</span><span class="p">},</span>
             <span class="n">time_dependent_parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="n">vary_my_parameter</span><span class="p">})</span>
 </pre></div>
 </div>
