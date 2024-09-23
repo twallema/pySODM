@@ -46,6 +46,26 @@ class spatial_ODE_SIR(ODE):
 
         return dS, dI, dR
 
+    # @staticmethod
+    # def integrate(t, S, I, R, beta, gamma, f_v, N, M):
+
+    #     # compute total population
+    #     T = S + I + R
+
+    #     # compute visiting populations
+    #     I_v = I @ M
+    #     T_v = T @ M
+
+    #     #  compute force of infection
+    #     l = beta * (np.einsum ('lj, il -> ij', I/T, (1-f_v)*N) + np.einsum ('jk, lk, il -> ij', M, I_v/T_v, f_v*N))
+
+    #     # calculate differentials
+    #     dS = - l * S
+    #     dI = l * S - 1/gamma*I
+    #     dR = 1/gamma*I
+
+    #     return dS, dI, dR
+
 ###################
 ### Stochastic ###
 ###################

@@ -59,8 +59,11 @@ ax[1].plot(out_det['time'], out_det['I'].sum(dim='age').sel({'location': 'B'}), 
 ax[1].legend(loc=1, framealpha=1)
 
 plt.tight_layout()
-# plt.show()
+plt.show()
 plt.close()
+
+import sys
+sys.exit()
 
 ######################
 ### initialize model #
