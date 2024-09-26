@@ -44,7 +44,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
     Hyperparameters:
     ----------------
         moves: list
-            Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a differential evolution move 25% of the time, a differential evolution snooker move 25% of the time, and a kernel-density estimate move 50% of the time. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
+            Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of `emcee` moves. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
         backend: emcee.backends.HDFBackend
             Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
         progress: bool
