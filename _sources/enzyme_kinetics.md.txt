@@ -1,6 +1,6 @@
 # A model for the enzymatic esterification of D-glucose and Lauric acid in a continuous-flow reactor
 
-This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (master dissertation). Ghent University, Ghent, BE.
+This tutorial is based on: Tijs W. Alleman. (2019). Model-Based Analysis of Enzymatic Reactions in Continuous Flow Reactors (master dissertation). Ghent University, Ghent, BE, and is showcased in our [software paper](https://www.sciencedirect.com/science/article/pii/S1877750323002089).
 
 ## Introduction
 
@@ -23,7 +23,7 @@ This part of the tutorial can be replicated by running
 ```bash
 python calibrate_intrinsic_kinetics.py
 ```
-located in `~/tutorials/enzyme_kinetics/`.
+located in `~/tutorials/enzyme_kinetics/`. An environment containing the dependencies needed to run this tutorial is provided in `~/tutorial_env.yml`.
 
 ### Experiments and model equations
 
@@ -130,7 +130,7 @@ here {math}`y_{i,j}` is the glucose laurate ester concentration of the {math}`j`
 We'll load the datasets using a `for` statement and immediately extract two inputs to our log posterior probability function: 1) The glucose laurate ester observations as `data`, 2) The glucose laurate ester measurement error, computed as 4% relative to the glucose laurate ester observations and, 3) the initial concentrations used in the experiment in `initial_states`. We will also construct the list of model states to match our datasets to (`states`), which is a list containing eight instances of the Ester state names `'Es'`. 
 
 ```python
-from pySODM.optimization.objective_functions import ll_gaussian
+from pySODM.optimization.objective_functions import ll_normal
 
 # Extract and sort the names
 names = os.listdir(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'))
@@ -144,7 +144,7 @@ initial_states=[]
 for name in names:
     df = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/intrinsic_kinetics/'+name), index_col=0)
     data.append(df['Es'][1:]) # Cut out zero's!
-    log_likelihood_fnc.append(ll_gaussian)
+    log_likelihood_fnc.append(ll_normal)
     log_likelihood_fnc_args.append(0.04*df['Es'][1:]) # 4% Relative noise
     states.append('Es')
     initial_states.append(
@@ -251,21 +251,21 @@ Finally, we can use the *draw functions* to propagate the parameter samples in o
 ```python
 if __name__ == '__main__':
 
-    def draw_fcn(param_dict, samples_dict):
+    def draw_fcn(parameters, initial_states, samples):
         # Always draw correlated samples at the SAME INDEX! 
-        idx, param_dict['Vf_Ks'] = random.choice(list(enumerate(samples_dict['Vf_Ks'])))
-        param_dict['R_AS'] = samples_dict['R_AS'][idx]
-        param_dict['R_AW'] = samples_dict['R_AW'][idx]
-        param_dict['R_Es'] = samples_dict['R_Es'][idx]
-        param_dict['K_eq'] = samples_dict['K_eq'][idx]
-        return param_dict
+        idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
+        parameters['R_AS'] = samples['R_AS'][idx]
+        parameters['R_AW'] = samples['R_AW'][idx]
+        parameters['R_Es'] = samples['R_Es'][idx]
+        parameters['K_eq'] = samples['K_eq'][idx]
+        return parameters, initial_states
 
     # Loop over datasets
     for i,df in enumerate(data):
         # Update initial condition
         model.initial_states.update(initial_states[i])
         # Simulate model
-        out = model.sim(1600, N=n, draw_function=draw_fcn, samples=samples_dict)
+        out = model.sim(1600, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict})
         # Add 4% observational noise
         out = add_gaussian_noise(out, 0.04, relative=True)
         # Visualize
@@ -425,16 +425,16 @@ Next, we load our previously obtained samples of the kinetic parameters and defi
 ```python
 # Load samples
 f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-07.json'))
-samples_dict = json.load(f)
+samples = json.load(f)
 
 # Define draw function
-def draw_fcn(param_dict, samples_dict):
-    idx, param_dict['Vf_Ks'] = random.choice(list(enumerate(samples_dict['Vf_Ks'])))
-    param_dict['R_AS'] = samples_dict['R_AS'][idx]
-    param_dict['R_AW'] = samples_dict['R_AW'][idx]
-    param_dict['R_Es'] = samples_dict['R_Es'][idx]
-    param_dict['K_eq'] = samples_dict['K_eq'][idx]
-    return param_dict
+def draw_fcn(parameters, initial_states, samples):
+    idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
+    parameters['R_AS'] = samples['R_AS'][idx]
+    parameters['R_AW'] = samples['R_AW'][idx]
+    parameters['R_Es'] = samples['R_Es'][idx]
+    parameters['K_eq'] = samples['K_eq'][idx]
+    return parameters, initial_states
 ```
 
 A first experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 28 mM water. The reactants were pumped through the reactor at a flow rate of 0.2 mL/min, resulting in an average residence time of 13.5 minutes. After ten retention times, when the outlet concentration had stabilized, three samples were withdrawn at the outlet. Then, the reactor was cut short by 0.10 m, and again three samples were withdrawn at the outlet. In this way, the reactant profile acrosss the reactor length was obtained. I omit the code to replicate the following figures from this documentation as no new concepts are introduced beyond this point. Our packed-bed model does an adequate job at describing the data.

@@ -115,21 +115,22 @@
 <h2>objective_functions.py<a class="headerlink" href="#objective-functions-py" title="Link to this heading">¶</a></h2>
 <section id="log-posterior-probability">
 <h3>Log posterior probability<a class="headerlink" href="#log-posterior-probability" title="Link to this heading">¶</a></h3>
-<p><strong><em>class</em> log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)</strong></p>
+<p><strong><em>class</em> log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)</strong></p>
 <p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>model</strong> (object) - An initialized ODE or JumpProcess.</p></li>
+<li><p><strong>model</strong> (object) - An initialized <code class="docutils literal notranslate"><span class="pre">pySODM.models.base.ODE</span></code> or <code class="docutils literal notranslate"><span class="pre">pySODM.models.base.JumpProcess</span></code> model.</p></li>
 <li><p><strong>parameter_names</strong> (list) - Names of model parameters (type: str) to calibrate. Model parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).</p></li>
-<li><p><strong>bounds</strong> (list) - Lower and upper bound of calibrated parameters provided as lists/tuples containing lower and upper bound: example: <code class="docutils literal notranslate"><span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>. Values falling outside these bounds will be restricted to the provided ranges before simulating the model.</p></li>
-<li><p><strong>data</strong> (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. For one dataset use <code class="docutils literal notranslate"><span class="pre">[dataset,]</span></code>. Must contain a time index named <code class="docutils literal notranslate"><span class="pre">time</span></code> or <code class="docutils literal notranslate"><span class="pre">date</span></code>. Additional axes must be implemented using a <code class="docutils literal notranslate"><span class="pre">pd.Multiindex</span></code> and must bear the names/contain the coordinates of a valid model dimension.</p></li>
-<li><p><strong>states</strong> (list) - Names of the model states (type: str) the respective datasets should be matched to.</p></li>
-<li><p><strong>log_likelihood_fnc</strong> (list) - Contains a log likelihood function for every provided dataset.</p></li>
-<li><p><strong>log_likelihood_fnc_args</strong> (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (<code class="docutils literal notranslate"><span class="pre">ll_poisson</span></code>), provide an empty list.</p></li>
+<li><p><strong>bounds</strong> (list) - Lower and upper bound of calibrated parameters. Provided as a list or tuple containing lower and upper bound: example: <code class="docutils literal notranslate"><span class="pre">bounds</span> <span class="pre">=</span> <span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>.</p></li>
+<li><p><strong>data</strong> (list) - Contains the datasets (type: pd.Series/pd.DataFrame) the model should be calibrated to. If there is only one dataset use <code class="docutils literal notranslate"><span class="pre">data</span> <span class="pre">=</span> <span class="pre">[df,]</span></code>. Dataframe must contain an index named <code class="docutils literal notranslate"><span class="pre">time</span></code> or <code class="docutils literal notranslate"><span class="pre">date</span></code>. Stratified data can be incorporated using a <code class="docutils literal notranslate"><span class="pre">pd.Multiindex</span></code>, whose index levels must have names corresponding to valid model dimensions, and whose indices must be valid dimension coordinates.</p></li>
+<li><p><strong>states</strong> (list) - Names of the model states (type: str) the respective datasets should be matched to. Must have the same length as <code class="docutils literal notranslate"><span class="pre">data</span></code>.</p></li>
+<li><p><strong>log_likelihood_fnc</strong> (list) - Contains a log likelihood function for every provided dataset. Must have the same length as <code class="docutils literal notranslate"><span class="pre">data</span></code>.</p></li>
+<li><p><strong>log_likelihood_fnc_args</strong> (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (such as <code class="docutils literal notranslate"><span class="pre">ll_poisson</span></code>), provide an empty list. Must have the same length as <code class="docutils literal notranslate"><span class="pre">data</span></code>.</p></li>
+<li><p><strong>start_sim</strong> (int/float or str/datetime) - optional - Can be used to alter the start of the simulation. By default, the start of the simulation is chosen as the earliest time/date found in the datasets.</p></li>
 <li><p><strong>weights</strong> (list) - optional - Contains the weights of every dataset in the final log posterior probability. Defaults to one for every dataset.</p></li>
 <li><p><strong>log_prior_prob_fnc</strong> (list) - optional - Contains a prior probability function for every calibrated parameter. Defaults to a uniform prior using the provided bounds.</p></li>
 <li><p><strong>log_prior_prob_fnc_args</strong> (list) - optional - Contains the arguments of the provided prior probability functions.</p></li>
 <li><p><strong>initial_states</strong> (list) - optional - Contains a dictionary of initial states for every dataset.</p></li>
-<li><p><strong>aggregation_function</strong> (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an <code class="docutils literal notranslate"><span class="pre">xarray.DataArray</span></code>, resulting from selecting the simulation output at the state we wish to match to the dataset (<code class="docutils literal notranslate"><span class="pre">model_output_xarray_Dataset['state_name']</span></code>), as its input. The output of the function must also be an <code class="docutils literal notranslate"><span class="pre">xarray.DataArray</span></code>. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a high spatial resolutioni. However, data is only available on a lower level of spatial resolution. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument <code class="docutils literal notranslate"><span class="pre">aggregation_function</span></code>are: 1) one callable function –&gt; applied to every dataset. 2) A list containing one callable function –&gt; applied to every dataset. 3) A list containing a callable function for every dataset –&gt; every dataset has its own aggregation function.</p></li>
+<li><p><strong>aggregation_function</strong> (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an <code class="docutils literal notranslate"><span class="pre">xarray.DataArray</span></code>, resulting from selecting the simulation output at the state we wish to match to the dataset (<code class="docutils literal notranslate"><span class="pre">model_output_xarray_Dataset['state_name']</span></code>), as its input. The output of the function must also be an <code class="docutils literal notranslate"><span class="pre">xarray.DataArray</span></code>. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a fine spatial resolution. However, data is only available on a coarser level. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument <code class="docutils literal notranslate"><span class="pre">aggregation_function</span></code>are: 1) one callable function –&gt; applied to every dataset. 2) A list containing one callable function –&gt; applied to every dataset. 3) A list containing a callable function for every dataset –&gt; every dataset has its own aggregation function.</p></li>
 <li><p><strong>labels</strong> (list) - optional - Contains a custom label for the calibrated parameters. Defaults to the names provided in <code class="docutils literal notranslate"><span class="pre">parameter_names</span></code>.</p></li>
 </ul>
 <p><strong>Methods:</strong></p>
@@ -149,13 +150,28 @@
 </section>
 <section id="log-likelihood">
 <h3>Log likelihood<a class="headerlink" href="#log-likelihood" title="Link to this heading">¶</a></h3>
-<p><strong><em>function</em> ll_gaussian(ymodel, ydata, sigma)</strong></p>
+<p><strong><em>function</em> ll_normal(ymodel, ydata, sigma)</strong></p>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>ymodel</strong> (list/np.ndarray) - Mean values of the Gaussian distribution (i.e. “mu” values), as predicted by the model</p></li>
+<li><p><strong>ymodel</strong> (list/np.ndarray) - Mean values of the normal distribution (i.e. “mu” values), as predicted by the model</p></li>
 <li><p><strong>ydata</strong> (list/np.ndarray) - Data time series values to be matched with the model predictions.</p></li>
-<li><p><strong>sigma</strong> (float/list of floats/np.ndarray) - Standard deviation(s) of the Gaussian distribution around the data ‘ydata’. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.</p></li>
+<li><p><strong>sigma</strong> (float/list of floats/np.ndarray) - Standard deviation(s) of the normal distribution around the data ‘ydata’. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.</p></li>
+</ul>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Returns:</strong></p>
+<ul class="simple">
+<li><p><strong>ll</strong> (float) - Loglikelihood associated with the comparison of the data points and the model prediction.</p></li>
+</ul>
+</div></blockquote>
+<p><strong><em>function</em> ll_lognormal(ymodel, ydata, sigma)</strong></p>
+<blockquote>
+<div><p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><strong>ymodel</strong> (list/np.ndarray) - Mean values of the lognormal distribution (i.e. “mu” values), as predicted by the model</p></li>
+<li><p><strong>ydata</strong> (list/np.ndarray) - Data time series values to be matched with the model predictions.</p></li>
+<li><p><strong>sigma</strong> (float/list of floats/np.ndarray) - Standard deviation(s) of the lognormal distribution around the data ‘ydata’. Two options are possible: 1) One error per model dimension, applied uniformly to all datapoints corresponding to that dimension; OR 2) One error for every datapoint, corresponding to a weighted least-squares regression.</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -324,7 +340,7 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>.</p></li>
+<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended <code class="docutils literal notranslate"><span class="pre">pySODM.optimization.log_posterior_probability</span></code>.</p></li>
 <li><p><strong>x_start</strong> (list or 1D np.ndarray) - Starting estimate for the search algorithm. Length must equal the number of provided bounds.</p></li>
 <li><p><strong>step</strong> (list or 1D np.ndarray) - (Relative) size of the initial search simplex.</p></li>
 <li><p><strong>bounds</strong> (list) - optional - The bounds of the design variable(s). In form <code class="docutils literal notranslate"><span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>. If class <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code> is used as <code class="docutils literal notranslate"><span class="pre">func</span></code>, it already contains bounds. If bounds are provided these will overwrite the bounds available in the ‘log_posterior_probability’ object.</p></li>
@@ -356,7 +372,7 @@
 <h2>pso.py<a class="headerlink" href="#pso-py" title="Link to this heading">¶</a></h2>
 <p><strong><em>function</em> optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={}, processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,  debug=False, particle_output=False, transform_pars=None)</strong></p>
 <blockquote>
-<div><p>Perform a <a class="reference external" href="https://en.wikipedia.org/wiki/Particle_swarm_optimization">Particle Swarm Optimization</a>. If a PSO with more options is desired, coupling to <a class="reference external" href="https://pyswarms.readthedocs.io/en/latest/examples/tutorials/basic_optimization.html#Optimizing-a-function">pySwarms</a> is straightforward.</p>
+<div><p>Perform a <a class="reference external" href="https://en.wikipedia.org/wiki/Particle_swarm_optimization">Particle Swarm Optimization</a>.</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
@@ -394,7 +410,7 @@
 </section>
 <section id="mcmc-py">
 <h2>mcmc.py<a class="headerlink" href="#mcmc-py" title="Link to this heading">¶</a></h2>
-<p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.5),(emcee.moves.KDEMove(bw_method=’scott’), 0.5)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
+<p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.25),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method=’scott’), 0.50)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
 <blockquote>
 <div><p>Wrapper function to setup an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> and handle all backend-related tasks.</p>
 </div></blockquote>
@@ -417,7 +433,7 @@
 <blockquote>
 <div><p><strong>Hyperparameters:</strong></p>
 <ul class="simple">
-<li><p><strong>moves</strong> (list) - optional - Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a>.</p></li>
+<li><p><strong>moves</strong> (list) - optional - Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of <code class="docutils literal notranslate"><span class="pre">emcee</span></code> moves. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a> for an overview of all moves.</p></li>
 <li><p><strong>backend</strong> (<code class="docutils literal notranslate"><span class="pre">emcee.backends.HDFBackend</span></code>) - optional - Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/backends/">emcee documentation</a>.</p></li>
 <li><p><strong>progress</strong> (bool) - optional - Enables the progress bar.</p></li>
 </ul>
@@ -468,7 +484,7 @@
 <blockquote>
 <div><p><strong>Returns:</strong></p>
 <ul class="simple">
-<li><p><strong>samples_dict</strong> (dict) - Dictionary containing the discarded and thinned MCMC samples and settings.</p></li>
+<li><p><strong>samples</strong> (dict) - Dictionary containing the discarded and thinned MCMC samples and settings.</p></li>
 </ul>
 </div></blockquote>
 </section>
