@@ -12,7 +12,9 @@ from pySODM.optimization.visualization import traceplot, autocorrelation_plot
 abs_dir = os.path.dirname(__file__)
 
 def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None,
-                        moves=[(emcee.moves.DEMove(), 0.25),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method='scott'), 0.50)],
+                        moves=[(emcee.moves.DEMove(), 0.5*0.5*0.9),(emcee.moves.DEMove(gamma0=1.0),0.5*0.5*0.1),
+                               (emcee.moves.DESnookerMove(),0.5*0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.25),
+                               (emcee.moves.StretchMove(live_dangerously=True), 0.25)],
                         fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={}):
     """Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
     
@@ -42,7 +44,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
     Hyperparameters:
     ----------------
         moves: list
-            Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a differential evolution move 25% of the time, a differential evolution snooker move 25% of the time, and a kernel-density estimate move 50% of the time. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
+            Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of `emcee` moves. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
         backend: emcee.backends.HDFBackend
             Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
         progress: bool
