@@ -434,7 +434,7 @@
 <div><p><strong>Hyperparameters:</strong></p>
 <ul class="simple">
 <li><p><strong>moves</strong> (list) - optional - Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of <code class="docutils literal notranslate"><span class="pre">emcee</span></code> moves. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/moves/">emcee documentation</a> for an overview of all moves.</p></li>
-<li><p><strong>backend</strong> (<code class="docutils literal notranslate"><span class="pre">emcee.backends.HDFBackend</span></code>) - optional - Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/backends/">emcee documentation</a>.</p></li>
+<li><p><strong>backend</strong> (str) - optional - Path to backend of a previous sampling run. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/backends/">emcee documentation</a>.</p></li>
 <li><p><strong>progress</strong> (bool) - optional - Enables the progress bar.</p></li>
 </ul>
 </div></blockquote>
