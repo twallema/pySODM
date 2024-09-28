@@ -16,7 +16,8 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
                                (emcee.moves.DESnookerMove(),0.5*0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.25),
                                (emcee.moves.StretchMove(live_dangerously=True), 0.25)],
                         fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={}):
-    """Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
+    """
+    Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
     
     Parameters:
     -----------
@@ -45,8 +46,8 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
     ----------------
         moves: list
             Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of `emcee` moves. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
-        backend: emcee.backends.HDFBackend
-            Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
+        backend: str
+            Location of backend previous sampling. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
         progress: bool
             Enables the progress bar.
 
@@ -60,21 +61,25 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
 
     # Set default fig_path/samples_path as same directory as calibration script
     if not fig_path:
-        fig_path = os.getcwd()
+        fig_path = os.getcwd() + '/'
     else:
+        if fig_path[-1] != '/':
+            fig_path = fig_path+'/'
         fig_path = os.path.join(os.getcwd(), fig_path)
         # If it doesn't exist make it
         if not os.path.exists(fig_path):
             os.makedirs(fig_path)
     if not samples_path:
-        samples_path = os.getcwd()
+        samples_path = os.getcwd() + '/'
     else:
+        if samples_path[-1] != '/':
+            samples_path = samples_path+'/'
         samples_path = os.path.join(os.getcwd(), samples_path)
         # If it doesn't exist make it
         if not os.path.exists(samples_path):
             os.makedirs(samples_path)
     # Check if the fig_path/autocorrelation and fig_path/traceplots exist and if not make them
-    for directory in [fig_path+"/autocorrelation/", fig_path+"/traceplots/"]:
+    for directory in [fig_path+"autocorrelation/", fig_path+"traceplots/"]:
         if not os.path.exists(directory):
             os.makedirs(directory)
     # Determine current date
@@ -82,31 +87,61 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
     # By default, put the calibrated model parameters shapes in the settings dictionary so we can retrieve their sizes later
     settings_dict.update({'calibrated_parameters_shapes': objective_function.parameter_shapes})
     # Save setings dictionary to samples_path
-    with open(samples_path+'/'+str(identifier)+'_SETTINGS_'+run_date+'.json', 'w') as file:
+    with open(samples_path+str(identifier)+'_SETTINGS_'+run_date+'.json', 'w') as file:
         json.dump(settings_dict, file)
     # Derive nwalkers, ndim from shape of pos
     nwalkers, ndim = pos.shape
+    # Start printout for user
+    print(f'\nMarkov-Chain Monte-Carlo sampling')
+    print(f'=================================\n')   
     # By default: set up a fresh hdf5 backend in samples_path
     if not backend:
-        filename = '/'+str(identifier)+'_BACKEND_'+run_date+'.hdf5'
-        backend = emcee.backends.HDFBackend(samples_path+filename)
+        fn_backend = str(identifier)+'_BACKEND_'+run_date+'.hdf5'
+        backend = emcee.backends.HDFBackend(samples_path+fn_backend)
         backend.reset(nwalkers, ndim)
+
+        print(f"Created new backend: '{samples_path+fn_backend}'\n")
+        print(f"Starting new run")
+        print(f"----------------")
+        print(f"Iterations: {max_n}")
+        print(f"Parameters: {ndim}")
+        print(f"Markov chains: {nwalkers}")
+        print(f"Cores: {processes}")
+        print(f"Automatically checking convergence every {print_n} iterations")
+        print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
+        print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
+        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}")
+
     # If user provides an existing backend: continue sampling 
     else:
-        pos = backend.get_chain(discard=0, thin=1, flat=False)[-1, ...]
+        backend_path=os.path.join(os.getcwd(), samples_path+backend)
+        try:
+            backend = emcee.backends.HDFBackend(backend)
+            pos = backend.get_chain(discard=0, thin=1, flat=False)[-1, ...]
+        except:
+            raise FileNotFoundError("backend not found.")    
+        
+        print(f"Found existing backend:'{backend_path}'\n")
+        print(f"Continuing run")
+        print(f"--------------")
+        print(f"Iterations: {max_n} (found {backend.get_chain(discard=0, thin=1, flat=False).shape[0]} previous iterations)")
+        print(f"Parameters: {ndim}")
+        print(f"Markov chains: {nwalkers}")
+        print(f"Cores: {processes}")
+        print(f"Automatically checking convergence every {print_n} iterations")
+        print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
+        print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
+        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}")
+    sys.stdout.flush()
+
     # This will be useful to testing convergence
     old_tau = np.inf
-
-    # Start calibration
-    print(f'\nMarkov-Chain Monte-Carlo sampling')
-    print(f'=================================\n')
-    print(f'Using {processes} cores for {ndim} parameters, in {nwalkers} chains\n')
-    sys.stdout.flush()
 
     with get_context("spawn").Pool(processes=processes) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_function, backend=backend, pool=pool,
                         args=objective_function_args, kwargs=objective_function_kwargs, moves=moves)
         for sample in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
+            
             # Only check convergence every print_n steps
             if sampler.iteration % print_n:
                 continue
@@ -117,11 +152,11 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             
             # Update autocorrelation plot
             ax, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
-                                            filename=fig_path+'/autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
+                                            filename=fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={})
             # Update traceplot
             traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
-                        filename=fig_path+'/traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
+                        filename=fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth': 1,'color': 'black','alpha': 0.2})
             # Garbage collection
             plt.close('all')
@@ -212,10 +247,10 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
         sys.stdout.flush()
     return ndim, nwalkers, pos
 
-def emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run_date=str(datetime.date.today())):
+def emcee_sampler_to_dictionary(samples_path, identifier, run_date=str(datetime.date.today()), discard=0, thin=1):
     """
-    A function to discard and thin the samples available in the sampler object and subsequently convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
-    Append a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).
+    A function to discard and thin the samples available in the `emcee` sampler object and subsequently convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
+    Automatically appends a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).
     """
 
     ###############################
