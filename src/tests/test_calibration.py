@@ -161,7 +161,11 @@ def test_correct_approach_wo_dimension():
         sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True,
                                     settings_dict=settings)
-        #Generate samples dict
+        # Restart and sample 100 more
+        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), {'simulation_kwargs': {'warmup': warmup}},
+                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=samples_path+f'{identifier}_BACKEND_{str(datetime.date.today())}.hdf5', processes=1, progress=True,
+                                    settings_dict=settings)
+        # Generate samples dict
         samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
 def break_stuff_wo_dimension():
