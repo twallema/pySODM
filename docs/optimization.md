@@ -234,7 +234,7 @@
 
 >    **Hyperparameters:**
 >    * **moves** (list) - optional - Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of `emcee` moves. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/) for an overview of all moves.
->    * **backend** (`emcee.backends.HDFBackend`) - optional - Backend of a previous sampling experiment. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
+>    * **backend** (str) - optional - Path to backend of a previous sampling run. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
 >    * **progress** (bool) - optional - Enables the progress bar.
 
 >    **Returns:**
