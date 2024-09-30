@@ -573,6 +573,8 @@ def validate_dataset(data):
             raise ValueError(
                 f"{idx}th dataset contains nans"
                 )
+        # Verify dataset is not empty
+        assert not df.empty, f"{idx}th dataset is empty"
         # Does data have 'date' or 'time' as index level? (required)
         if (('date' not in df.index.names) & ('time' not in df.index.names)):
             raise ValueError(
