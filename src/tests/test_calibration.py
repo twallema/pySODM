@@ -9,6 +9,7 @@ from pySODM.optimization.objective_functions import log_posterior_probability, l
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 
 # Only tested for ODE but the model output is identical so this shouldn't matter
+# TODO: no test for different initial conditions for different datasets
 
 ##############
 ## Settings ##
@@ -380,9 +381,9 @@ def test_calibration_nd_parameter():
     theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
                         processes=1, max_iter=20)[0]
 
-###################################
+##############################
 ## Model with one dimension ##
-###################################
+##############################
 
 class SIRstratified(ODE):
 
@@ -524,9 +525,9 @@ def break_log_likelihood_functions_with_one_dimension():
     log_posterior_probability(model,pars,bounds,data,states,
                                 log_likelihood_fnc,log_likelihood_fnc_args,weights=-weights,labels=labels)        
 
-####################################
+###############################
 ## Model with two dimensions ##
-####################################
+###############################
 
 class SIRdoublestratified(ODE):
 

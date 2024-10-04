@@ -300,7 +300,7 @@ class log_posterior_probability():
         else:
             # Validate initial states
             for i, initial_states_dict in enumerate(initial_states):
-                initial_states[i] = validate_initial_states(model.state_shapes, initial_states_dict)
+                initial_states[i] = validate_initial_states(initial_states_dict, model.state_shapes)
             # Check 
             if any(len(lst) != len(data) for lst in [states, log_likelihood_fnc, weights, log_likelihood_fnc_args, initial_states]):
                 raise ValueError(
