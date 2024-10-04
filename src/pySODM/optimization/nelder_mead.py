@@ -86,9 +86,9 @@ def optimize(func, x_start, step,
     print(f'\nNelder-Mead minimization')
     print(f'========================\n')
 
-    print(f'Using {processes} cores')
+    print(f'For {max_iter} iterations using {processes} cores')
     print(f'Starting point: {x_start}')
-    print(f'Using the following bounds: {bounds}\n')
+    print(f'Bounds: {bounds}\n')
 
     # Compute score of initial estimate
     dim = len(x_start)
@@ -134,7 +134,7 @@ def optimize(func, x_start, step,
         res.sort(key=lambda x: x[1])
         best = res[0][1]
         # Print current score
-        print(f'Best after iteration {str(iters)}: {best:.3e}; {res[0][0]}')
+        print(f'Best after iteration {str(iters)}: score: {best:.3e}; parameters: {res[0][0]}')
         # Check if we need to stop
         # Break after max_iter
         if max_iter and iters >= max_iter:
