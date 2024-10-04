@@ -107,10 +107,10 @@ def test_start_sim():
     # Correct: int/float (dataset uses 'time' as temporal index)
     log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=0)
     # Incorrect: datetime (wrong type)
-    with pytest.raises(TypeError, match="'start_sim' must be of type int/float"):
+    with pytest.raises(AssertionError, match="'start_sim' must be of type int, float"):
         log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=datetime(2020,1,1))  
     # Incorrect: startdate after enddate
-    with pytest.raises(AssertionError, match="must be smaller than 'end_sim'"):
+    with pytest.raises(AssertionError, match="make sure 'start_sim' is chronologically before the start of the earliest datapoint."):
         log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=100)  
 
 
