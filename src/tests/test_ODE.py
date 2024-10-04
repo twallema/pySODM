@@ -246,9 +246,9 @@ def test_model_init_validation():
     SIR.states = ["S", "I", "R"]
     SIR.parameters = ['beta', 'gamma']
 
-###################################
+##############################
 ## Model with one dimension ##
-###################################
+##############################
 
 class SIRstratified(ODE):
     """An SIR Model with one dimension and the same state size
@@ -515,6 +515,96 @@ def test_TDPF_nonstratified():
 
     # without the rise in time to recovery, the infected pool will be larger over the first 10 timesteps
     assert np.less_equal(output_without['I'].values, output['I'].values).all()
+
+#################################
+## Initial condition functions ##
+#################################
+
+def test_ICF():
+
+    # define initial condition function without arguments
+    def set_initial_condition():
+        return {"S": 1_000_000 - 10, "I": 10}
+    
+    # Define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2}
+    initial_states = set_initial_condition
+    model = SIR(initial_states, parameters)
+
+    # simulate the model
+    output = model.sim([0, 50])
+
+    # assert initial recovered were set to zero
+    assert model.initial_states['R'] == 0, "initial state 'R' was not automatically set to zero"
+
+    # assert no parameters have been added to the parameters dictionary
+    assert model.parameters == parameters, "initial condition function without arguments has altered the model.parameters dictionary"
+
+    # assert numerically everything is ok
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+    assert S[-1] < 12000, "initial condition functions alter simple SIR simulation"
+    I = output["I"].squeeze()
+    assert I[0] == 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+
+def test_ICF_args():
+
+    # define initial condition function with arguments
+    def set_initial_condition(S0, I0):
+        return {"S": S0 - I0, "I": I0}
+    
+    # Define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2, "S0": 1_000_000, "I0": 10}
+    initial_states = set_initial_condition
+    model = SIR(initial_states, parameters)
+
+    # simulate the model
+    output = model.sim([0, 50])
+
+    # assert initial recovered were set to zero
+    assert model.initial_states['R'] == 0, "initial state 'R' was not automatically set to zero"
+
+    # assert no parameters have been added to the parameters dictionary
+    assert model.parameters == parameters, "initial condition function without arguments has altered the model.parameters dictionary"
+
+    # assert numerically everything is ok
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+    assert S[-1] < 12000, "initial condition functions alter simple SIR simulation"
+    I = output["I"].squeeze()
+    assert I[0] == 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+
+def test_ICF_TDPF():
+
+    # define ICF with arguments
+    def set_initial_condition(S0, I0, overlapping_par):
+        return {"S": S0 - I0, "I": I0}
+    
+    # define TDPF with arguments
+    def compliance_func(t, states, param, overlapping_par):
+        return param
+    
+    # Define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2, "S0": 1_000_000, "I0": 10, "overlapping_par": 0}
+    initial_states = set_initial_condition
+    model = SIR(initial_states, parameters, time_dependent_parameters={'beta': compliance_func})
+
+    # simulate the model
+    output = model.sim([0, 50])
+
+    # assert numerically everything is ok
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+    assert S[-1] < 12000, "initial condition functions alter simple SIR simulation"
+    I = output["I"].squeeze()
+    assert I[0] == 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+
 
 ####################
 ## Draw functions ##
