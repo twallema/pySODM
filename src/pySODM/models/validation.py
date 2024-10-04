@@ -459,7 +459,7 @@ def validate_initial_states(state_shapes, initial_states, parameters):
 
     # now that we have a checked dictionary: define a dummy initial_states_function
     if not initial_states_is_function:
-        initial_states_function = lambda: initial_states
+        initial_states_function = None
         initial_states_function_args = []
 
     return initial_states, initial_states_function, initial_states_function_args

@@ -675,11 +675,15 @@ class ODE:
         t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
 
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Call the initial state function to update the initial state
-        initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
-        initial_states = check_initial_states_shapes_plus_fill(initial_states, self.state_shapes)
-        # Throw out any parameters belonging (uniquely) the to initial condition function
-        params = {k:v for k,v in self.parameters.items() if ((k not in self._extra_params_initial_condition_function) and ((k in self._extra_params_TDPF) or (k in self.parameters_names_merged)))} 
+        if self.initial_states_function:
+            # Call the initial state function to update the initial state
+            initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
+            initial_states = check_initial_states_shapes_plus_fill(initial_states, self.state_shapes)
+            # Throw out any parameters belonging (uniquely) the to initial condition function
+            params = {k:v for k,v in self.parameters.items() if ((k not in self._extra_params_initial_condition_function) and ((k in self._extra_params_TDPF) or (k in self.parameters_names_merged)))} 
+        else:
+            initial_states = self.initial_states
+            params = self.parameters
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         # Flatten initial states
