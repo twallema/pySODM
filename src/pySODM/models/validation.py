@@ -667,7 +667,7 @@ def check_stratpar_size(values, name, object_name,dimension_names,desired_size):
     values = np.asarray(values)
     if values.ndim != 1:
         raise ValueError(
-            "A {obj} value should be a 1D array, but {obj} '{name}' is"
+            "A {obj} value should be a 1D array, but {obj} '{name}' is "
             "{val}-dimensional".format(
                 obj=object_name, name=name, val=values.ndim
             )
