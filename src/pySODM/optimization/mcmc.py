@@ -110,7 +110,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
         print(f"Automatically checking convergence every {print_n} iterations")
         print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
         print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
-        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}")
+        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
 
     # If user provides an existing backend: continue sampling 
     else:
@@ -131,7 +131,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
         print(f"Automatically checking convergence every {print_n} iterations")
         print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
         print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
-        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}")
+        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
     sys.stdout.flush()
 
     # This will be useful to testing convergence
