@@ -222,18 +222,18 @@ def test_model_init_validation():
     # validate model class itself
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.states = ["S", "R"]
-    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
+    with pytest.raises(ValueError, match="The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."):
         SIR(initial_states, parameters)
 
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.states = ["S", "II", "R"]
-    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
+    with pytest.raises(ValueError, match="The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."):
         SIR(initial_states, parameters)
 
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.states = ["S", "I", "R"]
     SIR.parameters = ['beta', 'alpha']
-    with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function."):
+    with pytest.raises(ValueError, match="The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."):
         SIR(initial_states, parameters)
 
     # ensure to set back to correct ones
@@ -344,7 +344,7 @@ def test_model_stratified_init_validation():
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     # validate model class itself
-    msg = "The provided state names and parameters don't match the parameters and states of the"
+    msg = "The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."
     SIRstratified.parameters = ["gamma", "alpha"]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)

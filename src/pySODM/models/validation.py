@@ -600,9 +600,9 @@ def validate_integrate_or_compute_rates_signature(integrate_func, parameter_name
         missing_states = [name for name in missing_all if name in state_names]
         missing_parameters = [name for name in missing_all if name in parameter_names_merged]
         raise ValueError(
-            "The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function. "
+            "The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'. "
             "Missing parameters: {0}. Missing states: {1}. "
-            "Redundant: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
+            "Redundant arguments: {2}. ".format(missing_parameters, missing_states, list(redundant_all))
         )
 
     all_params = parameter_names_merged.copy()
