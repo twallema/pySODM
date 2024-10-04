@@ -205,7 +205,7 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters, init
         )
     # verify the initial states sizes
     try:
-        _ = validate_initial_states(state_shapes, output[1], parameters)
+        _ = validate_initial_states(output[1], state_shapes)
     except Exception as e:
         error_message = f"your draw function did not return a valid initial state.\nfound error: {str(e)}"
         raise RuntimeError(error_message) from e
@@ -355,13 +355,6 @@ def validate_time_dependent_parameters(parameter_names, parameter_stratified_nam
 
     return extra_params
 
-def get_params_intial_states_function(initial_states):
-
-
-    keywords = list(inspect.signature(apply_transitionings).parameters.keys())
-
-    return
-
 def get_initial_states_fuction_parameters(initial_states):
     """
     A function checking the type of the initial condition. If it's a function, returns the arguments of the function. If it's a dictionary, returns an empty list.
@@ -387,24 +380,19 @@ def get_initial_states_fuction_parameters(initial_states):
 
     return args
 
-def validate_initial_states(state_shapes, initial_states, parameters):
+def validate_initial_states(initial_states, state_shapes):
     """
     A function to check the types and sizes of the model's initial states provided by the user.
     Automatically assumes non-specified states are equal to zero.
-    All allowed input types converted to np.float64.
 
     input
     -----
 
+    initial_states: dict
+        Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
+
     state_shapes: dict
         Contains the shape of every model state.
-    
-    initial_states: dict or callable
-        Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
-        Or a function generating such dictionary.
-
-    parameters: dict
-        Dictionary containing the model's parameters. Keys: parameter names. Values: corresponding parameter values.
 
     output
     ------
@@ -412,7 +400,55 @@ def validate_initial_states(state_shapes, initial_states, parameters):
     initial_states: dict
         Dictionary containing the model's validated initial states.
         Types/Size checked, redundant initial states checked, states sorted according to `state_names`.
-    
+    """
+
+    # check if type is right (redundant; already checked in `get_initial_states_fuction_parameters`)
+    if not isinstance(initial_states, dict):
+        raise TypeError("initial states should be a dictionary by this point. contact Tijs Alleman if this error occurs.")
+
+    # validate the states shape; if not present initialise with zeros
+    for state_name, state_shape in state_shapes.items():
+        if state_name in initial_states:
+            # if present, verify the length
+            initial_states[state_name] = check_initial_states_shape(
+                                        initial_states[state_name], state_shape, state_name, "initial state",
+                                        )
+        else:
+            # Fill with zeros
+            initial_states[state_name] = np.zeros(state_shape, dtype=np.float64)
+
+    # validate all states are present (using `set` to ignore order)
+    if set(initial_states.keys()) != set(state_shapes.keys()):
+        raise ValueError(
+            f"The specified initial states don't exactly match the predefined states. Redundant states: {set(initial_states.keys()).difference(set(state_shapes.keys()))}"
+        )
+
+    # sort the initial states to match the state_names
+    initial_states = {state: initial_states[state] for state in state_shapes}
+
+    return initial_states
+
+def evaluate_initial_condition_function(initial_states, parameters):
+    """
+    A function to check the user's input type of the initial states (dict or callable).
+    If callable, evaluates the user's initial state function to obtain an initial states dictionary.
+
+    input
+    -----
+
+    initial_states: dict
+        Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
+
+    parameters: dict
+        Contains the model's parameters.
+
+    output
+    ------
+
+    initial_states: dict
+        Dictionary containing the model's validated initial states.
+        Types/Size checked, redundant initial states checked, states sorted according to `state_names`.
+
     initial_states_function: callable
         A function generating a valid initial state
         If 'initial_states' was already a callable: equal to 'initial_states'
@@ -421,7 +457,7 @@ def validate_initial_states(state_shapes, initial_states, parameters):
     initial_states_function_args: list
         Contains the arguments of the initial_states_function.
     """
-
+    
     # check if type is right (redundant; already checked in `get_initial_states_fuction_parameters`)
     if ((not isinstance(initial_states, dict)) & (not callable(initial_states))):
         raise TypeError("initial states must be: 1) a dictionary, 2) a callable function generating a dictionary")
@@ -437,50 +473,12 @@ def validate_initial_states(state_shapes, initial_states, parameters):
         # construct initial states
         initial_states = initial_states_function(**{key: parameters[key] for key in initial_states_function_args})
 
-    # validate the states shape; if not present initialise with zeros
-    for state_name, state_shape in state_shapes.items():
-        if state_name in initial_states:
-            # if present, verify the length
-            initial_states[state_name] = check_initial_states_shape(
-                                        initial_states[state_name], state_shape, state_name, "initial state",
-                                        )
-        else:
-            # Fill with zeros
-            initial_states[state_name] = np.zeros(state_shape, dtype=np.float64)
-
-    # validate the states (using `set` to ignore order)
-    if set(initial_states.keys()) != set(state_shapes.keys()):
-        raise ValueError(
-            f"The specified initial states don't exactly match the predefined states. Redundant states: {set(initial_states.keys()).difference(set(state_shapes.keys()))}"
-        )
-
-    # sort the initial states to match the state_names
-    initial_states = {state: initial_states[state] for state in state_shapes}
-
     # now that we have a checked dictionary: define a dummy initial_states_function
     if not initial_states_is_function:
         initial_states_function = None
         initial_states_function_args = []
 
     return initial_states, initial_states_function, initial_states_function_args
-
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# TODO: think better about integrating this function with the existing ones
-def check_initial_states_shapes_plus_fill(initial_states, state_shapes):
-
-    # validate the states shape; if not present initialise with zeros
-    for state_name, state_shape in state_shapes.items():
-        if state_name in initial_states:
-            # if present, verify the length
-            initial_states[state_name] = check_initial_states_shape(
-                                        initial_states[state_name], state_shape, state_name, "initial state",
-                                        )
-        else:
-            # Fill with zeros
-            initial_states[state_name] = np.zeros(state_shape, dtype=np.float64)
-
-    return initial_states
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def check_initial_states_shape(values, desired_shape, name, object_name):
     """ A function checking if the provided initial states have the correct shape

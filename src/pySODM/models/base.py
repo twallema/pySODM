@@ -12,7 +12,7 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess, \
-                                                    get_initial_states_fuction_parameters, check_overlap, check_initial_states_shapes_plus_fill
+                                                    get_initial_states_fuction_parameters, check_overlap, evaluate_initial_condition_function
 
 class JumpProcess:
     """
@@ -562,19 +562,18 @@ class ODE:
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
         all_params, self._extra_params_TDPF = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_modeldeclaration, self.states_names, self._function_parameters)
 
-        # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
-        all_params.extend(get_initial_states_fuction_parameters(self.states))
-
-        # TODO: prettify! Integrate with self._extra_params
+        # Get additional parameters of the IC function
         self._extra_params_initial_condition_function = get_initial_states_fuction_parameters(self.states)
-
+        all_params.extend(self._extra_params_initial_condition_function)
+        
         # Verify all parameters were provided
-        self.parameters = validate_provided_parameters(all_params, parameters, self.states_names)
+        self.parameters = validate_provided_parameters(set(all_params), parameters, self.states_names)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states, self.initial_states_function, self.initial_states_function_args = validate_initial_states(self.state_shapes, self.states, self.parameters)
+        self.initial_states, self.initial_states_function, self.initial_states_function_args = evaluate_initial_condition_function(self.states, self.parameters)
+        self.initial_states = validate_initial_states(self.initial_states, self.state_shapes)
 
-        # Validate the size of the stratified parameters (Perhaps move this way up front?)
+        # Validate the size of the stratified parameters (Perhaps move this way up front?) --> will deprecate
         if self.parameters_stratified_names:
             self.parameters = validate_parameter_stratified_sizes(self.parameters_stratified_names, self.dimensions_names, coordinates, self.parameters)
 
@@ -678,7 +677,7 @@ class ODE:
             # Call the initial state function to update the initial state
             initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
             # Check the initial states size and fill states not provided with zeros
-            initial_states = check_initial_states_shapes_plus_fill(initial_states, self.state_shapes)
+            initial_states = validate_initial_states(initial_states, self.state_shapes)
             # Throw out parameters belonging (uniquely) to the initial condition function
             union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_modeldeclaration)  # Union of TDPF pars and integrate pars
             unique_ICF = set(self._extra_params_initial_condition_function) - union_TDPF_integrate # Compute the difference between initial condition pars and union TDPF and integrate pars
