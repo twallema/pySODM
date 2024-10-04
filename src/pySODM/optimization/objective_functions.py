@@ -625,7 +625,7 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
     -----
 
     start_sim: None (default) or int/float or str/datetime (user-defined)
-        None: start of the simulation is set to the earliest time/date found in dataasets
+        None: start of the simulation is set to the earliest time/date found in datasets
         int/float or str/datetime: user-defined start of the simulation
 
     time_index: str
@@ -644,24 +644,40 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
         end of simulations. latest time/date found in dataasets
     """
 
-    # extract startdate
+    # No user-defined simulation start: extract startdate
     if not start_sim:
         if time_index == 'time':
             start_sim = float(min([df.index.get_level_values(time_index).unique().min() for df in data]))
         elif time_index == 'date':
             start_sim = min([df.index.get_level_values(time_index).unique().min() for df in data]).to_pydatetime() # <class 'pandas._libs.tslibs.timestamps.Timestamp'> --> <class 'datetime.datetime'>
     else:
-        # assert user input has right datatype
-        assert isinstance(start_sim, (int, float, datetime, str)), "'start_sim' must be of type int, float, str or datetime"
-        # convert to datetime if string
+        # User-defined simulation start: format (assure only datetime or int)
+        ## assert user input right datatype depending on time/date axis in data
+        if time_index == 'time':
+            assert isinstance(start_sim, (int,float)), "'start_sim' must be of type int, float"
+        elif time_index == 'date':
+            assert isinstance(start_sim, (str,datetime)), "'start_sim' must be of type datetime, str (%Y-%m-%d)"
+        ## convert to datetime if string
         if isinstance(start_sim, str):
             start_sim = datetime.strptime(start_sim,"%Y-%m-%d")
-        # convert to float if int
+        ## convert to float if int
         elif isinstance(start_sim, int):
             start_sim = float(start_sim)
         else:
             start_sim = start_sim
-        # only float (time_index: 'time') and datetime (time_index: 'date') remain 
+        
+        # get smallest start_sim from datasets
+        if time_index == 'time':
+            mindates = [df.index.get_level_values(time_index).unique().min() for df in data]
+            start_sim_data = float(min(mindates))
+            minpos = mindates.index(min(mindates))
+        elif time_index == 'date':
+            mindates = [df.index.get_level_values(time_index).unique().min() for df in data]
+            start_sim_data = min(mindates).to_pydatetime()
+            minpos = mindates.index(min(mindates))
+
+        # verify simulation starts before data
+        assert start_sim <= start_sim_data, f"start of {minpos}th dataset ({start_sim_data}) before 'start_sim' ({start_sim}). make sure 'start_sim' is chronologically before the start of the earliest datapoint."
 
     # extract enddate from datasets
     if time_index == 'time':
@@ -676,9 +692,6 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
     elif time_index == 'date':
         if not isinstance(start_sim, datetime):
             raise TypeError("'start_sim' must be of type datetime.datetime or a string representation of a date ('yyyy-mm-dd')")
-
-    # assert startdate before enddate
-    assert start_sim < end_sim, f"'start_sim' ({start_sim}) must be smaller than 'end_sim' ({end_sim})"
 
     return start_sim, end_sim
 
