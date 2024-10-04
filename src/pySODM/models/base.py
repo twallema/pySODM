@@ -53,11 +53,10 @@ class JumpProcess:
         self.parameters_names = self.parameters
         self.parameters_stratified_names = self.stratified_parameters
         self.dimensions_names = self.dimensions
-        
         self.states = states
         parameters = parameters
 
-        # Do not undergo manipulation during model initialization
+        # Do not undergo manipulation during model initialization (#TODO: no input check?)
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
@@ -91,19 +90,21 @@ class JumpProcess:
             self._function_parameters = []
 
         # Verify the signature of the compute_rates function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameters_names_modeldeclaration, self.states_names, self._function_parameters)
+        all_params, self._extra_params_TDPF = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameters_names_modeldeclaration, self.states_names, self._function_parameters)
 
         # Verify the signature of the apply_transitionings function
         validate_apply_transitionings_signature(self.apply_transitionings, self.parameters_names_modeldeclaration, self.states_names)
 
-        # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
-        all_params.extend(get_initial_states_fuction_parameters(self.states))
-
+        # Get additional parameters of the IC function
+        self._extra_params_initial_condition_function = get_initial_states_fuction_parameters(self.states)
+        all_params.extend(self._extra_params_initial_condition_function)
+        
         # Verify all parameters were provided
-        self.parameters = validate_provided_parameters(all_params, parameters, self.states_names)
+        self.parameters = validate_provided_parameters(set(all_params), parameters, self.states_names)
 
         # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states, self.initial_states_function, self.initial_states_function_args = validate_initial_states(self.state_shapes, self.states, self.parameters)
+        self.initial_states, self.initial_states_function, self.initial_states_function_args = evaluate_initial_condition_function(self.states, self.parameters)
+        self.initial_states = validate_initial_states(self.initial_states, self.state_shapes)
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
         if self.parameters_stratified_names:
@@ -299,7 +300,7 @@ class JumpProcess:
                 #  throw parameters of TDPFs out of model parameters dictionary
                 # -------------------------------------------------------------
 
-                params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameters_names_modeldeclaration))}
+                params = {k:v for k,v in params.items() if ((k not in self._extra_params_TDPF) or (k in self.parameters_names_modeldeclaration))}
 
                 # -------------
                 # compute rates
@@ -364,13 +365,29 @@ class JumpProcess:
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
 
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Update initial condition if a function was provided by user
+        if self.initial_states_function:
+            # Call the initial state function to update the initial state
+            initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
+            # Check the initial states size and fill states not provided with zeros
+            initial_states = validate_initial_states(initial_states, self.state_shapes)
+            # Throw out parameters belonging (uniquely) to the initial condition function
+            union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_modeldeclaration)  # Union of TDPF pars and integrate pars
+            unique_ICF = set(self._extra_params_initial_condition_function) - union_TDPF_integrate # Compute the difference between initial condition pars and union TDPF and integrate pars
+            params = {key: value for key, value in self.parameters.items() if key in union_TDPF_integrate or key not in unique_ICF}
+        else:
+            initial_states = self.initial_states
+            params = self.parameters
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
         # Flatten initial states
         y0=[]
-        for v in self.initial_states.values():
+        for v in initial_states.values():
             y0.extend(list(np.ravel(v)))
 
         # Run the time loop
-        output = self._solve_discrete(fun, t_eval, np.asarray(y0), self.parameters)
+        output = self._solve_discrete(fun, t_eval, np.asarray(y0), params)
 
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 

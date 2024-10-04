@@ -404,6 +404,7 @@ def validate_initial_states(initial_states, state_shapes):
 
     # check if type is right (redundant; already checked in `get_initial_states_fuction_parameters`)
     if not isinstance(initial_states, dict):
+        
         raise TypeError("initial states should be a dictionary by this point. contact Tijs Alleman if this error occurs.")
 
     # validate the states shape; if not present initialise with zeros
@@ -473,7 +474,7 @@ def evaluate_initial_condition_function(initial_states, parameters):
         # construct initial states
         initial_states = initial_states_function(**{key: parameters[key] for key in initial_states_function_args})
 
-    # now that we have a checked dictionary: define a dummy initial_states_function
+    # define a dummy initial_states_function
     if not initial_states_is_function:
         initial_states_function = None
         initial_states_function_args = []
