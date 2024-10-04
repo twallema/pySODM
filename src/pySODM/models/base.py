@@ -561,14 +561,13 @@ class ODE:
             self._function_parameters = []
 
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_merged, self.states_names, self._function_parameters)
+        all_params, self._extra_params_TDPF = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_merged, self.states_names, self._function_parameters)
 
         # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
         all_params.extend(get_initial_states_fuction_parameters(self.states))
 
         # TODO: prettify! Integrate with self._extra_params
         self._extra_params_initial_condition_function = get_initial_states_fuction_parameters(self.states)
-        self._extra_params_TDPF = self._extra_params
 
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(all_params, parameters, self.states_names)
@@ -621,7 +620,7 @@ class ODE:
             #  throw parameters of TDPFs out of model parameters dictionary
             # -------------------------------------------------------------
 
-            params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameters_names_merged))}
+            params = {k:v for k,v in params.items() if ((k not in self._extra_params_TDPF) or (k in self.parameters_names_merged))}
 
             # -------------------
             # perform integration
@@ -675,12 +674,16 @@ class ODE:
         t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
 
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Update initial condition if a function was provided by user
         if self.initial_states_function:
             # Call the initial state function to update the initial state
             initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
+            # Check the initial states size and fill states not provided with zeros
             initial_states = check_initial_states_shapes_plus_fill(initial_states, self.state_shapes)
-            # Throw out any parameters belonging (uniquely) the to initial condition function
-            params = {k:v for k,v in self.parameters.items() if ((k not in self._extra_params_initial_condition_function) and ((k in self._extra_params_TDPF) or (k in self.parameters_names_merged)))} 
+            # Throw out parameters belonging (uniquely) to the initial condition function
+            union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_merged)  # Union of TDPF pars and integrate pars
+            unique_ICF = set(self._extra_params_initial_condition_function) - union_TDPF_integrate # Compute the difference between initial condition pars and union TDPF and integrate pars
+            params = {key: value for key, value in self.parameters.items() if key in union_TDPF_integrate or key not in unique_ICF}
         else:
             initial_states = self.initial_states
             params = self.parameters
