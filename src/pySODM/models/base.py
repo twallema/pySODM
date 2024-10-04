@@ -692,6 +692,7 @@ class ODE:
         for v in initial_states.values():
             y0.extend(list(np.ravel(v)))
 
+        # Discrete/continuous
         if tau:
             output = self._solve_discrete(fun, tau, t_eval, y0, args=params)
         else:
