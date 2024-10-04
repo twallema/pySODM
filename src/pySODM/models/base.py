@@ -515,7 +515,6 @@ class ODE:
     dimensions = None
     dimensions_per_state = None
     # TODO: states, parameters, dimensions --> list containing str (check input!)
-    # TODO: rename parameter_names_merged into a more descriptive parameter_names_model
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
