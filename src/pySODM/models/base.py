@@ -62,17 +62,17 @@ class JumpProcess:
         self.time_dependent_parameters = time_dependent_parameters
 
         # Merge parameter_names and parameter_stratified_names
-        self.parameters_names_merged = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
+        self.parameters_names_modeldeclaration = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/dimensions?
         check_duplicates(self.states_names, 'state_names')
         check_duplicates(self.parameters_names, 'parameter_names')
-        check_duplicates(self.parameters_names_merged, 'parameter_names + parameter_stratified_names')
+        check_duplicates(self.parameters_names_modeldeclaration, 'parameter_names + parameter_stratified_names')
         if self.dimensions_names:
             check_duplicates(self.dimensions_names, 'dimension_names')
 
         # Overlapping state and parameter names?
-        check_overlap(self.states_names, self.parameters_names_merged, 'state_names', 'parameter_names + parameter_stratified_names')
+        check_overlap(self.states_names, self.parameters_names_modeldeclaration, 'state_names', 'parameter_names + parameter_stratified_names')
 
         # Validate and compute the dimension sizes
         self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
@@ -91,10 +91,10 @@ class JumpProcess:
             self._function_parameters = []
 
         # Verify the signature of the compute_rates function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameters_names_merged, self.states_names, self._function_parameters)
+        all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.compute_rates, self.parameters_names_modeldeclaration, self.states_names, self._function_parameters)
 
         # Verify the signature of the apply_transitionings function
-        validate_apply_transitionings_signature(self.apply_transitionings, self.parameters_names_merged, self.states_names)
+        validate_apply_transitionings_signature(self.apply_transitionings, self.parameters_names_modeldeclaration, self.states_names)
 
         # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
         all_params.extend(get_initial_states_fuction_parameters(self.states))
@@ -110,8 +110,8 @@ class JumpProcess:
             self.parameters = validate_parameter_stratified_sizes(self.parameters_stratified_names, self.dimensions_names, coordinates, self.parameters)
 
         # Call the compute_rates function, check if it works and check the sizes of the differentials in the output
-        rates = validate_compute_rates(self.compute_rates, self.initial_states, self.state_shapes, self.parameters_names_merged, self.parameters)
-        validate_apply_transitionings(self.apply_transitionings, rates, self.initial_states, self.state_shapes, self.parameters_names_merged, self.parameters)
+        rates = validate_compute_rates(self.compute_rates, self.initial_states, self.state_shapes, self.parameters_names_modeldeclaration, self.parameters)
+        validate_apply_transitionings(self.apply_transitionings, rates, self.initial_states, self.state_shapes, self.parameters_names_modeldeclaration, self.parameters)
 
     # Overwrite integrate class
     @staticmethod
@@ -299,7 +299,7 @@ class JumpProcess:
                 #  throw parameters of TDPFs out of model parameters dictionary
                 # -------------------------------------------------------------
 
-                params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameters_names_merged))}
+                params = {k:v for k,v in params.items() if ((k not in self._extra_params) or (k in self.parameters_names_modeldeclaration))}
 
                 # -------------
                 # compute rates
@@ -532,17 +532,17 @@ class ODE:
         self.time_dependent_parameters = time_dependent_parameters
 
         # Merge parameter_names and parameter_stratified_names
-        self.parameters_names_merged = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
+        self.parameters_names_modeldeclaration = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
 
         # Duplicates in lists containing names of states/parameters/stratified parameters/dimensions?
         check_duplicates(self.states_names, 'state_names')
         check_duplicates(self.parameters_names, 'parameter_names')
-        check_duplicates(self.parameters_names_merged, 'parameter_names + parameter_stratified_names')
+        check_duplicates(self.parameters_names_modeldeclaration, 'parameter_names + parameter_stratified_names')
         if self.dimensions_names:
             check_duplicates(self.dimensions_names, 'dimension_names')
 
         # Overlapping state and parameter names?
-        check_overlap(self.states_names, self.parameters_names_merged, 'state_names', 'parameter_names + parameter_stratified_names')
+        check_overlap(self.states_names, self.parameters_names_modeldeclaration, 'state_names', 'parameter_names + parameter_stratified_names')
 
         # Validate and compute the dimension sizes
         self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
@@ -561,7 +561,7 @@ class ODE:
             self._function_parameters = []
 
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
-        all_params, self._extra_params_TDPF = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_merged, self.states_names, self._function_parameters)
+        all_params, self._extra_params_TDPF = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_modeldeclaration, self.states_names, self._function_parameters)
 
         # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
         all_params.extend(get_initial_states_fuction_parameters(self.states))
@@ -580,7 +580,7 @@ class ODE:
             self.parameters = validate_parameter_stratified_sizes(self.parameters_stratified_names, self.dimensions_names, coordinates, self.parameters)
 
         # Call the integrate function, check if it works and check the sizes of the differentials in the output
-        validate_integrate(self.initial_states, dict(zip(self.parameters_names_merged,[self.parameters[k] for k in self.parameters_names_merged])), self.integrate, self.state_shapes)
+        validate_integrate(self.initial_states, dict(zip(self.parameters_names_modeldeclaration,[self.parameters[k] for k in self.parameters_names_modeldeclaration])), self.integrate, self.state_shapes)
 
     # Overwrite integrate class
     @staticmethod
@@ -620,7 +620,7 @@ class ODE:
             #  throw parameters of TDPFs out of model parameters dictionary
             # -------------------------------------------------------------
 
-            params = {k:v for k,v in params.items() if ((k not in self._extra_params_TDPF) or (k in self.parameters_names_merged))}
+            params = {k:v for k,v in params.items() if ((k not in self._extra_params_TDPF) or (k in self.parameters_names_modeldeclaration))}
 
             # -------------------
             # perform integration
@@ -681,7 +681,7 @@ class ODE:
             # Check the initial states size and fill states not provided with zeros
             initial_states = check_initial_states_shapes_plus_fill(initial_states, self.state_shapes)
             # Throw out parameters belonging (uniquely) to the initial condition function
-            union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_merged)  # Union of TDPF pars and integrate pars
+            union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_modeldeclaration)  # Union of TDPF pars and integrate pars
             unique_ICF = set(self._extra_params_initial_condition_function) - union_TDPF_integrate # Compute the difference between initial condition pars and union TDPF and integrate pars
             params = {key: value for key, value in self.parameters.items() if key in union_TDPF_integrate or key not in unique_ICF}
         else:
