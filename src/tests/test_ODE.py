@@ -203,6 +203,11 @@ def test_model_init_validation():
     assert model.states_names == ['S', 'I', 'R']
     assert model.parameters_names == ['beta', 'gamma']
 
+    # wrong datatype initial state
+    initial_states2 = [1_000_000 - 10, 10, 0]
+    with pytest.raises(TypeError, match="a callable function generating a dictionary."):
+        SIR(initial_states2, parameters)
+
     # wrong length initial states
     initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
     with pytest.raises(ValueError, match="The desired shape of model state"):
@@ -212,6 +217,11 @@ def test_model_init_validation():
     initial_states2 = {"S": [1_000_000 - 10], "II": [10]}
     with pytest.raises(ValueError, match="specified initial states don't"):
         SIR(initial_states2, parameters)
+
+    # wrong type on parameters
+    parameters2 = [0.9, 0.2, 1]
+    with pytest.raises(TypeError, match="'parameters' should be a dictionary."):
+        SIR(initial_states, parameters2)
 
     # wrong parameters
     parameters2 = {"beta": 0.9, "gamma": 0.2, "other": 1}
