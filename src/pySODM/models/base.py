@@ -11,7 +11,8 @@ from pySODM.models.utils import int_to_date, list_to_dict
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
-                                                validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess
+                                                validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess, \
+                                                    get_initial_states_fuction_parameters, check_overlap, check_initial_states_shapes_plus_fill
 
 class JumpProcess:
     """
@@ -70,6 +71,9 @@ class JumpProcess:
         if self.dimensions_names:
             check_duplicates(self.dimensions_names, 'dimension_names')
 
+        # Overlapping state and parameter names?
+        check_overlap(self.states_names, self.parameters_names_merged, 'state_names', 'parameter_names + parameter_stratified_names')
+
         # Validate and compute the dimension sizes
         self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
 
@@ -79,9 +83,6 @@ class JumpProcess:
         
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
         self.state_shapes, self.dimensions_per_state, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.dimensions_per_state)
-
-        # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states = validate_initial_states(self.state_shapes, self.states)
 
         # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
@@ -95,8 +96,14 @@ class JumpProcess:
         # Verify the signature of the apply_transitionings function
         validate_apply_transitionings_signature(self.apply_transitionings, self.parameters_names_merged, self.states_names)
 
+        # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
+        all_params.extend(get_initial_states_fuction_parameters(self.states))
+
         # Verify all parameters were provided
-        self.parameters = validate_provided_parameters(all_params, parameters)
+        self.parameters = validate_provided_parameters(all_params, parameters, self.states_names)
+
+        # Validate the shapes of the initial states, fill non-defined states with zeros
+        self.initial_states, self.initial_states_function, self.initial_states_function_args = validate_initial_states(self.state_shapes, self.states, self.parameters)
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
         if self.parameters_stratified_names:
@@ -483,10 +490,11 @@ class ODE:
     ----------
     To initialise the model, provide following inputs:
 
-    states : dictionary
+    states : dictionary or callable 
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
+        alternatively, a function generating a dictionary can be provided. arguments of the function must be supplied as parameters.
     parameters : dictionary
         values of all parameters, stratified_parameters, TDPF parameters
     time_dependent_parameters : dictionary, optional
@@ -506,6 +514,8 @@ class ODE:
     stratified_parameters = None
     dimensions = None
     dimensions_per_state = None
+    # TODO: states, parameters, dimensions --> list containing str (check input!)
+    # TODO: rename parameter_names_merged into a more descriptive parameter_names_model
 
     def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
 
@@ -531,6 +541,9 @@ class ODE:
         if self.dimensions_names:
             check_duplicates(self.dimensions_names, 'dimension_names')
 
+        # Overlapping state and parameter names?
+        check_overlap(self.states_names, self.parameters_names_merged, 'state_names', 'parameter_names + parameter_stratified_names')
+
         # Validate and compute the dimension sizes
         self.dimension_size = validate_dimensions(self.dimensions_names, self.coordinates)
 
@@ -541,9 +554,6 @@ class ODE:
         # Build a dictionary containing the size of every state; build a dictionary containing the dimensions of very state; build a dictionary containing the coordinates of every state
         self.state_shapes, self.dimensions_per_state, self.state_coordinates = build_state_sizes_dimensions(self.coordinates, self.states_names, self.dimensions_per_state)
 
-        # Validate the shapes of the initial states, fill non-defined states with zeros
-        self.initial_states = validate_initial_states(self.state_shapes, self.states)
-
         # Validate the time-dependent parameter functions (TDPFs) and extract the names of their input arguments
         if time_dependent_parameters:
             self._function_parameters = validate_time_dependent_parameters(self.parameters_names, self.parameters_stratified_names, self.time_dependent_parameters)
@@ -553,8 +563,18 @@ class ODE:
         # Verify the signature of the integrate function; extract the additional parameters of the TDPFs
         all_params, self._extra_params = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_merged, self.states_names, self._function_parameters)
 
+        # Check if the initial condition is a function with arguments; if so, add the arguments to the `all_params` so we can check if they're provided by the user
+        all_params.extend(get_initial_states_fuction_parameters(self.states))
+
+        # TODO: prettify! Integrate with self._extra_params
+        self._extra_params_initial_condition_function = get_initial_states_fuction_parameters(self.states)
+        self._extra_params_TDPF = self._extra_params
+
         # Verify all parameters were provided
-        self.parameters = validate_provided_parameters(all_params, parameters)
+        self.parameters = validate_provided_parameters(all_params, parameters, self.states_names)
+
+        # Validate the shapes of the initial states, fill non-defined states with zeros
+        self.initial_states, self.initial_states_function, self.initial_states_function_args = validate_initial_states(self.state_shapes, self.states, self.parameters)
 
         # Validate the size of the stratified parameters (Perhaps move this way up front?)
         if self.parameters_stratified_names:
@@ -654,15 +674,23 @@ class ODE:
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
 
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Call the initial state function to update the initial state
+        initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
+        initial_states = check_initial_states_shapes_plus_fill(initial_states, self.state_shapes)
+        # Throw out any parameters belonging (uniquely) the to initial condition function
+        params = {k:v for k,v in self.parameters.items() if ((k not in self._extra_params_initial_condition_function) and ((k in self._extra_params_TDPF) or (k in self.parameters_names_merged)))} 
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
         # Flatten initial states
         y0=[]
-        for v in self.initial_states.values():
+        for v in initial_states.values():
             y0.extend(list(np.ravel(v)))
 
         if tau:
-            output = self._solve_discrete(fun, tau, t_eval, y0, args=self.parameters)
+            output = self._solve_discrete(fun, tau, t_eval, y0, args=params)
         else:
-            output = solve_ivp(fun, time, y0, args=[self.parameters], t_eval=t_eval, method=method, rtol=rtol)
+            output = solve_ivp(fun, time, y0, args=[params], t_eval=t_eval, method=method, rtol=rtol)
 
         # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)

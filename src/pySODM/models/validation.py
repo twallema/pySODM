@@ -205,7 +205,7 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters, init
         )
     # verify the initial states sizes
     try:
-        _ = validate_initial_states(state_shapes, output[1])
+        _ = validate_initial_states(state_shapes, output[1], parameters)
     except Exception as e:
         error_message = f"your draw function did not return a valid initial state.\nfound error: {str(e)}"
         raise RuntimeError(error_message) from e
@@ -355,7 +355,39 @@ def validate_time_dependent_parameters(parameter_names, parameter_stratified_nam
 
     return extra_params
 
-def validate_initial_states(state_shapes, initial_states):
+def get_params_intial_states_function(initial_states):
+
+
+    keywords = list(inspect.signature(apply_transitionings).parameters.keys())
+
+    return
+
+def get_initial_states_fuction_parameters(initial_states):
+    """
+    A function checking the type of the initial condition. If it's a function, returns the arguments of the function. If it's a dictionary, returns an empty list.
+
+    input
+    -----
+
+    initial_states: dict or callable
+        Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
+        Or a function generating such dictionary.
+    """
+
+    # check if type is right
+    if ((not isinstance(initial_states, dict)) & (not callable(initial_states))):
+        raise TypeError(f"initial states must be: 1) a dictionary, 2) a callable function generating a dictionary. found '{type(initial_states)}'")
+    
+    # if it's a callable function, call it and check if it returns a dictionary
+    if callable(initial_states):
+        # get arguments
+        args = list(inspect.signature(initial_states).parameters.keys())
+    else:
+        args = []
+
+    return args
+
+def validate_initial_states(state_shapes, initial_states, parameters):
     """
     A function to check the types and sizes of the model's initial states provided by the user.
     Automatically assumes non-specified states are equal to zero.
@@ -367,8 +399,12 @@ def validate_initial_states(state_shapes, initial_states):
     state_shapes: dict
         Contains the shape of every model state.
     
-    initial_states: dict
+    initial_states: dict or callable
         Dictionary containing the model's initial states. Keys: model states. Values: corresponding initial values.
+        Or a function generating such dictionary.
+
+    parameters: dict
+        Dictionary containing the model's parameters. Keys: parameter names. Values: corresponding parameter values.
 
     output
     ------
@@ -376,8 +412,32 @@ def validate_initial_states(state_shapes, initial_states):
     initial_states: dict
         Dictionary containing the model's validated initial states.
         Types/Size checked, redundant initial states checked, states sorted according to `state_names`.
+    
+    initial_states_function: callable
+        A function generating a valid initial state
+        If 'initial_states' was already a callable: equal to 'initial_states'
+        If 'initial_states' was a dictionary: a dummy function returning that dictionary
+    
+    initial_states_function_args: list
+        Contains the arguments of the initial_states_function.
     """
 
+    # check if type is right (redundant; already checked in `get_initial_states_fuction_parameters`)
+    if ((not isinstance(initial_states, dict)) & (not callable(initial_states))):
+        raise TypeError("initial states must be: 1) a dictionary, 2) a callable function generating a dictionary")
+    
+    # if it's a callable function, call it and check if it returns a dictionary
+    initial_states_is_function = False
+    if callable(initial_states):
+        initial_states_is_function = True
+        # get arguments
+        initial_states_function_args = list(inspect.signature(initial_states).parameters.keys())
+        # save function
+        initial_states_function = initial_states
+        # construct initial states
+        initial_states = initial_states_function(**{key: parameters[key] for key in initial_states_function_args})
+
+    # validate the states shape; if not present initialise with zeros
     for state_name, state_shape in state_shapes.items():
         if state_name in initial_states:
             # if present, verify the length
@@ -397,7 +457,30 @@ def validate_initial_states(state_shapes, initial_states):
     # sort the initial states to match the state_names
     initial_states = {state: initial_states[state] for state in state_shapes}
 
+    # now that we have a checked dictionary: define a dummy initial_states_function
+    if not initial_states_is_function:
+        initial_states_function = lambda: initial_states
+        initial_states_function_args = []
+
+    return initial_states, initial_states_function, initial_states_function_args
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# TODO: think better about integrating this function with the existing ones
+def check_initial_states_shapes_plus_fill(initial_states, state_shapes):
+
+    # validate the states shape; if not present initialise with zeros
+    for state_name, state_shape in state_shapes.items():
+        if state_name in initial_states:
+            # if present, verify the length
+            initial_states[state_name] = check_initial_states_shape(
+                                        initial_states[state_name], state_shape, state_name, "initial state",
+                                        )
+        else:
+            # Fill with zeros
+            initial_states[state_name] = np.zeros(state_shape, dtype=np.float64)
+
     return initial_states
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def check_initial_states_shape(values, desired_shape, name, object_name):
     """ A function checking if the provided initial states have the correct shape
@@ -434,6 +517,12 @@ def check_initial_states_shape(values, desired_shape, name, object_name):
             )
 
     return values
+
+def check_overlap(lst_1, lst_2, name_1, name_2):
+    """A function raising an error if there is overlap between both lists"""
+    overlap = set(lst_1) & set(lst_2)  # Find common elements between the lists
+    if overlap:
+        raise ValueError(f"overlap detected between '{name_1}' and '{name_2}': {list(overlap)}")
 
 def check_duplicates(lst, name):
     """A function raising an error if lst contains duplicates"""
@@ -527,7 +616,7 @@ def validate_integrate_or_compute_rates_signature(integrate_func, parameter_name
         all_params += _extra_params
         len_before = len(all_params)
         # Line below removes duplicate arguments with integrate defenition
-        all_params = OrderedDict((x, True) for x in all_params).keys()
+        all_params = list(OrderedDict((x, True) for x in all_params).keys())
         len_after = len(all_params)
         # Line below computes number of integrate arguments used in time dependent parameter functions
         n_duplicates = len_before - len_after
@@ -538,10 +627,18 @@ def validate_integrate_or_compute_rates_signature(integrate_func, parameter_name
     
     return all_params, list(_extra_params)
 
-def validate_provided_parameters(all_params, parameters):
-    """Verify all parameters (parameters + stratified parameters + TDPF parameters) are provided by the user. Verify 't' is not a TDPF parameter."""
+def validate_provided_parameters(all_params, parameters, state_names):
+    """
+    Verify all parameters (parameters + stratified parameters + TDPF parameters + initial condition parameters) are provided by the user.
+    Verify 't' is not used as a parameter.
+    Verify no state name is used as a parameter
+    """
 
-    # Validate the params
+    # Validate the type
+    if not isinstance(parameters, dict):
+        raise TypeError("'parameters' should be a dictionary.")
+    
+    # Validate the parameter dictionary provided by the user (does it contain missing/redundant parameters)
     if set(parameters.keys()) != set(all_params):
         raise ValueError(
             "The specified parameters don't exactly match the predefined parameters. "
@@ -549,13 +646,20 @@ def validate_provided_parameters(all_params, parameters):
             set(parameters.keys()).difference(set(all_params)),
             set(all_params).difference(set(parameters.keys())))
         )
+    
+    # Build a dictionary of parameters: key: parameter name, value: parameter value
     parameters = {param: parameters[param] for param in all_params}
 
-    # After building the list of all model parameters, verify no parameters 't' were used
+    # After building the list of all model parameters, verify no parameters named 't' were used
     if 't' in parameters:
         raise ValueError(
-        "Parameter name 't' is reserved for the timestep of scipy.solve_ivp.\nPlease verify no model parameters named 't' are present in the model parameters dictionary or in the time-dependent parameter functions."
+        "'t' is not a valid model parameter name. please verify no model parameters named 't' are present in your model, its time-dependent parameter functions or initial condition function."
             )
+    
+    # Lastly, verify no state name was used a parameter
+    overlap = set(state_names) & set(parameters.keys())  # Find common elements between the lists
+    if overlap:
+        raise ValueError(f"overlapping names of model parameters and states is not allowed. found overlapping names: {list(overlap)}")
     
     return parameters
 
