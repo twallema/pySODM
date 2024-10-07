@@ -403,7 +403,7 @@ class JumpProcess:
         # simulate model
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
+    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
 
         """
         Simulate a model during a given time period.
@@ -417,9 +417,6 @@ class JumpProcess:
             1) Input is converted to [0, time]. Floats are automatically rounded.
             2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
             3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
-
-        warmup : int
-            Number of days to simulate prior to start time or date
 
         N : int
             Number of repeated simulations (default: 1)
@@ -454,7 +451,7 @@ class JumpProcess:
         # Input checks on solution settings
         validate_solution_methods_JumpProcess(method, tau)
         # Input checks on supplied simulation time
-        time, actual_start_date = validate_simulation_time(time, warmup)
+        time, actual_start_date = validate_simulation_time(time)
         # Input checks related to draw functions
         if draw_function:
             # validate function
@@ -729,7 +726,7 @@ class ODE:
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, warmup=0, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-4, tau=None, output_timestep=1):
+    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-4, tau=None, output_timestep=1):
         """
         Simulate a model during a given time period.
         Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
@@ -743,9 +740,6 @@ class ODE:
             1) Input is converted to [0, time]. Floats are automatically rounded.
             2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
             3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
-
-        warmup : int
-            Number of days to simulate prior to start time or date
 
         N : int
             Number of repeated simulations (default: 1)
@@ -783,8 +777,8 @@ class ODE:
         # Input checks on solution settings
         validate_solution_methods_ODE(rtol, method, tau)
         # Input checks on supplied simulation time
-        time, actual_start_date = validate_simulation_time(time, warmup)
-        # Input checks related to draw functions
+        time, actual_start_date = validate_simulation_time(time)
+        # Input checks on draw functions
         if draw_function:
             # validate function
             validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)

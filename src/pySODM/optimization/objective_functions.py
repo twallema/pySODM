@@ -475,11 +475,6 @@ class log_posterior_probability():
         # Unflatten thetas
         thetas_dict = list_to_dict(thetas, self.parameter_shapes, retain_floats=True)
 
-        # Assign and remove warmup
-        if 'warmup' in thetas_dict.keys():
-            simulation_kwargs.update({'warmup': float(thetas_dict['warmup'])})
-            del thetas_dict['warmup']
-
         # Assign model parameters
         self.model.parameters.update(thetas_dict)
 
@@ -699,8 +694,7 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
     """
     Validates the parameters the user wants to calibrate. Parameters must: 1) Be valid model parameters, 2) Have one value, or, have multiple values (list or np.ndarray).
     Construct a dictionary containing the parameter names as key and their sizes (type: tuple) as values.
-    An exception is coded for 'warmup' (= number of days between data and simulation start)
-   
+
     Parameters
     ----------
 
@@ -724,13 +718,10 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
     parameters_shapes = []
     for param_name in parameters_function:
         # Check if the parameter exists
-        if ((param_name not in parameters_model)&(param_name!='warmup')):
+        if param_name not in parameters_model:
             raise Exception(
                 f"To be calibrated model parameter '{param_name}' is not a valid model parameter!"
             )
-        elif param_name == 'warmup':
-            parameters_shapes.append((1,))
-            parameters_sizes.append(1)
         else:
             # Check the datatype: only int, float, list of int/float, np.array
             if isinstance(parameters_model[param_name], bool):

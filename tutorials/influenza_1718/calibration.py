@@ -197,7 +197,7 @@ if __name__ == '__main__':
     settings={'start_calibration': start_calibration, 'end_calibration': end_calibration,
               'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': expanded_labels, 'tau': tau}
     # Sample n_mcmc iterations
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'warmup': 0, 'tau':tau}},
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'tau':tau}},
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
                                     settings_dict=settings)                                                                               
     # Generate a sample dictionary and save it as .json for long-term storage

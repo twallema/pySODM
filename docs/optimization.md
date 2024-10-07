@@ -317,7 +317,6 @@ Samples path, identifier and run_date are combined to find the right .hdf5 `emce
 >    * **thetas** (list or 1D np.ndarray) - A list with values of model parameters. Values ordermust correspond to the order of `parameter_names`
 
 >    **Returns:**
->    * **warmup** (float) - Offset between simulation start and start of data collection. Because 'warmup' does not reside in the model parameters dictionary, this argument is only returned if 'warmup' is in the parameter name list 'pars'
 >    * **param_dict** (dict) - Model parameters dictionary with values of parameters `parameter_names` set to the values listed in `thetas`
 
 ***function* variance_analysis(data, resample_frequency)**
