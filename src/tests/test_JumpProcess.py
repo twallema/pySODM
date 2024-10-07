@@ -192,6 +192,11 @@ def test_model_init_validation():
     # model state/parameter names didn't change
     assert model.states_names == ['S', 'I', 'R']
     assert model.parameters_names == ['beta', 'gamma']
+    
+    # wrong datatype initial state
+    initial_states2 = [1_000_000 - 10, 10, 0]
+    with pytest.raises(TypeError, match="a callable function generating a dictionary."):
+        SIR(initial_states2, parameters)
 
     # wrong length initial states
     initial_states2 = {"S": np.array([1_000_000 - 10,1]), "I": np.array([10,1]), "R": np.array([0,1])}
@@ -203,6 +208,11 @@ def test_model_init_validation():
     with pytest.raises(ValueError, match="specified initial states don't"):
         SIR(initial_states2, parameters)
 
+    # wrong type on parameters
+    parameters2 = [0.9, 0.2, 1]
+    with pytest.raises(TypeError, match="'parameters' should be a dictionary."):
+        SIR(initial_states, parameters2)
+
     # wrong parameters
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     parameters2 = {"beta": 0.9, "gamma": 0.2, "other": 1}
@@ -212,18 +222,18 @@ def test_model_init_validation():
     # validate model class itself
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.states = ["S", "R"]
-    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
+    with pytest.raises(ValueError, match="The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."):
         SIR(initial_states, parameters)
 
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.states = ["S", "II", "R"]
-    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
+    with pytest.raises(ValueError, match="The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."):
         SIR(initial_states, parameters)
 
     initial_states = {"S": np.array([1_000_000 - 10]), "I": np.array([10]), "R": np.array([0])}
     SIR.states = ["S", "I", "R"]
     SIR.parameters = ['beta', 'alpha']
-    with pytest.raises(ValueError, match="The provided state names and parameters don't match the parameters and states of the integrate/compute_rates function."):
+    with pytest.raises(ValueError, match="The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."):
         SIR(initial_states, parameters)
 
     # ensure to set back to correct ones
@@ -334,7 +344,7 @@ def test_model_stratified_init_validation():
         SIRstratified(initial_states2, parameters, coordinates=coordinates)
 
     # validate model class itself
-    msg = "The provided state names and parameters don't match the parameters and states of the"
+    msg = "The input arguments of the integrate/compute_rates function should be 't', followed by the model's 'states' and 'parameters'."
     SIRstratified.parameters = ["gamma", "alpha"]
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
@@ -509,6 +519,131 @@ def test_TDPF_nonstratified():
 
     # without the rise in time to recovery, the infected pool will be larger over the first 10 timesteps
     assert np.less_equal(output_without['I'].values[20:], output['I'].values[20:]).all()
+
+#################################
+## Initial condition functions ##
+#################################
+
+def test_ICF():
+    """ Test an ICF without parameters
+    """
+
+    # define initial condition function without arguments
+    def set_initial_condition():
+        return {"S": 1_000_000 - 10, "I": 10}
+    
+    # define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2}
+    initial_states = set_initial_condition
+    model = SIR(initial_states, parameters)
+
+    # simulate the model
+    output = model.sim([0, 50])
+
+    # assert initial recovered were set to zero
+    assert model.initial_states['R'] == 0, "initial state 'R' was not automatically set to zero"
+
+    # assert no parameters have been added to the parameters dictionary
+    assert model.parameters == parameters, "initial condition function without arguments has altered the model.parameters dictionary"
+
+    # assert numerically everything is ok
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+    assert S[-1] < 12000, "initial condition functions alter simple SIR simulation"
+    I = output["I"].squeeze()
+    assert I[0] == 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+
+def test_ICF_args():
+    """ Test an ICF with parameters
+    """
+
+    # define initial condition function with arguments
+    def set_initial_condition(S0, I0):
+        return {"S": S0 - I0, "I": I0}
+    
+    # define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2, "S0": 1_000_000, "I0": 10}
+    initial_states = set_initial_condition
+    model = SIR(initial_states, parameters)
+
+    # simulate the model
+    output = model.sim([0, 50])
+
+    # assert initial recovered were set to zero
+    assert model.initial_states['R'] == 0, "initial state 'R' was not automatically set to zero"
+
+    # assert no parameters have been added to the parameters dictionary
+    assert model.parameters == parameters, "initial condition function without arguments has altered the model.parameters dictionary"
+
+    # assert numerically everything is ok
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+    assert S[-1] < 12000, "initial condition functions alter simple SIR simulation"
+    I = output["I"].squeeze()
+    assert I[0] == 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+
+def test_ICF_TDPF():
+    """ Mix it up: ICF, TDPF and model have overlapping parameters
+    """
+
+    # define ICF with arguments
+    def set_initial_condition(S0, I0, beta, overlapping_par):
+        return {"S": S0 - I0, "I": I0}
+    
+    # define TDPF with arguments
+    def compliance_func(t, states, param, beta, overlapping_par):
+        return param
+    
+    # define parameters and initial states
+    parameters = {"beta": 0.9, "gamma": 0.2, "S0": 1_000_000, "I0": 10, "overlapping_par": 0}
+    initial_states = set_initial_condition
+    model = SIR(initial_states, parameters, time_dependent_parameters={'beta': compliance_func})
+
+    # simulate the model
+    output = model.sim([0, 50])
+
+    # assert numerically everything is ok
+    S = output["S"].values.squeeze()
+    assert S[0] == 1_000_000 - 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+    assert S[-1] < 12000, "initial condition functions alter simple SIR simulation"
+    I = output["I"].squeeze()
+    assert I[0] == 10, "initial condition functions alter simple SIR simulation"
+    assert S.shape == (51, ), "initial condition functions alter simple SIR simulation"
+
+def break_ICF():
+    """ Try out some abuses of ICFs
+    """
+
+    # forget parameters
+    def set_initial_condition(S0, I0):
+        return {"S": S0 - I0, "I": I0}
+    parameters = {"beta": 0.9, "gamma": 0.2}
+    with pytest.raises(ValueError, match="The specified parameters don't exactly match the predefined parameters."):
+        model = SIR(set_initial_condition, parameters)
+    
+    # sets a non-existant state
+    def set_initial_condition(S0, I0):
+        return {"S": S0 - I0, "I": I0, "K": 10}
+    parameters = {"beta": 0.9, "gamma": 0.2, "S0": 1_000_000, "I0": 10}
+    with pytest.raises(ValueError, match="The specified initial states don't exactly match the predefined states."):
+        model = SIR(set_initial_condition, parameters)
+
+    # wrong state size
+    def set_initial_condition(S0, I0):
+        return {"S": S0 - I0, "I": np.array([I0, I0])}
+    parameters = {"beta": 0.9, "gamma": 0.2, "S0": 1_000_000, "I0": 10}
+    with pytest.raises(ValueError, match="The desired shape of model state"):
+        model = SIR(set_initial_condition, parameters)
+
+test_ICF()
+test_ICF_args()
+test_ICF_TDPF()
+break_ICF()
 
 ####################
 ## Draw functions ##

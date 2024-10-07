@@ -10,7 +10,8 @@ def _apply_tick_locator(ax):
     return ax
 
 def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
-    """Make a visualization of autocorrelation of each chain
+    """
+    Make a visualization of autocorrelation of each chain
 
     Parameters
     ----------
@@ -55,7 +56,8 @@ def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
     ax.plot(n, np.array(tau_vect), **plt_kwargs)
     ax.plot(n, n/50, "--k")
     ax.set_xlim(0, n.max())
-    ax.set_ylabel(r"$\hat{\tau}$");    
+    ax.set_xlabel("Iteration (-)")
+    ax.set_ylabel("Integrated autocorrelation (-)");    
     ax.grid(False)
     ax.legend(labels)
 
@@ -66,7 +68,8 @@ def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
     return ax, tau_vect[-1]
 
 def traceplot(samples, labels=None, filename=None, plt_kwargs={}):
-    """Make a visualization of sampled parameters
+    """
+    Make a visualization of sampled parameters
 
     Parameters
     ----------
@@ -109,7 +112,7 @@ def traceplot(samples, labels=None, filename=None, plt_kwargs={}):
         ax.set_xlim(0, nsamples)
         ax.set_ylabel(labels[i])
         ax.grid(False)
-    axes[-1].set_xlabel("step number")
+    axes[-1].set_xlabel("Iteration (-)")
 
     # Save result if desired
     if filename:

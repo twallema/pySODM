@@ -15,19 +15,20 @@ pip install pySODM
 ### Aim & scope
 
 All the simulation projects I've undertaken over the past six years required me to do most of the following,
-1. Integrate a system dynamical model
-2. Its states may be represented by n-dimensional numpy arrays, labeled using coordinates
-3. Its parameters may have time-dependencies 
-4. Its parameters may have to be sampled from distributions
-5. It may have to be calibrate to a dataset(s) by defining and optimising a cost function
+1. Translate a real-world transient phenomenon into a set of differential equations called a "model" and integrate it starting from an initial condition.
+2. The model's states may be represented by n-dimensional arrays, labeled using coordinates.
+3. The model's parameters may have time-dependencies. 
+4. The model's parameters may have to be sampled from distributions.
+5. The model's initial condition may have to be sampled from a distribution.
+5. The model's parameters may have to be calibrated to a dataset(s) by defining and optimising a cost function
 
-all these features required me to wrap code around an ODE solver, typically `scipy.solve_ivp`, and I got tired of recycling the same code over and over again, so I packaged it into pySODM.
+all these features required me to wrap bookkeeping code around an ODE solver, typically `scipy.solve_ivp`, and I got tired of recycling the same code over and over again, so I packaged it into pySODM.
 
-Does other simulation software exist in Python? Sure, but most of them hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in a **generically applicable** way. 
+Other simulation software exists in Python, but I found most will hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in the most **generically applicable** way possible. 
 
 ### Software structure
 
-To achieve its goal, pySODM bundles a set of low-level interfaces to integrate sets of ODEs (scipy.integrate), simulate stochastic jump processes (Gillespie methods), store n-dimensional temporal data (`xarray.Dataset`), perform frequentist optimizations of model parameters using Particle Swarm Optimization or the Nelder–Mead Simplex algorithm, and, perform Bayesian inference of model parameters (emcee.EnsembleSampler), all of which were already available in Python 3. pySODM adds a generically applicable template to implement time-dependencies on model parameters and performing consecutive simulations with parameter sampling. 
+To achieve its goal, pySODM bundles a set of low-level interfaces to integrate sets of ODEs (scipy.integrate), simulate stochastic jump processes (Gillespie methods), store n-dimensional temporal data (`xarray.Dataset`), perform frequentist optimizations of model parameters using Particle Swarm Optimization or the Nelder–Mead Simplex algorithm, and, perform Bayesian inference of model parameters (emcee.EnsembleSampler), all of which were already available in Python 3. pySODM adds a generic way to implement time-dependencies on model parameters, perform consecutive simulations with parameter sampling and/or initial condition sampling.  
 
 <img src="_static/figs/flowchart.png" alt="Flowchart of pySODM" width="500">
 
@@ -41,10 +42,11 @@ To achieve its goal, pySODM bundles a set of low-level interfaces to integrate s
 |                                 | Labeled n-dimensional model states, states can have different sizes                                     |
 |                                 | Leverages `xarray.Dataset` to store labeled n-dimensional simulation output |
 | Simulating the model            | Deterministic (ODE) or stochastic simulation (Jump process) |
-|                                 | *Time-dependent model parameter functions* to vary parameters during the course of a simulation |
-|                                 | *Draw functions* to vary model parameters during consecutive simulations. |
+|                                 | *Time-dependent parameter functions* to vary parameters during the course of a simulation |
+|                                 | *Draw functions* to vary model parameters during consecutive simulations |
+|                                 | *Initial condition functions* to vary the initial condition during consecutive simulations |
 | Calibrate the model             | Construct and maximize a posterior probability function  |
-|                                 | Automatically aligns data and model forecast  |
+|                                 | Automatically aligns data and simulation  |
 |                                 | Nelder-Mead Simplex and Particle Swarm Optimization |
 |                                 | Bayesian inference with `emcee.EnsembleSampler`                  |
 
