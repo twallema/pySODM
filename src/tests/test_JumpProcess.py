@@ -640,11 +640,6 @@ def break_ICF():
     with pytest.raises(ValueError, match="The desired shape of model state"):
         model = SIR(set_initial_condition, parameters)
 
-test_ICF()
-test_ICF_args()
-test_ICF_TDPF()
-break_ICF()
-
 ####################
 ## Draw functions ##
 ####################
@@ -802,3 +797,24 @@ def test_draw_function():
     output = model.sim(time, draw_function_kwargs={'arg_1': 0}, N=100)
     # assert dimension 'draws' is present in output
     assert 'draws' in list(output.sizes.keys())
+
+########################
+## Call all functions ##
+########################
+
+test_SIR_time()
+test_SIR_date()
+test_SSA()
+test_model_init_validation()
+test_stratified_SIR_output_shape()
+test_stratified_SIR_automatic_filling_initial_states()
+test_model_stratified_init_validation()
+test_SIR_SI_state_shapes()
+test_SIR_SI_automatic_filling_initial_states()
+test_TDPF_stratified()
+test_TDPF_nonstratified()
+test_ICF()
+test_ICF_args()
+test_ICF_TDPF()
+break_ICF()
+test_draw_function()

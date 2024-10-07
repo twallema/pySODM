@@ -103,31 +103,16 @@ def assign_theta(param_dict, parameter_names, thetas):
 
     Returns
     -------
-    warmup : int
-        Offset between simulation start and start of data collection
-        Because 'warmup' does not reside in the model parameters dictionary, this argument is only returned if 'warmup' is in the parameter name list 'pars'
 
     param_dict : dict
         Model parameters dictionary with values of parameters 'pars' set to the obtained PSO estimate in vector 'theta'
 
     """
 
-    # Find out if 'warmup' needs to be estimated
-    warmup_position = None
-    if 'warmup' in parameter_names:
-        warmup_position = parameter_names.index('warmup')
-        warmup = thetas[warmup_position]
-        parameter_names = [x for x in parameter_names if x != "warmup"]
-        thetas = [x for (i, x) in enumerate(thetas) if i != warmup_position]
-
     thetas_dict, n = _thetas_to_thetas_dict(thetas, parameter_names, param_dict)
     for i, (param, value) in enumerate(thetas_dict.items()):
         param_dict.update({param: value})
-
-    if warmup_position:
-        return warmup, param_dict
-    else:
-        return param_dict
+    return param_dict
 
 def _thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
     """

@@ -74,7 +74,7 @@ The parameters of the initial condition function become a part of the model's pa
 
 **Class methods:**
 
-* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1, warmup=0)**
+* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1)**
 
     Integrate a pySODM model using `scipy.integrate.solve_ivp()`. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every consecutive simulation by manipulating the dictionary of model parameters `parameters` using a `draw_function`.
 
@@ -97,8 +97,6 @@ The parameters of the initial condition function become a part of the model's pa
     * **tau** - (int/float) - optional - If `tau != None`, the model is simulated using a simple discrete timestepper with fixed timestep `tau`. Overrides the `method` and `rtol` arguments. 
 
     * **output_timestep** - (int/float) - optional - Interpolate model output to every `output_timestep` timesteps.
-
-    * **warmup** - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of "patient zero" and the collection of data is be estimated. 
 
     **Returns**
 
@@ -185,7 +183,7 @@ The parameters of the initial condition function become a part of the model's pa
 
 **Methods:**
 
-* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=0.5, output_timestep=1, warmup=0)**
+* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=0.5, output_timestep=1)**
 
     Integrate a model stochastically using Gillespie's Stochastic Simulation Algorithm (SSA) or the approximate Tau-leaping method. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every consecutive simulation by manipulating the dictionary of model parameters `parameters` using a `draw_function`.
 
@@ -205,8 +203,6 @@ The parameters of the initial condition function become a part of the model's pa
     * **tau** - (int/float) - optional - Leap value of the tau-leaping method. Consult the following [blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
 
     * **output_timestep** - (int/float) - optional - Interpolate model output to every `output_timestep` timesteps. For datetimes: expressed in days.
-
-    * **warmup** - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of "patient zero" and the collection of data is be estimated. 
 
     **Returns**
 

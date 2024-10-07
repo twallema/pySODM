@@ -6,19 +6,18 @@ from collections import OrderedDict
 
 def date_to_diff(actual_start_date, end_date):
     """
-    Convert date string to int (i.e. number of days since day 0 of simulation,
-    which is warmup days before actual_start_date)
+    Convert date string to int (i.e. number of days since day 0 of simulation)
     """
     return float((end_date-actual_start_date)/timedelta(days=1))
 
-def validate_simulation_time(time, warmup):
+def validate_simulation_time(time):
     """Validates the simulation time of the sim() function. Various input types are converted to: time = [start_float, stop_float]"""
 
     actual_start_date=None
     if isinstance(time, float):
-        time = [0-warmup, round(time)]
+        time = [0, round(time)]
     elif isinstance(time, int):
-        time = [0-warmup, time]
+        time = [0, time]
     elif isinstance(time, list):
         if not len(time) == 2:
             raise ValueError(f"wrong length of list-like simulation start and stop (length: {len(time)}). correct format: time=[start, stop] (length: 2).")
@@ -26,15 +25,14 @@ def validate_simulation_time(time, warmup):
             # If they are all int or flat (or commonly occuring np.int64/np.float64)
             if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
                 time = [round(item) for item in time]
-                time[0] -= warmup
             # If they are all datetime
             elif all([isinstance(item, datetime) for item in time]):
-                actual_start_date = time[0] - timedelta(days=warmup)
+                actual_start_date = time[0]
                 time = [0, date_to_diff(actual_start_date, time[1])]
             # If they are all strings: assume format is YYYY-MM-DD and convert to a datetime
             elif all([isinstance(item, str) for item in time]):
                 time = [datetime.strptime(item,"%Y-%m-%d") for item in time]
-                actual_start_date = time[0] - timedelta(days=warmup)
+                actual_start_date = time[0]
                 time = [0, date_to_diff(actual_start_date, time[1])]
             else:
                 types = [type(t) for t in time]
