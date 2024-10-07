@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,17 +8,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Models &mdash; pySODM  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=7ab3649f" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -140,26 +138,34 @@
 <span class="c1"># Define the model equations</span>
 <span class="k">class</span> <span class="nc">MY_MODEL</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
 
-    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S1&#39;</span><span class="p">,</span> <span class="s1">&#39;S2&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Y1&#39;</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">]</span>
     <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S1</span><span class="p">,</span> <span class="n">S2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
-        <span class="k">return</span> <span class="o">-</span><span class="n">alpha</span><span class="o">*</span><span class="n">S1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">*</span><span class="n">S2</span>
+    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">alpha</span><span class="o">*</span><span class="n">Y1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">*</span><span class="n">Y2</span>
 </pre></div>
 </div>
-<p>To intialize the user-defined model class, the following arguments must be provided.</p>
+<p>To intialize this model, the following arguments must be provided.</p>
 <p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>states</strong> (dict) - Initial states. Keys: names of model states. Values: initial values of model states. The dictionary does not have to contain a key,value pair for all states, missing states are filled with zeros upon initialization.</p></li>
-<li><p><strong>parameters</strong> (dict) - Model parameters. Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameter names listed in <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and <code class="docutils literal notranslate"><span class="pre">stratified_parameters</span></code> of the model declaration. If <em>time dependent parameter functions</em> with additional parameters are used, these parameters must be included as well.</p></li>
+<li><p><strong>states</strong> (dict or callable) - Initial states. If a dictionary. Keys: names of model states. Values: initial values of model states. The dictionary does not need to contain all model states, missing states are filled with zeros upon initialization. If a callable (<em>initial condition function</em>): a function that creates such a dictionary.</p></li>
+<li><p><strong>parameters</strong> (dict) - Model parameters. Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameter names listed in <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and <code class="docutils literal notranslate"><span class="pre">stratified_parameters</span></code> of the model declaration. If <em>time dependent parameter functions</em> with additional parameters are used, these parameters must be included as well. If an <em>initial condition function</em> with parameters is used, these parameters must be included as well.</p></li>
 <li><p><strong>coordinates</strong> (dict) - optional - Keys: names of dimensions (<code class="docutils literal notranslate"><span class="pre">dimensions</span></code>). Values: coordinates of the dimension.</p></li>
 <li><p><strong>time_dependent_parameters</strong> (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function (callable function). Time-dependent parameter functions must have <code class="docutils literal notranslate"><span class="pre">t</span></code> (timestep/data), <code class="docutils literal notranslate"><span class="pre">states</span></code> (dictionary of model states at time <code class="docutils literal notranslate"><span class="pre">t</span></code>) and <code class="docutils literal notranslate"><span class="pre">params</span></code> (model parameters dictionary) as the first three arguments.</p></li>
 </ul>
-<p>To initalize our user-defined model class,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S1&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;S2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<p>For our example,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 </pre></div>
 </div>
+<p>Or using an <em>initial condition function</em>,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">Y1_0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="n">Y1_0</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="n">initial_condition_function</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Y1_0&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>The parameters of the initial condition function become a part of the model’s parameters and can therefore be optimised.</p>
 <p><strong>Class methods:</strong></p>
 <ul>
 <li><p><strong>sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method=’RK23’, rtol=1e-3, tau=None, output_timestep=1, warmup=0)</strong></p>
@@ -215,36 +221,44 @@
 
 <span class="k">class</span> <span class="nc">MY_MODEL</span><span class="p">(</span><span class="n">JumpProcesses</span><span class="p">):</span>
 
-    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;S1&#39;</span><span class="p">,</span> <span class="s1">&#39;S2&#39;</span><span class="p">]</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Y1&#39;</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">]</span>
     <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
 
     <span class="c1"># define the rates of the system&#39;s transitionings</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">compute_rates</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S1</span><span class="p">,</span> <span class="n">S2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;S1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">alpha</span><span class="p">,</span> <span class="p">]}</span>
+    <span class="k">def</span> <span class="nf">compute_rates</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">alpha</span><span class="p">,</span> <span class="p">]}</span>
 
     <span class="c1"># apply the sampled number of transitionings</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">apply_transitionings</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">transitionings</span><span class="p">,</span> <span class="n">S1</span><span class="p">,</span> <span class="n">S2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">apply_transitionings</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">transitionings</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
 
-        <span class="n">S1_new</span> <span class="o">=</span> <span class="n">S1</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;S1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">S2_new</span> <span class="o">=</span> <span class="n">S2</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;S2&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Y1_new</span> <span class="o">=</span> <span class="n">Y1</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Y1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Y2_new</span> <span class="o">=</span> <span class="n">Y2</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Y2&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="n">S1_new</span><span class="p">,</span> <span class="n">S2_new</span>
+        <span class="k">return</span> <span class="n">Y1_new</span><span class="p">,</span> <span class="n">Y2_new</span>
 </pre></div>
 </div>
 <p>To intialize the user-defined model class, the following arguments must be provided.</p>
 <p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>states</strong> (dict) - Initial states. Keys: names of model states. Values: initial values of model states. The dictionary does not have to contain a key,value pair for all states, missing states are filled with zeros upon initialization.</p></li>
+<li><p><strong>states</strong> (dict or callable) - Initial states. If a dictionary. Keys: names of model states. Values: initial values of model states. The dictionary does not need to contain all model states, missing states are filled with zeros upon initialization. If a callable (<em>initial condition function</em>): a function that creates such a dictionary.</p></li>
 <li><p><strong>parameters</strong> (dict) - Model parameters. Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameter names listed in <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and <code class="docutils literal notranslate"><span class="pre">stratified_parameters</span></code> of the model declaration. If <em>time dependent parameter functions</em> with additional parameters are used, these parameters must be included as well.</p></li>
 <li><p><strong>coordinates</strong> (dict) - optional - Keys: names of dimensions (<code class="docutils literal notranslate"><span class="pre">dimensions</span></code>). Values: coordinates of the dimension.</p></li>
 <li><p><strong>time_dependent_parameters</strong> (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function (callable function). Time-dependent parameter functions must have <code class="docutils literal notranslate"><span class="pre">t</span></code> (timestep/data), <code class="docutils literal notranslate"><span class="pre">states</span></code> (dictionary of model states at time <code class="docutils literal notranslate"><span class="pre">t</span></code>) and <code class="docutils literal notranslate"><span class="pre">params</span></code> (model parameters dictionary) as the first three arguments.</p></li>
 </ul>
-<p>To initalize our user-defined model class,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S1&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;S2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<p>For our example,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 </pre></div>
 </div>
+<p>Or using an <em>initial condition function</em>,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">Y1_0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="n">Y1_0</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="n">initial_condition_function</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Y1_0&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>The parameters of the initial condition function become a part of the model’s parameters and can therefore be optimised.</p>
 <p><strong>Methods:</strong></p>
 <ul>
 <li><p><strong>sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method=’tau_leap’, tau=0.5, output_timestep=1, warmup=0)</strong></p>
@@ -256,7 +270,7 @@
 <li><p><strong>draw_function</strong> - (function) - optional - A function altering the model parameters dictionary <code class="docutils literal notranslate"><span class="pre">parameters</span></code> between consecutive simulations. Function must have <code class="docutils literal notranslate"><span class="pre">parameters</span></code> as its first input, followed by an arbitrary number of additional parameters. Function must return the model parameters dictionary <code class="docutils literal notranslate"><span class="pre">parameters</span></code> with its keys unaltered, meaning no parameters should be added or removed by a <em>draw function</em>.</p></li>
 <li><p><strong>draw_function_kwargs</strong> - (dict) - optional - Dictionary containing the parameters of the <em>draw function</em>, excluding <code class="docutils literal notranslate"><span class="pre">parameters</span></code>. Keys: names of additional parameters <em>draw function</em>, values: values of additional parameters <em>draw function</em>. Not subject to input checks regarding data type.</p></li>
 <li><p><strong>processes</strong> - (int) - optional - Number of cores to use when <span class="math notranslate nohighlight">\(N &gt; 1\)</span>.</p></li>
-<li><p><strong>method</strong> - (str) - optional - ‘SSA’: Stochastic Simulation Algorithm. ‘tau-leap’: Tau-leaping algorithm. Consult the <a class="reference external" href="https://lewiscoleblog.com/gillespie-algorithm">following blog</a> for more background information. #TODO: add an adaptive tau-leap algorithm.</p></li>
+<li><p><strong>method</strong> - (str) - optional - ‘SSA’: Stochastic Simulation Algorithm. ‘tau-leap’: Tau-leaping algorithm. Consult the <a class="reference external" href="https://lewiscoleblog.com/gillespie-algorithm">following blog</a> for more background information.</p></li>
 <li><p><strong>tau</strong> - (int/float) - optional - Leap value of the tau-leaping method. Consult the following <a class="reference external" href="https://lewiscoleblog.com/gillespie-algorithm">blog</a> for more background information.</p></li>
 <li><p><strong>output_timestep</strong> - (int/float) - optional - Interpolate model output to every <code class="docutils literal notranslate"><span class="pre">output_timestep</span></code> timesteps. For datetimes: expressed in days.</p></li>
 <li><p><strong>warmup</strong> - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of “patient zero” and the collection of data is be estimated.</p></li>

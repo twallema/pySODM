@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,17 +8,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quickstart &mdash; pySODM  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=7ab3649f" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -122,7 +120,7 @@ N &amp;=&amp; S + I + R, \\
 \frac{dI}{dt} &amp;=&amp; \beta S (I/N) - (1/\gamma)I, \\
 \frac{dR}{dt} &amp;=&amp; (1/\gamma)I.
 \end{eqnarray}\end{split}\]</div>
-<p>Load pySODM’s <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code></span></a> class, and define a new class inheriting the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> object to define your model. Minimally, you must provide: 1) A list containing the names of your model’s states, 2) a list containing the names of your model’s parameters, 3) an <code class="docutils literal notranslate"><span class="pre">integrate</span></code> function integrating your model’s states. To learn more about the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> class’ formatting, check out the <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code></span></a> class description.</p>
+<p>Load pySODM’s <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code></span></a> class, and then define your model class–inheriting pySODM’s <code class="docutils literal notranslate"><span class="pre">ODE</span></code> class–to define your model. Minimally, you must provide: 1) A list containing the names of your model’s states, 2) a list containing the names of your model’s parameters, 3) an <code class="docutils literal notranslate"><span class="pre">integrate</span></code> function integrating your model’s states. To learn more about the <code class="docutils literal notranslate"><span class="pre">ODE</span></code> class’ formatting, check out the <a class="reference internal" href="models.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ODE</span></code></span></a> class description.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODE class</span>
 <span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
 
@@ -149,6 +147,15 @@ N &amp;=&amp; S + I + R, \\
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
 </pre></div>
 </div>
+<p>Alternatively, use an <em>initial condition function</em> to define the initial states,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># can have arguments</span>
+<span class="k">def</span> <span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">S0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="n">S0</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+
+<span class="c1"># that become part of the model&#39;s parameters and can be optimised..</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">SIR</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="n">initial_condition_function</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;S0&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">})</span>
+</pre></div>
+</div>
 <p>Simulate the model using its <code class="docutils literal notranslate"><span class="pre">sim()</span></code> method. pySODM supports the use of dates to index simulations, string representations of dates with the format <code class="docutils literal notranslate"><span class="pre">'yyyy-mm-dd'</span></code> as well as <code class="docutils literal notranslate"><span class="pre">datetime.datetime()</span></code> can be used.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timesteps</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
@@ -165,8 +172,7 @@ N &amp;=&amp; S + I + R, \\
 </pre></div>
 </div>
 <p>In some situations, the use of a discrete timestep with a fixed length may be preferred,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use a discrete timestepper with step size 1</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">sim</span><span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># Use a discrete timestepper with step size 1</span>
 </pre></div>
 </div>
 <p>Simulations are sent to an <code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>, for more information on indexing and selecting data using <code class="docutils literal notranslate"><span class="pre">xarray</span></code>, <a class="reference external" href="https://docs.xarray.dev/en/stable/user-guide/indexing.html">see</a>.</p>

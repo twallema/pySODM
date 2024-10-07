@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,16 +8,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>pySODM &mdash; pySODM  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=7ab3649f" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -118,18 +116,19 @@
 <h2>Aim &amp; scope<a class="headerlink" href="#aim-scope" title="Link to this heading">¶</a></h2>
 <p>All the simulation projects I’ve undertaken over the past six years required me to do most of the following,</p>
 <ol class="arabic simple">
-<li><p>Integrate a system dynamical model</p></li>
-<li><p>Its states may be represented by n-dimensional numpy arrays, labeled using coordinates</p></li>
-<li><p>Its parameters may have time-dependencies</p></li>
-<li><p>Its parameters may have to be sampled from distributions</p></li>
-<li><p>It may have to be calibrate to a dataset(s) by defining and optimising a cost function</p></li>
+<li><p>Translate a real-world transient phenomenon into a set of differential equations called a “model” and integrate it starting from an initial condition.</p></li>
+<li><p>The model’s states may be represented by n-dimensional arrays, labeled using coordinates.</p></li>
+<li><p>The model’s parameters may have time-dependencies.</p></li>
+<li><p>The model’s parameters may have to be sampled from distributions.</p></li>
+<li><p>The model’s initial condition may have to be sampled from a distribution.</p></li>
+<li><p>The model’s parameters may have to be calibrated to a dataset(s) by defining and optimising a cost function</p></li>
 </ol>
-<p>all these features required me to wrap code around an ODE solver, typically <code class="docutils literal notranslate"><span class="pre">scipy.solve_ivp</span></code>, and I got tired of recycling the same code over and over again, so I packaged it into pySODM.</p>
-<p>Does other simulation software exist in Python? Sure, but most of them hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in a <strong>generically applicable</strong> way.</p>
+<p>all these features required me to wrap bookkeeping code around an ODE solver, typically <code class="docutils literal notranslate"><span class="pre">scipy.solve_ivp</span></code>, and I got tired of recycling the same code over and over again, so I packaged it into pySODM.</p>
+<p>Other simulation software exists in Python, but I found most will hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in the most <strong>generically applicable</strong> way possible.</p>
 </section>
 <section id="software-structure">
 <h2>Software structure<a class="headerlink" href="#software-structure" title="Link to this heading">¶</a></h2>
-<p>To achieve its goal, pySODM bundles a set of low-level interfaces to integrate sets of ODEs (scipy.integrate), simulate stochastic jump processes (Gillespie methods), store n-dimensional temporal data (<code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>), perform frequentist optimizations of model parameters using Particle Swarm Optimization or the Nelder–Mead Simplex algorithm, and, perform Bayesian inference of model parameters (emcee.EnsembleSampler), all of which were already available in Python 3. pySODM adds a generically applicable template to implement time-dependencies on model parameters and performing consecutive simulations with parameter sampling.</p>
+<p>To achieve its goal, pySODM bundles a set of low-level interfaces to integrate sets of ODEs (scipy.integrate), simulate stochastic jump processes (Gillespie methods), store n-dimensional temporal data (<code class="docutils literal notranslate"><span class="pre">xarray.Dataset</span></code>), perform frequentist optimizations of model parameters using Particle Swarm Optimization or the Nelder–Mead Simplex algorithm, and, perform Bayesian inference of model parameters (emcee.EnsembleSampler), all of which were already available in Python 3. pySODM adds a generic way to implement time-dependencies on model parameters, perform consecutive simulations with parameter sampling and/or initial condition sampling.</p>
 <img src="_static/figs/flowchart.png" alt="Flowchart of pySODM" width="500">
 <p><strong>Figure</strong> Solid boxes depict third-party implementations incorporated in pySODM, while the dashed boxes depict implementations provided by pySODM.</p>
 </section>
@@ -155,21 +154,24 @@
 <td><p>Deterministic (ODE) or stochastic simulation (Jump process)</p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
-<td><p><em>Time-dependent model parameter functions</em> to vary parameters during the course of a simulation</p></td>
+<td><p><em>Time-dependent parameter functions</em> to vary parameters during the course of a simulation</p></td>
 </tr>
 <tr class="row-odd"><td><p></p></td>
-<td><p><em>Draw functions</em> to vary model parameters during consecutive simulations.</p></td>
-</tr>
-<tr class="row-even"><td><p>Calibrate the model</p></td>
-<td><p>Construct and maximize a posterior probability function</p></td>
-</tr>
-<tr class="row-odd"><td><p></p></td>
-<td><p>Automatically aligns data and model forecast</p></td>
+<td><p><em>Draw functions</em> to vary model parameters during consecutive simulations</p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
-<td><p>Nelder-Mead Simplex and Particle Swarm Optimization</p></td>
+<td><p><em>Initial condition functions</em> to vary the initial condition during consecutive simulations</p></td>
+</tr>
+<tr class="row-odd"><td><p>Calibrate the model</p></td>
+<td><p>Construct and maximize a posterior probability function</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p>Automatically aligns data and simulation</p></td>
 </tr>
 <tr class="row-odd"><td><p></p></td>
+<td><p>Nelder-Mead Simplex and Particle Swarm Optimization</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
 <td><p>Bayesian inference with <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code></p></td>
 </tr>
 </tbody>
