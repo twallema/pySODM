@@ -44,7 +44,7 @@ class MY_MODEL(ODE):
         return -alpha*Y1, alpha*Y2
 ```
 
-To intialize the user-defined model class, the following arguments must be provided.
+To intialize this model, the following arguments must be provided.
 
 **Parameters:**
 
@@ -56,7 +56,7 @@ To intialize the user-defined model class, the following arguments must be provi
 
 * **time_dependent_parameters** (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function (callable function). Time-dependent parameter functions must have `t` (timestep/data), `states` (dictionary of model states at time `t`) and `params` (model parameters dictionary) as the first three arguments.
 
-To initalize our user-defined model class,
+For our example,
 
 ```python
 model = MY_MODEL(states={'Y1': 1000, 'Y2': 0}, parameters={'alpha': 1})
@@ -167,6 +167,12 @@ To intialize the user-defined model class, the following arguments must be provi
 
 * **time_dependent_parameters** (dict) - optional - Keys: name of the model parameter the time-dependent parameter function should be applied to. Must be a valid model parameter. Values: time-dependent parameter function (callable function). Time-dependent parameter functions must have `t` (timestep/data), `states` (dictionary of model states at time `t`) and `params` (model parameters dictionary) as the first three arguments.
 
+For our example,
+
+```python
+model = MY_MODEL(states={'Y1': 1000, 'Y2': 0}, parameters={'alpha': 1})
+```
+
 Or using an *initial condition function*,
 
 ```python
@@ -176,7 +182,6 @@ def initial_condition_function(Y1_0):
 model = MY_MODEL(states=initial_condition_function, parameters={'alpha': 1, 'Y1_0': 1000})
 ```
 The parameters of the initial condition function become a part of the model's parameters and can therefore be optimised. 
-
 
 **Methods:**
 
@@ -196,7 +201,7 @@ The parameters of the initial condition function become a part of the model's pa
 
     * **processes** - (int) - optional - Number of cores to use when {math}`N > 1`.
 
-    * **method** - (str) - optional - 'SSA': Stochastic Simulation Algorithm. 'tau-leap': Tau-leaping algorithm. Consult the [following blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information. #TODO: add an adaptive tau-leap algorithm.
+    * **method** - (str) - optional - 'SSA': Stochastic Simulation Algorithm. 'tau-leap': Tau-leaping algorithm. Consult the [following blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
     * **tau** - (int/float) - optional - Leap value of the tau-leaping method. Consult the following [blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
 
     * **output_timestep** - (int/float) - optional - Interpolate model output to every `output_timestep` timesteps. For datetimes: expressed in days.
