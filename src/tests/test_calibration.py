@@ -753,3 +753,22 @@ def test_SIR_SI():
     data=[df.groupby(by=['time','age_groups']).sum(), df.groupby(by=['time']).sum()]
     # Correct use
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,)
+
+########################
+## Call all functions ##
+########################
+
+test_weights()
+test_start_sim()
+test_correct_approach_wo_dimension()
+break_stuff_wo_dimension()
+break_log_likelihood_functions_wo_dimension()
+test_xarray_datasets()
+test_calibration_nd_parameter()
+test_correct_approach_with_one_dimension_0()
+break_stuff_with_one_dimension()
+break_log_likelihood_functions_with_one_dimension()
+test_correct_approach_with_two_dimensions()
+test_aggregation_function()
+break_log_likelihood_functions_with_two_dimensions()
+test_SIR_SI()
