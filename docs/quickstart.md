@@ -16,7 +16,7 @@ N &=& S + I + R, \\
 \end{eqnarray}
 ```
 
-Load pySODM's [`ODE`](models.md) class, and define a new class inheriting the `ODE` object to define your model. Minimally, you must provide: 1) A list containing the names of your model's states, 2) a list containing the names of your model's parameters, 3) an `integrate` function integrating your model's states. To learn more about the `ODE` class' formatting, check out the [`ODE`](models.md) class description.
+Load pySODM's [`ODE`](models.md) class, and then define your model class--inheriting pySODM's `ODE` class--to define your model. Minimally, you must provide: 1) A list containing the names of your model's states, 2) a list containing the names of your model's parameters, 3) an `integrate` function integrating your model's states. To learn more about the `ODE` class' formatting, check out the [`ODE`](models.md) class description.
 
 ```python
 # Import the ODE class
@@ -47,6 +47,17 @@ To initialize the model, provide a dictionary containing the initial values of t
 model = SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
+Alternatively, use an *initial condition function* to define the initial states,
+
+```python
+# can have arguments
+def initial_condition_function(S0):
+    return {'S': S0, 'I': 1}
+
+# that become part of the model's parameters and can be optimised..
+model = SIR(states=initial_condition_function, parameters={'beta': 0.35, 'gamma': 5, 'S0': 1000})
+```
+
 Simulate the model using its `sim()` method. pySODM supports the use of dates to index simulations, string representations of dates with the format `'yyyy-mm-dd'` as well as `datetime.datetime()` can be used. 
 
 ```python
@@ -67,8 +78,7 @@ out = model.sim(121, method='RK45', rtol='1e-4')
 In some situations, the use of a discrete timestep with a fixed length may be preferred, 
 
 ```python
-# Use a discrete timestepper with step size 1
-out = model.sim(121, tau=1)
+out = model.sim(121, tau=1) # Use a discrete timestepper with step size 1
 ```
 
 Simulations are sent to an `xarray.Dataset`, for more information on indexing and selecting data using `xarray`, [see](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
