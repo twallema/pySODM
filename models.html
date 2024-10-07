@@ -168,7 +168,7 @@
 <p>The parameters of the initial condition function become a part of the model’s parameters and can therefore be optimised.</p>
 <p><strong>Class methods:</strong></p>
 <ul>
-<li><p><strong>sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method=’RK23’, rtol=1e-3, tau=None, output_timestep=1, warmup=0)</strong></p>
+<li><p><strong>sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method=’RK23’, rtol=1e-3, tau=None, output_timestep=1)</strong></p>
 <p>Integrate a pySODM model using <code class="docutils literal notranslate"><span class="pre">scipy.integrate.solve_ivp()</span></code>. Can optionally perform <code class="docutils literal notranslate"><span class="pre">N</span></code> repeated simulations. Can change the values of model parameters at every consecutive simulation by manipulating the dictionary of model parameters <code class="docutils literal notranslate"><span class="pre">parameters</span></code> using a <code class="docutils literal notranslate"><span class="pre">draw_function</span></code>.</p>
 <p><strong>Parameters</strong></p>
 <ul class="simple">
@@ -181,7 +181,6 @@
 <li><p><strong>rtol</strong> - (int/float) - optional - Relative tolerance of <code class="docutils literal notranslate"><span class="pre">scipy.integrate.solve_ivp()</span></code>, <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html">click to consult scipy’s documentation</a>.</p></li>
 <li><p><strong>tau</strong> - (int/float) - optional - If <code class="docutils literal notranslate"><span class="pre">tau</span> <span class="pre">!=</span> <span class="pre">None</span></code>, the model is simulated using a simple discrete timestepper with fixed timestep <code class="docutils literal notranslate"><span class="pre">tau</span></code>. Overrides the <code class="docutils literal notranslate"><span class="pre">method</span></code> and <code class="docutils literal notranslate"><span class="pre">rtol</span></code> arguments.</p></li>
 <li><p><strong>output_timestep</strong> - (int/float) - optional - Interpolate model output to every <code class="docutils literal notranslate"><span class="pre">output_timestep</span></code> timesteps.</p></li>
-<li><p><strong>warmup</strong> - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of “patient zero” and the collection of data is be estimated.</p></li>
 </ul>
 <p><strong>Returns</strong></p>
 <ul class="simple">
@@ -261,7 +260,7 @@
 <p>The parameters of the initial condition function become a part of the model’s parameters and can therefore be optimised.</p>
 <p><strong>Methods:</strong></p>
 <ul>
-<li><p><strong>sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method=’tau_leap’, tau=0.5, output_timestep=1, warmup=0)</strong></p>
+<li><p><strong>sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method=’tau_leap’, tau=0.5, output_timestep=1)</strong></p>
 <p>Integrate a model stochastically using Gillespie’s Stochastic Simulation Algorithm (SSA) or the approximate Tau-leaping method. Can optionally perform <code class="docutils literal notranslate"><span class="pre">N</span></code> repeated simulations. Can change the values of model parameters at every consecutive simulation by manipulating the dictionary of model parameters <code class="docutils literal notranslate"><span class="pre">parameters</span></code> using a <code class="docutils literal notranslate"><span class="pre">draw_function</span></code>.</p>
 <p><strong>Parameters</strong></p>
 <ul class="simple">
@@ -273,7 +272,6 @@
 <li><p><strong>method</strong> - (str) - optional - ‘SSA’: Stochastic Simulation Algorithm. ‘tau-leap’: Tau-leaping algorithm. Consult the <a class="reference external" href="https://lewiscoleblog.com/gillespie-algorithm">following blog</a> for more background information.</p></li>
 <li><p><strong>tau</strong> - (int/float) - optional - Leap value of the tau-leaping method. Consult the following <a class="reference external" href="https://lewiscoleblog.com/gillespie-algorithm">blog</a> for more background information.</p></li>
 <li><p><strong>output_timestep</strong> - (int/float) - optional - Interpolate model output to every <code class="docutils literal notranslate"><span class="pre">output_timestep</span></code> timesteps. For datetimes: expressed in days.</p></li>
-<li><p><strong>warmup</strong> - (float) - optional - Number of days to simulate prior to the simulation start. Usefull in epidemiological contexts when the time between the appearance of “patient zero” and the collection of data is be estimated.</p></li>
 </ul>
 <p><strong>Returns</strong></p>
 <ul class="simple">
