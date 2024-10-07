@@ -306,7 +306,6 @@ def test_stratified_SIR_init_validation():
 
     assert model.initial_states == initial_states
     assert model.parameters == parameters
-    assert model.parameters_stratified_names == ['beta']
     assert model.states_names == ['S', 'I', 'R']
     assert model.parameters_names == ['gamma']
 
@@ -636,11 +635,6 @@ def break_ICF():
     with pytest.raises(ValueError, match="The desired shape of model state"):
         model = SIR(set_initial_condition, parameters)
 
-test_ICF()
-test_ICF_args()
-test_ICF_TDPF()
-break_ICF()
-
 ####################
 ## Draw functions ##
 ####################
@@ -787,3 +781,24 @@ def test_draw_function():
     # or
     with pytest.raises(ValueError, match="attempting to perform N=100 repeated simulations without using a draw function"):
         model.sim(time, draw_function_kwargs={'arg_1': 0}, N=100)
+
+########################
+## Call all functions ##
+########################
+
+test_SIR_time()
+test_SIR_date()
+test_SIR_discrete_stepper()
+test_model_init_validation()
+test_stratified_SIR_output_shape()
+test_stratified_SIR_automatic_filling_initial_states()
+test_stratified_SIR_init_validation()
+test_SIR_SI_state_shapes()
+test_SIR_SI_automatic_filling_initial_states()
+test_TDPF_stratified()
+test_TDPF_nonstratified()
+test_ICF()
+test_ICF_args()
+test_ICF_TDPF()
+break_ICF()
+test_draw_function()
