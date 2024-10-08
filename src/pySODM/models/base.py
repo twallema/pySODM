@@ -461,7 +461,7 @@ class JumpProcess:
         drawn_dictionaries=[]
         for _ in range(N):      
             if draw_function:
-                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
+                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
             else:
                 drawn_dictionaries.append([{},{}])
         drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
@@ -469,7 +469,6 @@ class JumpProcess:
 
         # save a copy before altering to reset after simulation
         cp_pars = copy.deepcopy(self.parameters)
-        cp_init_states = copy.deepcopy(self.initial_states)   
 
         # Run simulations
         if processes: # Needed 
@@ -488,7 +487,6 @@ class JumpProcess:
 
         # Reset parameter dictionary
         self.parameters = cp_pars
-        self.initial_states = cp_init_states
 
         return out
 
@@ -789,7 +787,7 @@ class ODE:
         drawn_dictionaries=[]
         for _ in range(N):
             if draw_function:
-                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
+                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
             else:
                 drawn_dictionaries.append([{},{}])
         drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
@@ -797,7 +795,6 @@ class ODE:
 
         # save a copy before altering to reset after simulation
         cp_pars = copy.deepcopy(self.parameters)
-        cp_init_states = copy.deepcopy(self.initial_states)   
 
         # Run simulations
         if processes: # Needed 
@@ -815,7 +812,6 @@ class ODE:
 
         # Reset parameter dictionary
         self.parameters = cp_pars
-        self.initial_states = cp_init_states
 
         return out
 
