@@ -251,14 +251,14 @@ Finally, we can use the *draw functions* to propagate the parameter samples in o
 ```python
 if __name__ == '__main__':
 
-    def draw_fcn(parameters, initial_states, samples):
+    def draw_fcn(parameters, samples):
         # Always draw correlated samples at the SAME INDEX! 
         idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
         parameters['R_AS'] = samples['R_AS'][idx]
         parameters['R_AW'] = samples['R_AW'][idx]
         parameters['R_Es'] = samples['R_Es'][idx]
         parameters['K_eq'] = samples['K_eq'][idx]
-        return parameters, initial_states
+        return parameters
 
     # Loop over datasets
     for i,df in enumerate(data):
@@ -428,13 +428,13 @@ f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-0
 samples = json.load(f)
 
 # Define draw function
-def draw_fcn(parameters, initial_states, samples):
+def draw_fcn(parameters, samples):
     idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
     parameters['R_AS'] = samples['R_AS'][idx]
     parameters['R_AW'] = samples['R_AW'][idx]
     parameters['R_Es'] = samples['R_Es'][idx]
     parameters['K_eq'] = samples['K_eq'][idx]
-    return parameters, initial_states
+    return parameters
 ```
 
 A first experiment with the continuous flow reactor was performed using a reaction mixture containing 30 mM D-glucose, 60 mM lauric acid and 28 mM water. The reactants were pumped through the reactor at a flow rate of 0.2 mL/min, resulting in an average residence time of 13.5 minutes. After ten retention times, when the outlet concentration had stabilized, three samples were withdrawn at the outlet. Then, the reactor was cut short by 0.10 m, and again three samples were withdrawn at the outlet. In this way, the reactant profile acrosss the reactor length was obtained. I omit the code to replicate the following figures from this documentation as no new concepts are introduced beyond this point. Our packed-bed model does an adequate job at describing the data.

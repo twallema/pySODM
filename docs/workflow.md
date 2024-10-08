@@ -353,9 +353,9 @@ In this example, we'll use a draw function to replace `beta` with a random value
 
 ```python
 # Define draw function
-def draw_fcn(parameters, initial_states, samples):
+def draw_fcn(parameters, samples):
     parameters['beta'] = np.random.choice(np.array(samples))
-    return parameters, initial_states
+    return parameters
 ```
 
 To use this draw function, you provide four additional arguments to the `sim()` function,
@@ -448,10 +448,10 @@ To simulate ramp-like adoptation of measures, we can add the number of additiona
 
 ```python
 # Define draw function
-def draw_fcn(parameters, initial_states, samples, ramp_length):
+def draw_fcn(parameters, samples, ramp_length):
     parameters['beta'] = np.random.choice(samples)
     parameters['start_measures'] += pd.Timedelta(days=np.random.triangular(left=0,mode=0,right=ramp_length))
-    return parameters, initial_states
+    return parameters
 ```
 
 Don't forget to add the new parameter `ramp_length` to the dictionary of `draw_function_kwargs` when simulating the model! Gradually adopting the preventive measures results in a more realistic simulation,

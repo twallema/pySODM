@@ -33,6 +33,7 @@ Does other simulation software exist in Python? Sure, but most of them hold your
 | Simulating the model            | Deterministic (ODE) or stochastic simulation (Jump process) |
 |                                 | *Time-dependent model parameter functions* to vary parameters during the course of a simulation |
 |                                 | *Draw functions* to vary model parameters during consecutive simulations. |
+|                                 | *Initial condition functions* to vary the initial condition during consecutive simulations |
 | Calibrate the model             | Construct and maximize a posterior probability function  |
 |                                 | Automatically aligns data and model forecast  |
 |                                 | Nelder-Mead Simplex and Particle Swarm Optimization |
@@ -62,7 +63,7 @@ Does other simulation software exist in Python? Sure, but most of them hold your
     - Version 0.2.4 (2023-12-04, PR #62)
         > Validated the use of Python 3.11. Efficiency gains in simulation of jump processes. Ommitted dependency on Numba. All changes related to publishing our software manuscript in Journal of Computational Science. Improved nomenclature in model defenition.
     - IN PROGRESS: 0.2.5
-        > Validated the use of Python 3.12. Validated pySODM on macOS Sonoma 14.5. 'draw functions' only have 'parameters' as mandatory input, followed by an arbitrary number of additional parameters (PR #75). Tutorial environment can now be found in `tutorial_env.yml` and was renamed `PYSODM-TUTORIALS` (PR #76). Users can choose when the simulation starts when calibrating a model (PR #92). Draw functions extended to changing the initial condition, be sure to have `parameters` followed by `initial_states` as the first two arguments of a draw function (PR #95).
+        > Validated the use of Python 3.12. Validated pySODM on macOS Sonoma 14.5. 'draw functions' only have 'parameters' as mandatory input, followed by an arbitrary number of additional parameters (PR #75). Tutorial environment can now be found in `tutorial_env.yml` and was renamed `PYSODM-TUTORIALS` (PR #76). Users can choose when the simulation starts when calibrating a model (PR #92). Initial model states can now be a function returning a dictionary of states. This initial condition function can have arguments, which become part of the model's parameters, and can therefore be optimised (PR #99).  Deprecation of legacy 'warmup' parameter (PR #100).
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODE, JumpProcess and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)

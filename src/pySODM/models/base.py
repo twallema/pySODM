@@ -391,13 +391,12 @@ class JumpProcess:
 
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, drawn_initial_states, seed, time, actual_start_date, method, tau, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, seed, time, actual_start_date, method, tau, output_timestep):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
-        # set sampled parameters/initial states
+        # set sampled parameters
         self.parameters.update(drawn_parameters)
-        self.initial_states.update(drawn_initial_states)
         # set seed
         np.random.seed(seed)
         # simulate model
@@ -406,13 +405,13 @@ class JumpProcess:
     def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
 
         """
-        Simulate a model during a given time period.
+        Interate a JumpProcess model over a specified time interval.
         Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
 
-        Parameters
-        ----------
+        input
+        -----
 
-        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of datetime.datetime or str of type '[YYYY-MM-DD, YYYY-MM-DD]',
+        time : 1) int/float, 2) list of int/float of type: [start_time, stop_time], 3) list of datetime.datetime or str of type: ["YYYY-MM-DD", "YYYY-MM-DD"],
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
             2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
@@ -423,26 +422,26 @@ class JumpProcess:
 
         draw_function : function
             A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
-            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs
+            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
 
         draw_function_kwargs : dictionary
-            A dictionary containing the input arguments of the draw function, excluding its obligatory input 'parameters'
+            A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
 
         processes: int
-            Number of cores to distribute the `N` draws over
+            Number of cores to distribute the `N` draws over (default: 1)
 
         method: str
-            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap').
+            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap'). (default: 'tau_leap').
     
         tau: int/float
             Timestep used by the tau-leaping algorithm (default: 0.5)
 
         output_timestep: int/flat
-            Interpolate model output to every `output_timestep` time
-            For datetimes: expressed in days by default
+            Interpolate model output to every `output_timestep` time (default: 1)
+            For datetimes: expressed in days
 
-        Returns
-        -------
+        output
+        ------
 
         output: xarray.Dataset
             Simulation output
@@ -455,31 +454,28 @@ class JumpProcess:
         # Input checks related to draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)
-
-        # Construct list of drawn dictionaries
-        drawn_dictionaries=[]
-        for _ in range(N):      
-            if draw_function:
-                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
-            else:
-                drawn_dictionaries.append([{},{}])
-        drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
-        drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
+            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), self.initial_states_function, self.state_shapes, self.initial_states_function_args)
 
         # save a copy before altering to reset after simulation
         cp_pars = copy.deepcopy(self.parameters)
-        cp_init_states = copy.deepcopy(self.initial_states)   
+
+        # Construct list of drawn dictionaries
+        drawn_parameters=[]
+        for _ in range(N):      
+            if draw_function:
+                drawn_parameters.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
+            else:
+                drawn_parameters.append({})
 
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:      # 'fork' instead of 'spawn' to run on Apple Silicon
                 seeds = np.random.randint(0, 2**32, size=N)     # requires manual reseeding of the random number generators used in the stochastic algorithms in every child process
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_parameters, drawn_initial_states, seeds))
+                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_parameters, seeds))
         else:
             output=[]
-            for pars, init_states in zip(drawn_parameters, drawn_initial_states):
-                output.append(self._mp_sim_single(pars, init_states, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
+            for pars in drawn_parameters:
+                output.append(self._mp_sim_single(pars, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
 
         # Append results
         out = output[0]
@@ -488,7 +484,6 @@ class JumpProcess:
 
         # Reset parameter dictionary
         self.parameters = cp_pars
-        self.initial_states = cp_init_states
 
         return out
 
@@ -715,27 +710,25 @@ class ODE:
         # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, drawn_initial_states, time, actual_start_date, method, rtol, output_timestep, tau):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
         """
         A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionaries and runs `_sim_single`
         """
-        # set sampled parameters/initial states
+        # set sampled parameters
         self.parameters.update(drawn_parameters)
-        self.initial_states.update(drawn_initial_states)
         # simulate model
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
 
-    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-4, tau=None, output_timestep=1):
+    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK45', rtol=1e-4, tau=None, output_timestep=1):
         """
-        Simulate a model during a given time period.
+        Integrate an ODE model over a specified time interval.
         Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
-        Can perform discrete timestepping by specifying `tau != None`.
 
-        Parameters
-        ----------
+        input
+        -----
 
-        time : 1) int/float, 2) list of int/float of type '[start_time, stop_time]', 3) list of datetime.datetime or str of type '[YYYY-MM-DD, YYYY-MM-DD]',
+        time : 1) int/float, 2) list of int/float of type: [start_time, stop_time], 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD'],
             The start and stop "time" for the simulation run.
             1) Input is converted to [0, time]. Floats are automatically rounded.
             2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
@@ -746,29 +739,29 @@ class ODE:
 
         draw_function : function
             A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
-            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs
+            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
 
         draw_function_kwargs : dictionary
-            A dictionary containing the input arguments of the draw function, excluding its obligatory input 'parameters'
+            A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
 
         processes: int
-            Number of cores to distribute the `N` draws over.
+            Number of cores to distribute the `N` draws over (default: 1)
 
         method: str
-            Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK23'.
+            Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK45'.
 
         rtol: float
-            Relative tolerance of Scipy `solve_ivp`. Default: 1e-3.
+            Relative tolerance of Scipy `solve_ivp`. Default: 1e-4.
         
         tau: int/float
-            If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used. (default:None)
+            If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
 
         output_timestep: int/flat
-            Interpolate model output to every `output_timestep` time
+            Interpolate model output to every `output_timestep` time (default: 1)
             For datetimes: expressed in days
 
-        Returns
-        -------
+        output
+        ------
 
         output: xarray.Dataset
             Simulation output
@@ -781,33 +774,30 @@ class ODE:
         # Input checks on draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)
+            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), self.initial_states_function, self.state_shapes, self.initial_states_function_args)
         # provinding 'N' but no draw function: wasteful of resources
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
 
-        # Construct list of drawn parameters and initial states
-        drawn_dictionaries=[]
-        for _ in range(N):
-            if draw_function:
-                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), **draw_function_kwargs))
-            else:
-                drawn_dictionaries.append([{},{}])
-        drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
-        drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
-
         # save a copy before altering to reset after simulation
         cp_pars = copy.deepcopy(self.parameters)
-        cp_init_states = copy.deepcopy(self.initial_states)   
+
+        # Construct list of drawn parameters and initial states
+        drawn_parameters=[]
+        for _ in range(N):
+            if draw_function:
+                drawn_parameters.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
+            else:
+                drawn_parameters.append({})
 
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), zip(drawn_parameters, drawn_initial_states))
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_parameters)
         else:
             output=[]
-            for pars, init_states in zip(drawn_parameters, drawn_initial_states):
-                output.append(self._mp_sim_single(pars, init_states, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
+            for pars in drawn_parameters:
+                output.append(self._mp_sim_single(pars, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
 
         # Append results
         out = output[0]
@@ -816,7 +806,6 @@ class ODE:
 
         # Reset parameter dictionary
         self.parameters = cp_pars
-        self.initial_states = cp_init_states
 
         return out
 
