@@ -126,7 +126,7 @@ class ODE_SIR(ODE):
 After defining our model, we'll initialize it by supplying a dictionary of initial states and a dictionary of model parameters. In this example, we'll assume the disease spreads in a relatively small population of 1000 individuals. At the start of the simulation we'll assume there is one "patient zero". There's no need to define the number of recovered individuals as undefined states are automatically set to zero by pySODM.
 
 ```python
-model = ODE_SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
+model = ODE_SIR(initial_states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
 ### Calibrating the model
@@ -409,7 +409,7 @@ We will apply this function to the infectivity parameter `beta`, and declare thi
 model.parameters.update({'start_measures': '2023-01-21'})
 
 # Initialize the model with the time dependent parameter funtion
-model_with = ODE_SIR(states=init_states, parameters=model.parameters,
+model_with = ODE_SIR(initial_states=init_states, parameters=model.parameters,
                      time_dependent_parameters={'beta': lower_infectivity})
 ```
 
