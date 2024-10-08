@@ -164,7 +164,7 @@ def validate_draw_function(draw_function, draw_function_kwargs, parameters, init
     # if draw_functions_kwargs is an empty dict and draw_function has additional kwargs the user has most likely forgotten to pass draw_function_kwargs to the sim() function
     if ((len(args[1:]) > 0) & (len(list(draw_function_kwargs.keys())) == 0)):
         raise ValueError(
-            f"the draw function '{draw_function.__name__}' has {len(args[1:])} arguments in addition to the mandatory 'parameters' arguments\n"
+            f"the draw function '{draw_function.__name__}' has {len(args[1:])} arguments in addition to the mandatory 'parameters' argument\n"
             f"have you forgotten to pass `draw_function_kwargs` to the sim() function?"
         )
     # check that it's keys have the same name as the inputs of draw_function that follow `parameters`
