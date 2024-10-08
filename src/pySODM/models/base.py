@@ -455,7 +455,7 @@ class JumpProcess:
         # Input checks related to draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)
+            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), self.initial_states_function, self.state_shapes, self.initial_states_function_args)
 
         # Construct list of drawn dictionaries
         drawn_dictionaries=[]
@@ -778,7 +778,7 @@ class ODE:
         # Input checks on draw functions
         if draw_function:
             # validate function
-            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), copy.deepcopy(self.initial_states), self.state_shapes)
+            validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), self.initial_states_function, self.state_shapes, self.initial_states_function_args)
         # provinding 'N' but no draw function: wasteful of resources
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
