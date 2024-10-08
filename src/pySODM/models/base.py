@@ -391,13 +391,12 @@ class JumpProcess:
 
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, drawn_initial_states, seed, time, actual_start_date, method, tau, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, seed, time, actual_start_date, method, tau, output_timestep):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
-        # set sampled parameters/initial states
+        # set sampled parameters
         self.parameters.update(drawn_parameters)
-        self.initial_states.update(drawn_initial_states)
         # set seed
         np.random.seed(seed)
         # simulate model
@@ -457,28 +456,26 @@ class JumpProcess:
             # validate function
             validate_draw_function(draw_function, draw_function_kwargs, copy.deepcopy(self.parameters), self.initial_states_function, self.state_shapes, self.initial_states_function_args)
 
-        # Construct list of drawn dictionaries
-        drawn_dictionaries=[]
-        for _ in range(N):      
-            if draw_function:
-                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
-            else:
-                drawn_dictionaries.append([{},{}])
-        drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
-        drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
-
         # save a copy before altering to reset after simulation
         cp_pars = copy.deepcopy(self.parameters)
+
+        # Construct list of drawn dictionaries
+        drawn_parameters=[]
+        for _ in range(N):      
+            if draw_function:
+                drawn_parameters.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
+            else:
+                drawn_parameters.append({})
 
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:      # 'fork' instead of 'spawn' to run on Apple Silicon
                 seeds = np.random.randint(0, 2**32, size=N)     # requires manual reseeding of the random number generators used in the stochastic algorithms in every child process
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_parameters, drawn_initial_states, seeds))
+                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_parameters, seeds))
         else:
             output=[]
-            for pars, init_states in zip(drawn_parameters, drawn_initial_states):
-                output.append(self._mp_sim_single(pars, init_states, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
+            for pars in drawn_parameters:
+                output.append(self._mp_sim_single(pars, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
 
         # Append results
         out = output[0]
@@ -713,13 +710,12 @@ class ODE:
         # Map to variable names
         return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
 
-    def _mp_sim_single(self, drawn_parameters, drawn_initial_states, time, actual_start_date, method, rtol, output_timestep, tau):
+    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
         """
         A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionaries and runs `_sim_single`
         """
-        # set sampled parameters/initial states
+        # set sampled parameters
         self.parameters.update(drawn_parameters)
-        self.initial_states.update(drawn_initial_states)
         # simulate model
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
@@ -783,27 +779,25 @@ class ODE:
         if ((N != 1) & (draw_function==None)):
             raise ValueError('attempting to perform N={0} repeated simulations without using a draw function'.format(N))
 
-        # Construct list of drawn parameters and initial states
-        drawn_dictionaries=[]
-        for _ in range(N):
-            if draw_function:
-                drawn_dictionaries.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
-            else:
-                drawn_dictionaries.append([{},{}])
-        drawn_parameters = [tpl[0] for tpl in drawn_dictionaries]
-        drawn_initial_states = [tpl[1] for tpl in drawn_dictionaries]
-
         # save a copy before altering to reset after simulation
         cp_pars = copy.deepcopy(self.parameters)
+
+        # Construct list of drawn parameters and initial states
+        drawn_parameters=[]
+        for _ in range(N):
+            if draw_function:
+                drawn_parameters.append(draw_function(copy.deepcopy(self.parameters), **draw_function_kwargs))
+            else:
+                drawn_parameters.append({})
 
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), zip(drawn_parameters, drawn_initial_states))
+                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_parameters)
         else:
             output=[]
-            for pars, init_states in zip(drawn_parameters, drawn_initial_states):
-                output.append(self._mp_sim_single(pars, init_states, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
+            for pars in drawn_parameters:
+                output.append(self._mp_sim_single(pars, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
 
         # Append results
         out = output[0]
