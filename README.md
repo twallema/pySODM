@@ -33,6 +33,7 @@ Does other simulation software exist in Python? Sure, but most of them hold your
 | Simulating the model            | Deterministic (ODE) or stochastic simulation (Jump process) |
 |                                 | *Time-dependent model parameter functions* to vary parameters during the course of a simulation |
 |                                 | *Draw functions* to vary model parameters during consecutive simulations. |
+|                                 | *Initial condition functions* to vary the initial condition during consecutive simulations |
 | Calibrate the model             | Construct and maximize a posterior probability function  |
 |                                 | Automatically aligns data and model forecast  |
 |                                 | Nelder-Mead Simplex and Particle Swarm Optimization |
