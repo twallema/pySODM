@@ -793,7 +793,7 @@ class ODE:
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_parameters)
+                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_parameters)
         else:
             output=[]
             for pars in drawn_parameters:
