@@ -139,14 +139,14 @@ if __name__ == '__main__':
     ## Visualize result ##
     ######################
 
-    def draw_fcn(parameters, initial_states, samples):
+    def draw_fcn(parameters, samples):
         idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
         parameters['R_AS'] = samples['R_AS'][idx]
         parameters['R_AW'] = samples['R_AW'][idx]
         parameters['R_Es'] = samples['R_Es'][idx]
         parameters['K_eq'] = samples['K_eq'][idx]
-        return parameters, initial_states
-
+        return parameters
+    
     # Loop over datasets
     for i,df in enumerate(data):
         # Update initial condition
