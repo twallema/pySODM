@@ -1,5 +1,8 @@
-<!-- Please check if the PR fulfills these requirements. Put an `x` in all the boxes that apply: -->
+**Pull request checklist**
+
 * [ ] I have checked to ensure there aren't other open [Pull Requests](../../pulls) for the same update/change
+* [ ] I have verified all tests work / have added new tests.
+* [ ] I have verified all tutorials work.
 * [ ] I have updated the documentation accordingly.
 
-Describe your fixes/additions/changes
+**Describe your pull request**
