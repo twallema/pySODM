@@ -75,6 +75,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tests">Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#publishing-to-pypi">Publishing to pyPI</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id1">Documentation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#website">Website</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#docstrings">Docstrings</a></li>
@@ -174,6 +175,34 @@
 </pre></div>
 </div>
 <p>Make sure you have the development dependencies installed to use <code class="docutils literal notranslate"><span class="pre">pytest</span></code> (to do this install pySODM using the command <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">&quot;.[develop]&quot;</span></code>)</p>
+</section>
+<section id="publishing-to-pypi">
+<h2>Publishing to pyPI<a class="headerlink" href="#publishing-to-pypi" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Make sure <code class="docutils literal notranslate"><span class="pre">build</span></code> and <code class="docutils literal notranslate"><span class="pre">twine</span></code> are installed. Open a terminal and run,</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>build<span class="w"> </span>twine
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Build the distribution. Make sure you have set the intended new version in <code class="docutils literal notranslate"><span class="pre">setup.py</span></code>.</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>build
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">twine</span></code> to confirm your package build</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>twine<span class="w"> </span>check<span class="w"> </span>dist/*
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">twine</span></code> to upload your package,</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>twine<span class="w"> </span>upload<span class="w"> </span>-r<span class="w"> </span>pySODM<span class="w"> </span>dist/*
+</pre></div>
+</div>
+<p>Twine will ask you for your username and password. Nicked from <a class="reference external" href="https://realpython.com/pypi-publish-python-package/">here</a>.</p>
 </section>
 <section id="id1">
 <h2>Documentation<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>

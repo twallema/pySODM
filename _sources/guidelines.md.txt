@@ -58,6 +58,34 @@ pytest test_calibration.py
 ```
 Make sure you have the development dependencies installed to use `pytest` (to do this install pySODM using the command `pip install -e ".[develop]"`)
 
+### Publishing to pyPI
+
+1. Make sure `build` and `twine` are installed. Open a terminal and run,
+
+```bash
+$ python -m pip install build twine
+```
+
+2. Build the distribution. Make sure you have set the intended new version in `setup.py`.
+
+```bash
+$ python -m build
+```
+
+3. Use `twine` to confirm your package build
+
+```bash
+$ twine check dist/*
+```
+
+4. Use `twine` to upload your package,
+
+```bash
+$ twine upload -r pySODM dist/*
+```
+
+Twine will ask you for your username and password. Nicked from [here](https://realpython.com/pypi-publish-python-package/).
+
 ### Documentation
 
 #### Website
