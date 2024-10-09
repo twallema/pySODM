@@ -119,7 +119,8 @@ init_states = {'S': list(initN.values),
 # Define model coordinates
 coordinates={'age_group': age_groups}
 # Initialize model
-model = influenza_model(states=init_states,parameters=params,coordinates=coordinates,time_dependent_parameters={'N': contact_function})
+model = influenza_model(initial_states=init_states, parameters=params, coordinates=coordinates,
+                            time_dependent_parameters={'N': contact_function})
 
 #####################
 ## Calibrate model ##

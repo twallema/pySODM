@@ -41,10 +41,10 @@ class SIR(ODE):
         return dS, dI, dR
 ```
 
-To initialize the model, provide a dictionary containing the initial values of the model states and a dictionary containing all model parameters. Undefined initial states are automatically filled with zeros.
+To initialize the model, provide a dictionary containing the initial condition and a dictionary containing all model parameters. Undefined initial states are automatically filled with zeros.
 
 ```python
-model = SIR(states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
+model = SIR(initial_states={'S': 1000, 'I': 1}, parameters={'beta': 0.35, 'gamma': 5})
 ```
 
 Alternatively, use an *initial condition function* to define the initial states,
@@ -55,7 +55,7 @@ def initial_condition_function(S0):
     return {'S': S0, 'I': 1}
 
 # that become part of the model's parameters and can be optimised..
-model = SIR(states=initial_condition_function, parameters={'beta': 0.35, 'gamma': 5, 'S0': 1000})
+model = SIR(initial_states=initial_condition_function, parameters={'beta': 0.35, 'gamma': 5, 'S0': 1000})
 ```
 
 Simulate the model using its `sim()` method. pySODM supports the use of dates to index simulations, string representations of dates with the format `'yyyy-mm-dd'` as well as `datetime.datetime()` can be used. 
@@ -128,7 +128,7 @@ class stratified_SIR(ODE):
 When initializing your model, provide a dictionary containing coordinates for every dimension declared previously. In the example below, we'll declare four age groups: 0-5, 5-15, 15-65 and 65-120 year olds. **All** model states are now 1D vectors of shape `(4,)`.
 
 ```python
-model = stratified_SIR(states={'S': 1000*np.ones(4), 'I': np.ones(4)},
+model = stratified_SIR(initial_states={'S': 1000*np.ones(4), 'I': np.ones(4)},
                        parameters={'beta': 0.35, 'gamma': 5},
                        coordinates={'age_groups': ['0-5','5-15', '15-65','65-120']})
 out = model.sim(121)
@@ -192,7 +192,7 @@ params={'alpha': np.array([0.05, 0.1, 0.2, 0.15]), 'gamma': 5, 'beta': 7}
 init_states = {'S': [606938, 1328733, 7352492, 2204478], 'S_v': 1e6, 'I_v': 2}
 coordinates={'age_group': ['0-5','5-15', '15-65','65-120']}
 # Initialize model
-model = ODE_SIR_SI(states=init_states, parameters=params, coordinates=coordinates)
+model = ODE_SIR_SI(initial_states=init_states, parameters=params, coordinates=coordinates)
 # Simulate the model
 out = model.sim(120)
 print(out)
@@ -321,7 +321,7 @@ def vary_my_parameter(t, states, param, an_additional_parameter):
 When initialising the model, all we need to do is use the `time_dependent_parameters` keyword to declare what parameter our TDPF should be applied to. Additional parameters introduced in TDPFs, in this example `an_additional_parameter`, should be added to the parameters dictionary.
 
 ```python
-model = SIR(states={'S': 1000, 'I': 1},
+model = SIR(initial_states={'S': 1000, 'I': 1},
             parameters={'beta': 0.35, 'gamma': 5, 'an_additional_parameter': any_datatype_you_want},
             time_dependent_parameters={'beta': vary_my_parameter})
 ```

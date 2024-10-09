@@ -67,7 +67,7 @@ class ODE_SIR(ODE):
         return dS, dI, dR
 
 # Initialize model
-model = ODE_SIR(states={'S': 1000, 'I': 1}, parameters={'beta':0.35, 'gamma':5})
+model = ODE_SIR(initial_states={'S': 1000, 'I': 1}, parameters={'beta':0.35, 'gamma':5})
 
 # Simulate from t=0 until t=121
 out = model.sim([0, 121])
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     model.parameters.update({'start_measures': end_date})
 
     # Initialize the model with the time dependent parameter funtion
-    model_with = ODE_SIR(states=model.initial_states, parameters=model.parameters, time_dependent_parameters={'beta': lower_infectivity})
+    model_with = ODE_SIR(initial_states=model.initial_states, parameters=model.parameters, time_dependent_parameters={'beta': lower_infectivity})
 
     # Simulate the model
     out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, draw_function=draw_fcn,

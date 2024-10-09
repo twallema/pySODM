@@ -48,7 +48,7 @@ To intialize this model, the following arguments must be provided.
 
 **Parameters:**
 
-* **states** (dict or callable) - Initial states. If a dictionary. Keys: names of model states. Values: initial values of model states. The dictionary does not need to contain all model states, missing states are filled with zeros upon initialization. If a callable (*initial condition function*): a function that creates such a dictionary.
+* **initial_states** (dict or callable) - Initial condition. If a dictionary. Keys: names of model states. Values: initial values of model states. The dictionary does not need to contain all model states, missing states are filled with zeros upon initialization. If a callable (*initial condition function*): a function that creates such a dictionary.
 
 * **parameters** (dict) - Model parameters. Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameter names listed in `parameters` and `stratified_parameters` of the model declaration. If *time dependent parameter functions* with additional parameters are used, these parameters must be included as well. If an *initial condition function* with parameters is used, these parameters must be included as well.
 
@@ -59,7 +59,7 @@ To intialize this model, the following arguments must be provided.
 For our example,
 
 ```python
-model = MY_MODEL(states={'Y1': 1000, 'Y2': 0}, parameters={'alpha': 1})
+model = MY_MODEL(initial_states={'Y1': 1000, 'Y2': 0}, parameters={'alpha': 1})
 ```
 
 Or using an *initial condition function*,
@@ -68,7 +68,7 @@ Or using an *initial condition function*,
 def initial_condition_function(Y1_0):
     return {'Y1': Y1_0, 'Y2': 0}
 
-model = MY_MODEL(states=initial_condition_function, parameters={'alpha': 1, 'Y1_0': 1000})
+model = MY_MODEL(initial_states=initial_condition_function, parameters={'alpha': 1, 'Y1_0': 1000})
 ```
 The parameters of the initial condition function become a part of the model's parameters and can therefore be optimised. 
 
@@ -157,7 +157,7 @@ To intialize the user-defined model class, the following arguments must be provi
 
 **Parameters:**
 
-* **states** (dict or callable) - Initial states. If a dictionary. Keys: names of model states. Values: initial values of model states. The dictionary does not need to contain all model states, missing states are filled with zeros upon initialization. If a callable (*initial condition function*): a function that creates such a dictionary.
+* **initial_states** (dict or callable) - Initial condition. If a dictionary. Keys: names of model states. Values: initial values of model states. The dictionary does not need to contain all model states, missing states are filled with zeros upon initialization. If a callable (*initial condition function*): a function that creates such a dictionary.
 
 * **parameters** (dict) - Model parameters. Keys: names of parameters. Values: values of parameters. A key,value pair must be provided for all parameter names listed in `parameters` and `stratified_parameters` of the model declaration. If *time dependent parameter functions* with additional parameters are used, these parameters must be included as well. 
 
@@ -168,7 +168,7 @@ To intialize the user-defined model class, the following arguments must be provi
 For our example,
 
 ```python
-model = MY_MODEL(states={'Y1': 1000, 'Y2': 0}, parameters={'alpha': 1})
+model = MY_MODEL(initial_states={'Y1': 1000, 'Y2': 0}, parameters={'alpha': 1})
 ```
 
 Or using an *initial condition function*,
@@ -177,7 +177,7 @@ Or using an *initial condition function*,
 def initial_condition_function(Y1_0):
     return {'Y1': Y1_0, 'Y2': 0}
 
-model = MY_MODEL(states=initial_condition_function, parameters={'alpha': 1, 'Y1_0': 1000})
+model = MY_MODEL(initial_states=initial_condition_function, parameters={'alpha': 1, 'Y1_0': 1000})
 ```
 The parameters of the initial condition function become a part of the model's parameters and can therefore be optimised. 
 

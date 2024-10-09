@@ -22,7 +22,7 @@ class JumpProcess:
     ----------
     To initialise the model, provide following inputs:
 
-    states : dictionary
+    initial_states : dictionary
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
@@ -46,17 +46,15 @@ class JumpProcess:
     dimensions = None
     dimensions_per_state = None
 
-    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, initial_states, parameters, coordinates=None, time_dependent_parameters=None):
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
         self.parameters_names = self.parameters
         self.parameters_stratified_names = self.stratified_parameters
         self.dimensions_names = self.dimensions
-        self.states = states
+        self.states = initial_states
         parameters = parameters
-
-        # Do not undergo manipulation during model initialization (#TODO: no input check?)
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
@@ -499,7 +497,7 @@ class ODE:
     ----------
     To initialise the model, provide following inputs:
 
-    states : dictionary or callable 
+    initial_states : dictionary or callable 
         contains the initial values of all non-zero model states, f.i. for an SIR model,
         e.g. {'S': 1000, 'I': 1}
         initialising zeros is not required
@@ -525,17 +523,15 @@ class ODE:
     dimensions_per_state = None
     # TODO: states, parameters, dimensions --> list containing str (check input!)
 
-    def __init__(self, states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self, initial_states, parameters, coordinates=None, time_dependent_parameters=None):
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
         self.parameters_names = self.parameters
         self.parameters_stratified_names = self.stratified_parameters
         self.dimensions_names = self.dimensions
-        self.states = states
+        self.states = initial_states
         parameters = parameters
-
-        # Do not undergo manipulation during model initialization
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 

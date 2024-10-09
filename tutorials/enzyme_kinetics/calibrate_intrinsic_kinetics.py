@@ -55,7 +55,7 @@ params={'c_enzyme': 10, 'Vf_Ks': 0.95/1000, 'R_AS': 0.75, 'R_AW': 1.40, # Forwar
 # Define an initial condition
 init_states = {'S': 46, 'A': 61, 'W': 37, 'Es': 0}
 # Initialize model
-model = PPBB_model(states=init_states, parameters=params)
+model = PPBB_model(initial_states=init_states, parameters=params)
 
 ###############
 ## Load data ##
