@@ -24,6 +24,99 @@ class SIR(ODE):
         dR = gamma*I
         return dS, dI, dR
 
+def test_formatting_user_model_class():
+
+    # needed to init model
+    parameters = {"beta": 0.9, "gamma": 0.2}
+    initial_states = {"S": 1_000_000 - 10, "I": 10, "R": 0}
+
+    # States
+    # ------
+
+    # states is not a list
+    SIR.states = {'S': 100, 'I': 1, 'R': 0}
+    with pytest.raises(AssertionError, match="'states' must be a list"):
+        model = SIR(initial_states, parameters)
+
+    # states contains type other than string
+    SIR.states = ['S', 'I', 5]
+    with pytest.raises(TypeError, match="not all elements in 'states' are of type str."):
+        model = SIR(initial_states, parameters)
+
+    # reset states
+    SIR.states = ['S', 'I', 'R']
+
+    # Parameters
+    # ----------
+
+    # parameters is not a list
+    SIR.parameters = {'beta': 0.3, 'gamma': 5}
+    with pytest.raises(AssertionError, match="'parameters' must be a list"):
+        model = SIR(initial_states, parameters)
+
+    # parameters contains type other than string
+    SIR.parameters = ['beta', 5]
+    with pytest.raises(TypeError, match="not all elements in 'parameters' are of type str."):
+        model = SIR(initial_states, parameters)
+    
+    # reset parameters
+    SIR.parameters = ['beta', 'gamma']
+
+    # Dimensions
+    # ----------
+
+    # dimensions is not a list
+    SIR.dimensions = ('age', 'location')
+    with pytest.raises(AssertionError, match="'dimensions' must be a list. found"):
+        model = SIR(initial_states, parameters)
+
+    # dimensions contains type other than string
+    SIR.dimensions = ['age', 5]
+    with pytest.raises(TypeError, match="not all elements in 'dimensions' are of type str."):
+        model = SIR(initial_states, parameters)
+    
+    # reset dimensions
+    SIR.dimensions = None
+
+    # Stratified parameters
+    # ---------------------
+
+    # no dimensions
+    ## can't have stratified parameters
+    SIR.stratified_parameters = ['beta']
+    with pytest.raises(TypeError, match="a model without dimensions cannot have stratified parameters."):
+        model = SIR(initial_states, parameters)
+
+    # 1 dimension
+    SIR.dimensions = ['age']
+    ## must be a list
+    SIR.stratified_parameters = ('beta',)
+    with pytest.raises(AssertionError, match="'stratified_parameters' must be a list."):
+        model = SIR(initial_states, parameters)
+    ## containing only str
+    SIR.stratified_parameters = ['beta', 5]
+    with pytest.raises(TypeError, match="not all elements in 'stratified_parameters' are of type str."):
+        model = SIR(initial_states, parameters)
+
+    # 2+ dimensions
+    SIR.dimensions = ['age', 'location']
+    ## must be a list
+    SIR.stratified_parameters = ('beta',)
+    with pytest.raises(AssertionError, match="'stratified_parameters' must be a list."):
+        model = SIR(initial_states, parameters)
+    ## containing len(dimensions) sublists
+    SIR.stratified_parameters = [['beta'], [], []]
+    with pytest.raises(AssertionError, match="'stratified_parameters' must be a list containing 2 sublists."):
+        model = SIR(initial_states, parameters)
+    ## each of which may only contain str
+    SIR.stratified_parameters = [['beta'], [None, 6, 'blabla', True]]
+    with pytest.raises(TypeError, match="'stratified_parameters' must be a list containing 2 sublists. each sublist must either be empty or contain only str."):
+        model = SIR(initial_states, parameters)
+
+    # reset stratified parameters and dimensions
+    SIR.stratified_parameters = None
+    SIR.dimensions = None
+
 def test_SIR_time():
     """ Test the use of int/float/list time indexing
     """
@@ -351,15 +444,10 @@ def test_stratified_SIR_init_validation():
     with pytest.raises(ValueError, match=msg):
         SIRstratified(initial_states, parameters, coordinates=coordinates)
 
-    SIRstratified.parameters = ["gamma"]
-    SIRstratified.stratified_parameters = [["beta", "alpha"]]
-    with pytest.raises(ValueError, match=msg):
-        SIRstratified(initial_states, parameters, coordinates=coordinates)
-
     # ensure to set back to correct ones
     SIRstratified.states = ["S", "I", "R"]
     SIRstratified.parameters = ["gamma"]
-    SIRstratified.stratified_parameters = [["beta"]]
+    SIRstratified.stratified_parameters = ["beta"]
 
 ############################################################
 ## A model with different dimensions for different states ##
@@ -768,6 +856,7 @@ def break_draw_function():
 ## Call all functions ##
 ########################
 
+test_formatting_user_model_class()
 test_SIR_time()
 test_SIR_date()
 test_SIR_discrete_stepper()
