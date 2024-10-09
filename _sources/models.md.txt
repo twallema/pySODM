@@ -20,10 +20,10 @@ pySODM contains a class to build ordinary differential equation models (`ODE`) a
     * 2 dimensions: states are 2-D (np.ndarray)
     * etc. 
 
-* **stratified_parameters** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length must be equal to the number of coordinates of the dimension axis it corresponds to. Their use is optional and mainly serves as a way for the user to structure his code.
-    * 0-D model: not possible to have *stratified* parameters
-    * 1-D model: list containing strings - `['stratpar_1', 'stratpar_2']`
-    * 2-D+ dimensions: List contains *n* sublists, where *n* is the number of model dimensions. Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimensions` - example for a 3-D model: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`, first dimension in `dimensions` has two stratified parameters `stratpar_1` and `stratpar_2`, second dimension has no stratified parameters, third dimensions has one stratified parameter `stratpar_3`.
+* **stratified_parameters** (list) - optional - Names of the *stratified* parameters. Their use is optional and mainly serves as a way for the user to structure his code.
+    * 0 dimensions: not possible to have *stratified* parameters
+    * 1 dimension: list containing strings - `['stratpar_1', 'stratpar_2']`
+    * 2+ dimensions: List contains *n* sublists, where *n* is the number of model dimensions. Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimensions` - example for 3 dimensions model: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`, first dimension in `dimensions` has two stratified parameters `stratpar_1` and `stratpar_2`, second dimension has no stratified parameters, third dimensions has one stratified parameter `stratpar_3`.
 
 * **dimensions_per_state** (list) - optional - Specify the dimensions of each model states. Allows users to define models with states of different sizes. If `dimensions_per_state` is not provided, all model states will have the same number of dimensions, equal to the number of model dimensions specified using `dimensions`. If specified, `dimensions_per_state` must contain *n* sublists, where *n* is the number of model states (`n = len(states)`). If a model state has no dimensions (i.e. it is a float), specify an empty list.
 
@@ -120,11 +120,11 @@ The parameters of the initial condition function become a part of the model's pa
     * 2 dimensions: states are 2-D (np.ndarray)
     * etc. 
 
-* **stratified_parameters** (list) - optional - Names of the *stratified* parameters. Stratified parameters must be of type list/1D np.array and their length must be equal to the number of coordinates of the dimension axis it corresponds to. Their use is optional and mainly serves as a way for the user to structure his code.
-    * 0-D model: not possible to have *stratified* parameters
-    * 1-D model: list containing strings - `['stratpar_1', 'stratpar_2']`
-    * 2-D+ dimensions: List contains *n* sublists, where *n* is the number of model dimensions. Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimensions` - example for a 3-D model: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`, first dimension in `dimensions` has two stratified parameters `stratpar_1` and `stratpar_2`, second dimension has no stratified parameters, third dimensions has one stratified parameter `stratpar_3`.
-
+* **stratified_parameters** (list) - optional - Names of the *stratified* parameters. Their use is optional and mainly serves as a way for the user to structure his code.
+    * 0 dimensions: not possible to have *stratified* parameters
+    * 1 dimension: list containing strings - `['stratpar_1', 'stratpar_2']`
+    * 2+ dimensions: List contains *n* sublists, where *n* is the number of model dimensions. Each sublist contains names of stratified parameters associated with the dimension in the corresponding position in `dimensions` - example for 3 dimensions model: `[['stratpar_1', 'stratpar_2'],[],['stratpar_3']]`, first dimension in `dimensions` has two stratified parameters `stratpar_1` and `stratpar_2`, second dimension has no stratified parameters, third dimensions has one stratified parameter `stratpar_3`.
+    
 * **dimensions_per_state** (list) - optional - Specify the dimensions of each model states. Allows users to define models with states of different sizes. If `dimensions_per_state` is not provided, all model states will have the same number of dimensions, equal to the number of model dimensions specified using `dimensions`. If specified, `dimensions_per_state` must contain *n* sublists, where *n* is the number of model states (`n = len(states)`). If a model state has no dimensions (i.e. it is a float), specify an empty list.
 
 Below is a minimal example of a user-defined model class inheriting `JumpProcesses`.
