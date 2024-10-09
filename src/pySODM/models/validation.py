@@ -46,7 +46,7 @@ def check_formatting_names(states_names, parameters_names, parameters_stratified
                 raise TypeError(f"'stratified_parameters' must be a list containing {n_dims} sublists.")
             # each containing only strings OR being empty?
             for sublist in parameters_stratified_names:
-                if ((not all(isinstance(v, str) for v in sublist)) | (sublist != [])):
+                if ((not all(isinstance(v, str) for v in sublist)) & (sublist != [])):
                     raise TypeError(f"'stratified_parameters' must be a list containing {n_dims} sublists. each sublist must either be empty or contain only str.")
 
 def date_to_diff(actual_start_date, end_date):
