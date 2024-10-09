@@ -197,9 +197,15 @@
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
-<li><p>Use <code class="docutils literal notranslate"><span class="pre">twine</span></code> to upload your package,</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">twine</span></code> to upload to testPyPI, visit pySODM’s page and check everything looks OK,</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>twine<span class="w"> </span>upload<span class="w"> </span>-r<span class="w"> </span>pySODM<span class="w"> </span>dist/*
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>twine<span class="w"> </span>upload<span class="w"> </span>-r<span class="w"> </span>testpypi<span class="w"> </span>dist/*
+</pre></div>
+</div>
+<ol class="arabic simple" start="5">
+<li><p>Followed by the real upload,</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>twine<span class="w"> </span>upload<span class="w"> </span>dist/*
 </pre></div>
 </div>
 <p>Twine will ask you for your username and password. Nicked from <a class="reference external" href="https://realpython.com/pypi-publish-python-package/">here</a>.</p>
