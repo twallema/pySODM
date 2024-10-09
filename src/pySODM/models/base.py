@@ -12,7 +12,7 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess, \
-                                                    get_initial_states_fuction_parameters, check_overlap, evaluate_initial_condition_function
+                                                    get_initial_states_fuction_parameters, check_overlap, evaluate_initial_condition_function, check_formatting_names
 
 class JumpProcess:
     """
@@ -57,6 +57,9 @@ class JumpProcess:
         parameters = parameters
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
+
+        # Check formatting of state, parameters, dimension names user has defined in his model class
+        check_formatting_names(self.states_names, self.parameters_names, self.parameters_stratified_names, self.dimensions_names)
 
         # Merge parameter_names and parameter_stratified_names
         self.parameters_names_modeldeclaration = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
@@ -535,6 +538,9 @@ class ODE:
         self.coordinates = coordinates
         self.time_dependent_parameters = time_dependent_parameters
 
+        # Check formatting of state, parameters, dimension names user has defined in his model class
+        check_formatting_names(self.states_names, self.parameters_names, self.parameters_stratified_names, self.dimensions_names)
+         
         # Merge parameter_names and parameter_stratified_names
         self.parameters_names_modeldeclaration = merge_parameter_names_parameter_stratified_names(self.parameters_names, self.parameters_stratified_names)
 

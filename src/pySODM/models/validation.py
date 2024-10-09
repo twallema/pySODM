@@ -4,6 +4,51 @@ import numpy as np
 from datetime import datetime, timedelta
 from collections import OrderedDict
 
+def check_formatting_names(states_names, parameters_names, parameters_stratified_names, dimensions_names):
+    """
+    A function checking the format of the 'states', 'parameters', 'stratified_parameters' and 'dimensions' provided by the user in their model class
+    """
+
+    # states_names/parameters_names
+    for val, name in zip([states_names, parameters_names], ['states', 'parameters']):
+        ## list?
+        assert isinstance(val, list), f"'{name}' must be a list. found '{type(val)}'."
+        ## containing strings
+        if not all(isinstance(v, str) for v in val):
+            raise TypeError(f"not all elements in '{name}' are of type str.")
+    
+    # dimensions
+    if dimensions_names:
+        # list?
+        assert isinstance(dimensions_names, list), f"'dimensions' must be a list. found '{type(dimensions_names)}'."
+        # containing only strings
+        if not all(isinstance(v, str) for v in dimensions_names):
+            raise TypeError(f"not all elements in 'dimensions' are of type str.")
+        # exract number of dimensions
+        n_dims = len(dimensions_names)
+
+    # parameters_stratified_names
+    if parameters_stratified_names:
+        if not dimensions_names:
+            raise TypeError(f"a model without dimensions cannot have stratified parameters.")
+        elif n_dims == 1:
+            # list?
+            assert isinstance(parameters_stratified_names, list), f"'stratified_parameters' must be a list. found '{type(parameters_stratified_names)}'."
+            # containing only strings?
+            if not all(isinstance(v, str) for v in parameters_stratified_names):
+                raise TypeError(f"not all elements in 'stratified_parameters' are of type str.")
+        elif n_dims >= 2:
+            # list?
+            assert isinstance(parameters_stratified_names, list), f"'stratified_parameters' must be a list. found '{type(parameters_stratified_names)}'."
+            # containing n_dims sublists?
+            assert len(parameters_stratified_names) == n_dims, f"'stratified_parameters' must be a list containing {n_dims} sublists."
+            if not all(isinstance(sublist, list) for sublist in parameters_stratified_names):
+                raise TypeError(f"'stratified_parameters' must be a list containing {n_dims} sublists.")
+            # each containing only strings OR being empty?
+            for sublist in parameters_stratified_names:
+                if ((not all(isinstance(v, str) for v in sublist)) | (sublist != [])):
+                    raise TypeError(f"'stratified_parameters' must be a list containing {n_dims} sublists. each sublist must either be empty or contain only str.")
+
 def date_to_diff(actual_start_date, end_date):
     """
     Convert date string to int (i.e. number of days since day 0 of simulation)
