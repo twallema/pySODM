@@ -78,10 +78,16 @@ $ python -m build
 $ twine check dist/*
 ```
 
-4. Use `twine` to upload your package,
+4. Use `twine` to upload to testPyPI, visit pySODM's page and check everything looks OK,
 
 ```bash
-$ twine upload -r pySODM dist/*
+$ twine upload -r testpypi dist/*
+```
+
+5. Followed by the real upload,
+
+```bash
+$ twine upload dist/*
 ```
 
 Twine will ask you for your username and password. Nicked from [here](https://realpython.com/pypi-publish-python-package/).
