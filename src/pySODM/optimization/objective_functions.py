@@ -513,11 +513,6 @@ class log_posterior_probability():
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
                                                   self.coordinates_data_also_in_model[idx], aggfunc)
-        
-        if lp_prior == -np.inf:
-            print(lp_prior, lp)
-            print(thetas_dict)
-
         return lp
 
 #############################################
