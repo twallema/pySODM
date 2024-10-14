@@ -11,8 +11,8 @@ from functools import partial
 def _obj_wrapper(func, args, kwargs, x):
     return -func(x, *args, **kwargs)
 
-def optimize(func, x_start, step,
-                bounds=None, args=(), kwargs={}, processes=1, no_improve_thr=1e-6,
+def optimize(objective_function, x_start, step,
+                bounds=None, objective_function_args=(), objective_function_kwargs={}, processes=1, no_improve_thr=1e-6,
                 no_improv_break=100, max_iter=1000,
                 alpha=1., gamma=2., rho=-0.5, sigma=0.5):
     """
@@ -20,7 +20,7 @@ def optimize(func, x_start, step,
 
     Parameters
     ==========
-    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+    objective_function : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
         The objective function to be minimized
     x_start: list or 1D np.ndarray
         Starting estimate for the search algorithm. Length must equal the number of provided bounds.
@@ -29,10 +29,10 @@ def optimize(func, x_start, step,
     bounds: tuple array
         The bounds of the design variable(s). In form [(lower, upper), ..., (lower, upper)]
         Class 'log_posterior_probability' automatically contains bounds. If bounds are provided these overwrite the bounds available in the 'log_posterior_probability' object.
-    args : tuple
+    objective_function_args : tuple
         Additional arguments passed to objective function
         (Default: empty tuple)
-    kwargs : dict
+    objective_function_kwargs : dict
         Additional keyword arguments passed to objective function
 
     Returns
