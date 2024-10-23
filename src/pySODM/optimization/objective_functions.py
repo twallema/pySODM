@@ -492,7 +492,6 @@ class log_posterior_probability():
 
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
-        lp_prior= lp
         
         # Restrict thetas to user-provided bounds
         # --> going outside can crash a model!
