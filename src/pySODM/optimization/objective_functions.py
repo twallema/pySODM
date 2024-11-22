@@ -433,7 +433,10 @@ class log_posterior_probability():
             ydata = np.expand_dims(df.squeeze().values,axis=1)
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
-                raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+                raise Exception(f"shape of model prediction {ymodel.shape} and data {ydata.shape} do not correspond.")
+            # Check if model prediction contains nan --> solution can become unstable if user provides BS bounds
+            if np.isnan(ymodel).any():
+                raise ValueError(f"simulation output contains nan, likely due to numerical unstability. try using more conservative bounds.")
             if n_log_likelihood_extra_args == 0:
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata)
             else:
@@ -449,12 +452,13 @@ class log_posterior_probability():
             ydata = df.to_numpy()
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
-                raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+                raise Exception(f"shape of model prediction {ymodel.shape} and data {ydata.shape} do not correspond.")
+            if np.isnan(ymodel).any():
+                raise ValueError(f"simulation output contains nan, most likely due to numerical unstability. try using more conservative bounds.")
             if n_log_likelihood_extra_args == 0:
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata)
             else:
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata, *[log_likelihood_fnc_args,])
-    
         return total_ll
 
     def __call__(self, thetas, simulation_kwargs={}):
@@ -464,7 +468,8 @@ class log_posterior_probability():
 
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
-
+        lp_prior= lp
+        
         # Restrict thetas to user-provided bounds
         for i,theta in enumerate(thetas):
             if theta > self.expanded_bounds[i][1]:
