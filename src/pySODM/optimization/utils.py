@@ -118,29 +118,6 @@ def assign_theta(param_dict, parameter_names, thetas):
         param_dict.update({param: value})
     return param_dict
 
-def _thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
-    """
-    Add a docstring
-    """
-    dict = {}
-    idx = 0
-    total_n_values = 0
-    for param in parameter_names:
-        try:
-            dict[param] = np.array(
-                thetas[idx:idx+len(model_parameter_dictionary[param])], np.float64)
-            total_n_values += len(dict[param])
-            idx = idx + len(model_parameter_dictionary[param])
-        except:
-            if ((isinstance(model_parameter_dictionary[param], float)) | (isinstance(model_parameter_dictionary[param], int))):
-                dict[param] = thetas[idx]
-                total_n_values += 1
-                idx = idx + 1
-            else:
-                raise ValueError(
-                    'Calibration parameters must be either of type int, float, list (containing int/float) or 1D np.array')
-    return dict, total_n_values
-
 def variance_analysis(data, resample_frequency):
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
         ================================================================================================
