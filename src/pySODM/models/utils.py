@@ -13,8 +13,8 @@ def list_to_dict(y, shape_dictionary, retain_floats=False):
     Parameters
     ----------
 
-    y: list
-        A flat list of values
+    y: np.ndarray
+        A 1D numpy array
 
     shape_dictionary: dict
         A dictionary containing the desired names and shapes of the output dictionary
