@@ -471,11 +471,15 @@ class log_posterior_probability():
         lp_prior= lp
         
         # Restrict thetas to user-provided bounds
+        # --> going outside can crash a model!
+        # this enforces a uniform prior within bounds
         for i,theta in enumerate(thetas):
             if theta > self.expanded_bounds[i][1]:
                 thetas[i] = self.expanded_bounds[i][1]
+                lp += - np.inf
             elif theta < self.expanded_bounds[i][0]:
                 thetas[i] = self.expanded_bounds[i][0]
+                lp += - np.inf
 
         # Unflatten thetas
         thetas_dict = list_to_dict(thetas, self.parameter_shapes, retain_floats=True)
