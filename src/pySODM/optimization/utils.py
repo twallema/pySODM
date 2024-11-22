@@ -87,6 +87,9 @@ def add_negative_binomial_noise(output, alpha):
         new_output[varname].values = values
     return new_output
 
+from pySODM.models.utils import list_to_dict
+from pySODM.optimization.objective_functions import validate_calibrated_parameters
+
 def assign_theta(param_dict, parameter_names, thetas):
     """ A generic function to assign the output of a PSO/Nelder-Mead calibration to the model parameters dictionary
 
@@ -109,33 +112,11 @@ def assign_theta(param_dict, parameter_names, thetas):
 
     """
 
-    thetas_dict, n = _thetas_to_thetas_dict(thetas, parameter_names, param_dict)
+    _, parameter_shapes = validate_calibrated_parameters(parameter_names, param_dict)
+    thetas_dict = list_to_dict(np.array(thetas), parameter_shapes, retain_floats=True)
     for i, (param, value) in enumerate(thetas_dict.items()):
         param_dict.update({param: value})
     return param_dict
-
-def _thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
-    """
-    Add a docstring
-    """
-    dict = {}
-    idx = 0
-    total_n_values = 0
-    for param in parameter_names:
-        try:
-            dict[param] = np.array(
-                thetas[idx:idx+len(model_parameter_dictionary[param])], np.float64)
-            total_n_values += len(dict[param])
-            idx = idx + len(model_parameter_dictionary[param])
-        except:
-            if ((isinstance(model_parameter_dictionary[param], float)) | (isinstance(model_parameter_dictionary[param], int))):
-                dict[param] = thetas[idx]
-                total_n_values += 1
-                idx = idx + 1
-            else:
-                raise ValueError(
-                    'Calibration parameters must be either of type int, float, list (containing int/float) or 1D np.array')
-    return dict, total_n_values
 
 def variance_analysis(data, resample_frequency):
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
