@@ -213,7 +213,7 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
         Number of chains
 
     pos : np.array
-        Initial positions for markov chains. Dimensions: [nwalkers, ndim]
+        Initial positions for markov chains. Dimensions: [ndim, nwalkers]
     """
 
     # Validation
