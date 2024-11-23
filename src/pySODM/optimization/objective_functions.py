@@ -254,15 +254,15 @@ def log_prior_gamma(x,gamma_params):
     x: float
         Parameter value whos probability we want to test.
     gamma_params: tuple
-        Tuple containg gamma parameters alpha and beta.
+        Tuple containg gamma parameters alpha, beta and loc (shift along x-axis).
 
     Returns
     -------
     Log probability of sample x in light of a gamma prior distribution.
 
     """
-    a,b = gamma_params
-    return gamma.logpdf(x, a=a, scale=1/b)
+    a,b,loc = gamma_params
+    return gamma.logpdf(x, a=a, scale=1/b, loc=loc)
 
 def log_prior_weibull(x,weibull_params):
     """ Weibull log prior distribution
@@ -272,15 +272,15 @@ def log_prior_weibull(x,weibull_params):
     x: float
         Parameter value whos probability we want to test.
     weibull_params: tuple
-        Tuple containg weibull parameters k and lambda.
+        Tuple containg weibull parameters k, lambda and loc (shift along x-axis).
 
     Returns
     -------
     Log probability of sample x in light of a weibull prior distribution.
 
     """
-    k,lam = weibull_params
-    return gamma.logpdf(x, k, shape=lam, loc=0 )    
+    k,lam,loc = weibull_params
+    return gamma.logpdf(x, k, shape=lam, loc=loc)    
 
 #############################################
 ## Computing the log posterior probability ##
