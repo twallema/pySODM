@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # Initial guess
     theta = [0.50,]
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=30)
     # Simulate the model
     model.parameters.update({'beta': theta[0]})
     out = model.sim([start_date, end_date])
