@@ -338,7 +338,7 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended <code class="docutils literal notranslate"><span class="pre">pySODM.optimization.log_posterior_probability</span></code>.</p></li>
+<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended using <code class="docutils literal notranslate"><span class="pre">pySODM.optimization.log_posterior_probability</span></code>.</p></li>
 <li><p><strong>x_start</strong> (list or 1D np.ndarray) - Starting estimate for the search algorithm. Length must equal the number of provided bounds.</p></li>
 <li><p><strong>step</strong> (list or 1D np.ndarray) - (Relative) size of the initial search simplex.</p></li>
 <li><p><strong>bounds</strong> (list) - optional - The bounds of the design variable(s). In form <code class="docutils literal notranslate"><span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>. If class <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code> is used as <code class="docutils literal notranslate"><span class="pre">func</span></code>, it already contains bounds. If bounds are provided these will overwrite the bounds available in the ‘log_posterior_probability’ object.</p></li>
@@ -362,7 +362,8 @@
 <blockquote>
 <div><p><strong>Returns:</strong></p>
 <ul class="simple">
-<li><p><strong>theta</strong> (list) - Position 0: Estimated parameters. Position 1: corresponding score of <code class="docutils literal notranslate"><span class="pre">func</span></code>.</p></li>
+<li><p><strong>theta</strong> (list) - Optimised parameter values.</p></li>
+<li><p><strong>score</strong> (float) - Corresponding corresponding objective function value.</p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -375,12 +376,12 @@
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>.</p></li>
+<li><p><strong>func</strong> (function) - Callable function or class representing the objective function to be minimized. Recommended using <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>.</p></li>
 <li><p><strong>bounds</strong> (list) - optional - The bounds of the design variable(s). In form <code class="docutils literal notranslate"><span class="pre">[(lb_1,</span> <span class="pre">ub_1),</span> <span class="pre">...,</span> <span class="pre">(lb_n,</span> <span class="pre">ub_n)]</span></code>. If class <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code> is used as <code class="docutils literal notranslate"><span class="pre">func</span></code>, it already contains bounds. If bounds are provided these will overwrite the bounds available in the ‘log_posterior_probability’ object.</p></li>
-<li><p><strong>ieqcons</strong> (list) - A list of functions of length n such that <code class="docutils literal notranslate"><span class="pre">ieqcons[j](x,*args)</span> <span class="pre">&gt;=</span> <span class="pre">0.0</span></code> in a successfully optimized problem</p></li>
-<li><p><strong>f_ieqcons</strong> (function) - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored</p></li>
 <li><p><strong>args</strong> (tuple) - optional - Additional arguments passed to objective function.</p></li>
 <li><p><strong>kwargs</strong> (dict) - optional - Additional keyworded arguments passed to objective function. Example use: To compute our log posterior probability (class <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>) with the ‘RK45’ method, we must change the <code class="docutils literal notranslate"><span class="pre">method</span></code> argument of the <code class="docutils literal notranslate"><span class="pre">sim</span></code> function, which is called in <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>. To achieve this, we can supply the keyworded argument <code class="docutils literal notranslate"><span class="pre">simulation_kwargs</span></code> of <code class="docutils literal notranslate"><span class="pre">log_posterior_probability</span></code>, which passes its arguments on to the <code class="docutils literal notranslate"><span class="pre">sim</span></code> function. To this end, use <code class="docutils literal notranslate"><span class="pre">kwargs={'simulation_kwargs':{'method':</span> <span class="pre">'RK45'}}</span></code>.</p></li>
+<li><p><strong>ieqcons</strong> (list) - A list of functions of length n such that <code class="docutils literal notranslate"><span class="pre">ieqcons[j](x,*args)</span> <span class="pre">&gt;=</span> <span class="pre">0.0</span></code> in a successfully optimized problem</p></li>
+<li><p><strong>f_ieqcons</strong> (function) - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored</p></li>
 <li><p><strong>processes</strong> (int) - optional - Number of cores to use.</p></li>
 </ul>
 </div></blockquote>
@@ -395,14 +396,14 @@
 <li><p><strong>phip</strong> (float) - optional - Tendency to search away from the particles best known position.  A higher value means each particle has less confidence in it’s own best value.</p></li>
 <li><p><strong>phig</strong> (float) - optional - Tendency to search away from the swarm’s best known position. A higher value means each particle has less confidence in the swarm’s best value.</p></li>
 <li><p><strong>debug</strong> (bool) - optional - If True, progress statements will be displayed every iteration</p></li>
-<li><p><strong>particle_output</strong> (bool) - optional - If True, function additionally returns the best particles position and objective function score</p></li>
 <li><p><strong>transform_pars</strong> (func) - optional - Transform the parameter values. E.g. to integer values or to map to a list of possibilities</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Returns:</strong></p>
 <ul class="simple">
-<li><p><strong>theta</strong> (list) - Position 0: Estimated parameters. Position 1: Corresponding score of <code class="docutils literal notranslate"><span class="pre">func</span></code>. If <code class="docutils literal notranslate"><span class="pre">particle_output==True</span></code> then: Position 3: The best known position per particle. Position 4: Vorresponding score of <code class="docutils literal notranslate"><span class="pre">func</span></code>.</p></li>
+<li><p><strong>theta</strong> (list) - Optimised parameter values.</p></li>
+<li><p><strong>score</strong> (float) - Corresponding corresponding objective function value.</p></li>
 </ul>
 </div></blockquote>
 </section>
