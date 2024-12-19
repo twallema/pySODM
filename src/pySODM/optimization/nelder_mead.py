@@ -19,7 +19,7 @@ def optimize(func, x_start, step,
                 no_improv_break=100, max_iter=1000,
                 alpha=1., gamma=2., rho=-0.5, sigma=0.5):
     """
-    Perform a Nelder-Mead simplex minimization
+    Perform a Nelder-Mead simplex optimization -- minimization of an objective function
 
     Parameters
     ==========
