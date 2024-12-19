@@ -15,7 +15,8 @@ def _obj_wrapper(func, args, kwargs, x):
     return -func(x, *args, **kwargs)
 
 def optimize(func, x_start, step,
-                bounds=None, args=(), kwargs={}, processes=1, no_improve_thr=1e-6,
+                bounds=None, args=(), kwargs={},
+                processes=1, no_improve_thr=1e-6,
                 no_improv_break=100, max_iter=1000,
                 alpha=1., gamma=2., rho=-0.5, sigma=0.5):
     """
@@ -29,7 +30,11 @@ def optimize(func, x_start, step,
     x_start: list or 1D np.ndarray
         Starting estimate for the search algorithm. Length must equal the number of provided bounds.
     step: list or 1D np.ndarray
-        Size of the initial search simplex       
+        Size of the initial search simplex   
+
+    Optional
+    ========    
+
     bounds: list containing tuples
         The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
         If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.

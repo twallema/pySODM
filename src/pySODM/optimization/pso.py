@@ -25,9 +25,11 @@ def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
     return np.array(f_ieqcons(x, *args, **kwargs))
 
 
-def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
-        processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8, 
-        debug=False, transform_pars=None):
+def optimize(func, bounds=None, args=(), kwargs={},
+             ieqcons=[], f_ieqcons=None, processes=1,
+             swarmsize=100, max_iter=100, minstep=1e-12,
+             minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,
+             debug=False,transform_pars=None):
     """
     Perform a particle swarm optimization (PSO) -- minimization of an objective function
 
@@ -44,6 +46,11 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     Optional
     ========
 
+    args : tuple
+        Additional arguments passed to objective function
+        (Default: empty tuple)
+    kwargs : dict
+        Additional keyword arguments passed to objective function
     ieqcons : list
         A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in 
         a successfully optimized problem (Default: [])
@@ -51,11 +58,6 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         Returns a 1-D array in which each element must be greater or equal 
         to 0.0 in a successfully optimized problem. If f_ieqcons is specified, 
         ieqcons is ignored (Default: None)
-    args : tuple
-        Additional arguments passed to objective function
-        (Default: empty tuple)
-    kwargs : dict
-        Additional keyword arguments passed to objective function
     phig : scalar
         Scaling factor to search away from the swarm's best known position
         (Default: 0.5)
