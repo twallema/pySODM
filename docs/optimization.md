@@ -207,7 +207,6 @@
 >    * **phip** (float) - optional - Tendency to search away from the particles best known position.  A higher value means each particle has less confidence in it's own best value.
 >    * **phig** (float) - optional - Tendency to search away from the swarm's best known position. A higher value means each particle has less confidence in the swarm's best value.
 >    * **debug** (bool) - optional - If True, progress statements will be displayed every iteration
->    * **particle_output** (bool) - optional - If True, function additionally returns the best particles position and objective function score
 >    * **transform_pars** (func) - optional - Transform the parameter values. E.g. to integer values or to map to a list of possibilities
 
 >    **Returns:**
