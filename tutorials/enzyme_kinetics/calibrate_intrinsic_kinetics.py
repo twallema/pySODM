@@ -101,10 +101,10 @@ if __name__ == '__main__':
     # Compute the number of cores and divide by two
     processes = int(os.getenv('SLURM_CPUS_ON_NODE', mp.cpu_count()/2))
     # PSO
-    #theta = pso.optimize(objective_function, swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)[0]    
+    #theta, _ = pso.optimize(objective_function, swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)    
     # Nelder-mead
     #step = len(theta)*[0.05,]
-    #theta = nelder_mead.optimize(objective_function, theta, step, processes=processes, max_iter=n_pso)[0]
+    #theta, _ = nelder_mead.optimize(objective_function, theta, step, processes=processes, max_iter=n_pso)
     theta = [0.95/1000, 0.75, 1.40, 5.00, 0.70]
 
     ##########

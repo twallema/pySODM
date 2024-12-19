@@ -80,9 +80,9 @@ if __name__ == '__main__':
     # Setup objective function (no priors --> uniform priors based on bounds)
     objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
     # Initial guess --> pso
-    theta = pso.optimize(objective_function, swarmsize=3*18, max_iter=30, processes=18, debug=True)[0]
+    theta, _ = pso.optimize(objective_function, swarmsize=3*18, max_iter=30, processes=18, debug=True)
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, 0.10*np.ones(len(theta)), processes=18, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, theta, 0.10*np.ones(len(theta)), processes=18, max_iter=30)
     # Simulate the model
     model.parameters.update({'beta': theta[0], 'alpha': theta[1:]})
     out = model.sim([start_date, end_date])
