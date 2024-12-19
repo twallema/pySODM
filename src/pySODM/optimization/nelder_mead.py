@@ -37,9 +37,12 @@ def optimize(func, x_start, step,
 
     Returns
     =======
+
     theta: list
-        theta[0]: estimated parameters
-        theta[1]: corresponding score 
+        optimised parameter values
+    
+    score: float
+        corresponding objective function value
     """
 
     ##################
@@ -138,7 +141,7 @@ def optimize(func, x_start, step,
         # Break after max_iter
         if max_iter and iters >= max_iter:
             print('Maximum number of iteration reached. Quitting.\n')
-            return res[0][0]
+            return res[0][0], res[0][1]
         iters += 1
         # Break if no improvements for too long
         if best < prev_best - no_improve_thr:
@@ -148,7 +151,7 @@ def optimize(func, x_start, step,
             no_improv += 1
         if no_improv >= no_improv_break:
             print('Maximum number of iterations without improvement reached. Quitting.\n')
-            return res[0][0]
+            return res[0][0], res[0][1]
 
         ################
         ## Reflection ##
