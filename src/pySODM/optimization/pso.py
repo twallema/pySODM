@@ -3,6 +3,9 @@ import numpy as np
 from functools import partial
 
 def _obj_wrapper(func, args, kwargs, x):
+    """
+    A posterior probability must be maximised; so we switch signs
+    """
     return -func(x, *args, **kwargs)
 
 
