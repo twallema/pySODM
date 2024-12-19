@@ -30,6 +30,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
 
     Parameters
     ==========
+    
     func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
         The objective function to be minimized
     bounds: list containing tuples
@@ -39,6 +40,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
 
     Optional
     ========
+
     ieqcons : list
         A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in 
         a successfully optimized problem (Default: [])
@@ -77,6 +79,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
 
     Returns
     =======
+
     g : array
         The swarm's best known position (optimal design)
     f : scalar
