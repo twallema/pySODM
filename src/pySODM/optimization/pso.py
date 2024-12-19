@@ -24,13 +24,13 @@ def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
 
 def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
         processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8, 
-        debug=False, particle_output=False, transform_pars=None):
+        debug=False, transform_pars=None):
     """
     Perform a particle swarm optimization (PSO)
 
     Parameters
     ==========
-    
+
     func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
         The objective function to be minimized
     bounds: list containing tuples
@@ -70,9 +70,6 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     processes : int
         The number of processes to use to evaluate objective function and 
         constraints (default: 1)
-    particle_output : boolean
-        Whether to include the best per-particle position and the objective
-        values at those.
     transform_pars : None / function
         Transform the parameter values. E.g. to integer values or to map to
         a list of possibilities.
@@ -80,15 +77,11 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     Returns
     =======
 
-    g : array
-        The swarm's best known position (optimal design)
-    f : scalar
-        The objective value at ``g``
-    p : array
-        The best known position per particle
-    pf: arrray
-        The objective values at each position in p
-
+    theta: list
+        optimised parameter values
+    
+    score: float
+        corresponding objective function value
     """
 
     if not bounds:
@@ -245,18 +238,12 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
                 print('Stopping search: Swarm best objective change less than {:}'\
                     .format(minfunc))
                 sys.stdout.flush()
-                if particle_output:
-                    return p_min, fp[i_min], p, fp
-                else:
-                    return p_min, fp[i_min]
+                return p_min, fp[i_min]
             elif stepsize <= minstep:
                 print('Stopping search: Swarm best position change less than {:}'\
                     .format(minstep))
                 sys.stdout.flush()
-                if particle_output:
-                    return p_min, fp[i_min], p, fp
-                else:
-                    return p_min, fp[i_min]
+                return p_min, fp[i_min]
             else:
                 g = p_min.copy()
                 fg = fp[i_min]
@@ -275,7 +262,5 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     if not is_feasible(g):
         print("However, the optimization couldn't find a feasible design. Sorry")
         sys.stdout.flush()
-    if particle_output:
-        return g, fg, p, fp
-    else:
-        return g, fg
+
+    return g, fg
