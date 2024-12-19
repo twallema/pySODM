@@ -163,7 +163,7 @@
 >    Perform a [Nelder-Mead minimization](https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method).
 
 >    **Parameters:**
->    * **func** (function) - Callable function or class representing the objective function to be minimized. Recommended `pySODM.optimization.log_posterior_probability`.
+>    * **func** (function) - Callable function or class representing the objective function to be minimized. Recommended using `pySODM.optimization.log_posterior_probability`. 
 >    * **x_start** (list or 1D np.ndarray) - Starting estimate for the search algorithm. Length must equal the number of provided bounds. 
 >    * **step** (list or 1D np.ndarray) - (Relative) size of the initial search simplex. 
 >    * **bounds** (list) - optional - The bounds of the design variable(s). In form `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. If class `log_posterior_probability` is used as `func`, it already contains bounds. If bounds are provided these will overwrite the bounds available in the 'log_posterior_probability' object.
@@ -181,7 +181,8 @@
 >    * **sigma** (float) - optional - Shrink coefficient
 
 >    **Returns:**
->    * **theta** (list) - Position 0: Estimated parameters. Position 1: corresponding score of `func`.
+>    * **theta** (list) - Optimised parameter values.
+>    * **score** (float) - Corresponding corresponding objective function value.
 
 ## pso.py
 
@@ -190,7 +191,7 @@
 >    Perform a [Particle Swarm Optimization](https://en.wikipedia.org/wiki/Particle_swarm_optimization).
 
 >    **Parameters:**
->    * **func** (function) - Callable function or class representing the objective function to be minimized. Recommended `log_posterior_probability`.
+>    * **func** (function) - Callable function or class representing the objective function to be minimized. Recommended using `log_posterior_probability`.
 >    * **bounds** (list) - optional - The bounds of the design variable(s). In form `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. If class `log_posterior_probability` is used as `func`, it already contains bounds. If bounds are provided these will overwrite the bounds available in the 'log_posterior_probability' object.
 >    * **ieqcons** (list) - A list of functions of length n such that ```ieqcons[j](x,*args) >= 0.0``` in a successfully optimized problem
 >    * **f_ieqcons** (function) - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored
@@ -210,7 +211,8 @@
 >    * **transform_pars** (func) - optional - Transform the parameter values. E.g. to integer values or to map to a list of possibilities
 
 >    **Returns:**
->    * **theta** (list) - Position 0: Estimated parameters. Position 1: Corresponding score of `func`. If `particle_output==True` then: Position 3: The best known position per particle. Position 4: Vorresponding score of `func`.
+>    * **theta** (list) - Optimised parameter values.
+>    * **score** (float) - Corresponding corresponding objective function value.
 
 ## mcmc.py
 
