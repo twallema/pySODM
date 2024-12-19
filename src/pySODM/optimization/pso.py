@@ -32,9 +32,10 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     ==========
     func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
         The objective function to be minimized
-    bounds: tuple array
-        The bounds of the design variable(s). In form [(lower, upper), ..., (lower, upper)]
-        Class 'log_posterior_probability' automatically contains bounds. If bounds are provided these overwrite the bounds available in the 'log_posterior_probability' object.
+    bounds: list containing tuples
+        The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
+        If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
+        If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
 
     Optional
     ========
@@ -92,7 +93,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
             bounds = func.expanded_bounds
         except:
             raise Exception(
-                "'func' does not appear to be a pySODM model: 'expanded_bounds' not found. Provide bounds directly to `pso.optimize()`"
+                "please provide 'bounds'."
             )
 
     lb, ub = [], []
