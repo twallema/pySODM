@@ -29,7 +29,7 @@ def optimize(func, bounds=None, args=(), kwargs={},
              ieqcons=[], f_ieqcons=None, processes=1,
              swarmsize=100, max_iter=100, minstep=1e-12,
              minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,
-             debug=False,transform_pars=None):
+             debug=False, transform_pars=None):
     """
     Perform a particle swarm optimization (PSO) -- minimization of an objective function
 
@@ -148,7 +148,6 @@ def optimize(func, bounds=None, args=(), kwargs={},
         import multiprocessing
         mp_pool = multiprocessing.Pool(processes)
         
-
     # Initialize the particle swarm ############################################
     S = swarmsize
     D = len(lb)  # the number of dimensions each particle has
