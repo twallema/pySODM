@@ -246,7 +246,7 @@ if __name__ == '__main__':
     # Initial guess
     theta = [0.35,]
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, step=[0.10,], processes=1, max_iter=10)[0]
+    theta, _ = nelder_mead.optimize(objective_function, theta, step=[0.10,], processes=1, max_iter=10)
 ```
 We find an optimal value of {math}`\beta \pm 0.27`. We can then asses the goodness-of-fit by updating the dictionary of model parameters with the newly found value for `beta`, simulating the model and visualizing the model prediction and dataset.
 

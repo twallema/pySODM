@@ -134,9 +134,9 @@ def test_correct_approach_wo_dimension():
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels)
 
     # PSO
-    theta = pso.optimize(objective_function, swarmsize=10, max_iter=10, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function, swarmsize=10, max_iter=10, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], processes=1, max_iter=10)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], processes=1, max_iter=10)
 
     if __name__ == "__main__":
         # Variables
@@ -368,11 +368,11 @@ def test_calibration_nd_parameter():
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels)
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
-                        processes=1, max_iter=20)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
+                        processes=1, max_iter=20)
 
 ##############################
 ## Model with one dimension ##
@@ -423,11 +423,11 @@ def test_correct_approach_with_one_dimension_0():
     bounds = objective_function.expanded_bounds
 
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
-                        processes=1, max_iter=20)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
+                        processes=1, max_iter=20)
 
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
@@ -566,11 +566,11 @@ def test_correct_approach_with_two_dimensions():
     labels = objective_function.expanded_labels 
     bounds = objective_function.expanded_bounds
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=30, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=30, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
-                        processes=1, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
+                        processes=1, max_iter=30)
 
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)

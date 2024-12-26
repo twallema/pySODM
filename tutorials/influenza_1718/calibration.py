@@ -147,11 +147,13 @@ if __name__ == '__main__':
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True, kwargs={'simulation_kwargs':{'tau': tau}})[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes,
+                        debug=True, kwargs={'simulation_kwargs':{'tau': tau}})
     # Nelder-mead
     #step = len(expanded_bounds)*[0.10,]
-    #theta = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes, max_iter=n_pso, kwargs={'simulation_kwargs':{'tau': tau}})[0]
+    #theta, _ = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes,
+    # max_iter=n_pso, kwargs={'simulation_kwargs':{'tau': tau}})
 
     ######################
     ## Visualize result ##

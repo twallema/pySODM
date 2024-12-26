@@ -232,7 +232,7 @@ class JumpProcess:
     def _tau_leap(self, states, rates, tau):
         """
         Tau-leaping algorithm by Gillespie
-        Loops over the model states, extracts the values of the states and the rates, passes them to `_draw_transitionings()`
+        Loops over the transitionings, extracts the values of the states and the rates, passes them to `_multinomial_rvs()`
 
         Inputs
         ------

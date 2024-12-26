@@ -176,11 +176,11 @@ from pySODM.optimization import pso, nelder_mead
 if __name__ == '__main__':
 
     # PSO
-    theta = pso.optimize(objective_function, swarmsize=50, max_iter=30, processes=2)[0]    
+    theta, _ = pso.optimize(objective_function, swarmsize=50, max_iter=30, processes=2)    
 
     # Nelder-mead
     step = len(theta)*[0.05,]
-    theta = nelder_mead.optimize(objective_function, theta, step, processes=2, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, theta, step, processes=2, max_iter=30)
 ```
 
 We find the following estimates for our parameters,
