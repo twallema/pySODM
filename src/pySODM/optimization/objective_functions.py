@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 from datetime import datetime
-from scipy.stats import norm, triang, gamma
 from scipy.special import gammaln
+from scipy.stats import norm, triang, gamma, beta
 from pySODM.models.utils import list_to_dict
 from pySODM.models.validation import validate_initial_states
 
@@ -157,130 +157,122 @@ def ll_negative_binomial(ymodel, ydata, alpha):
 #####################################
 
 def log_prior_uniform(x, bounds):
-    """ Uniform log prior distribution
+    """ A uniform log prior distribution
 
     Parameters
     ----------
     x: float
-        Parameter value whos probability we want to test.
+        Parameter value.
     bounds: tuple
-        Tuple containg the upper and lower bounds of the parameter value.
+        Lower and upper bound of the uniform probability distribution.
 
     Returns
     -------
-    Log probability of sample x in light of a uniform prior distribution.
-
+    Log probability of x in light of a uniform prior distribution.
     """
-    prob = 1/(bounds[1]-bounds[0])
-    condition = bounds[0] <= x <= bounds[1]
-    if condition == True:
-        # should be set to zero to accomodate bounds = np.inf --> prob is inf!!!
-        return 0
+    if bounds[0] <= x <= bounds[1]:
+        return 0 # technically prob = 1/(upper - lower)
     else:
         return -np.inf
 
-def log_prior_custom(x, args):
-    """ Custom log prior distribution: computes the probability of a sample in light of a list containing samples from a previous MCMC run
+def log_prior_triangle(x, args):
+    """ A triangular log prior distribution
 
     Parameters
     ----------
     x: float
-        Parameter value whos probability we want to test.
+        Parameter value.
     args: tuple
-        Tuple containg the density of each bin in the first position and the bounds of the bins in the second position.
-        Contains a weight given to the custom prior in the third position of the tuple.
-
-    Returns
-    -------
-    Log probability of sample x in light of a list with previously sampled parameter values.
-
-    Example use:
-    ------------
-    # Posterior of 'my_par' in samples['my_par']
-    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=20, density=True)
-    density_my_par_norm = density_my_par/np.sum(density_my_par)
-    prior_fcn = prior_custom
-    prior_fcn_args = (density_my_par_norm, bins_my_par, weight)
-    # Prior_fcn and prior_fcn_args must then be passed on to the function log_probability
-    """
-    density, bins, weight = args
-    if x <= bins.min() or x >= bins.max():
-        return -np.inf
-    else:
-        idx = np.digitize(x, bins)
-        return weight*np.log(density[idx-1])
-
-def log_prior_normal(x,norm_params):
-    """ Normal log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    norm_params: tuple
-        Tuple containg mu and stdev.
-
-    Returns
-    -------
-    Log probability of sample x in light of a normal prior distribution.
-
-    """
-    mu,stdev=norm_params
-    return np.sum(norm.logpdf(x, loc = mu, scale = stdev))
-
-def log_prior_triangle(x,triangle_params):
-    """ Triangle log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    triangle_params: tuple
-        Tuple containg lower bound, upper bound and mode of the triangle distribution.
+        Tuple containg the lower bound, upper bound and mode of the triangle distribution.
 
     Returns
     -------
     Log probability of sample x in light of a triangle prior distribution.
-
     """
-    low,high,mode = triangle_params
+    low, high, mode = args
     return triang.logpdf(x, loc=low, scale=high, c=mode)
 
-def log_prior_gamma(x,gamma_params):
-    """ Gamma log prior distribution
+def log_prior_normal(x, args):
+    """ A normal log prior distribution
 
     Parameters
     ----------
     x: float
-        Parameter value whos probability we want to test.
-    gamma_params: tuple
-        Tuple containg gamma parameters alpha, beta and loc (shift along x-axis).
+        Parameter value.
+    args: tuple
+        Tuple containg the average and standard deviation of a normal distribution.
+
+    Returns
+    -------
+    Log probability of sample x in light of a normal prior distribution.
+    """
+    mu, stdev = args
+    return np.sum(norm.logpdf(x, loc=mu, scale=stdev))
+
+def log_prior_gamma(x, args):
+    """ A gamma distributed log prior distribution
+
+    Parameters
+    ----------
+    x: float
+        Parameter value.
+    args: tuple
+        Tuple containg the parameters `a`, `loc` and `scale` of `scipy.stats.gamma.logpdf`.
 
     Returns
     -------
     Log probability of sample x in light of a gamma prior distribution.
-
     """
-    a,b,loc = gamma_params
-    return gamma.logpdf(x, a=a, scale=1/b, loc=loc)
+    a, loc, scale = args
+    return gamma.logpdf(x, a=a, loc=loc, scale=scale)
 
-def log_prior_weibull(x,weibull_params):
-    """ Weibull log prior distribution
+def log_prior_beta(x, args):
+    """ A beta distributed log prior distribution
 
     Parameters
     ----------
     x: float
-        Parameter value whos probability we want to test.
-    weibull_params: tuple
-        Tuple containg weibull parameters k, lambda and loc (shift along x-axis).
+        Parameter value.
+    args: tuple
+        Tuple containg the parameters `a`, `b`, `loc` and `scale` of `scipy.stats.beta.logpdf`.
 
     Returns
     -------
-    Log probability of sample x in light of a weibull prior distribution.
-
+    Log probability of sample x in light of a beta prior distribution.
     """
-    k,lam,loc = weibull_params
-    return gamma.logpdf(x, k, shape=lam, loc=loc)    
+    a, b, loc, scale = args
+    return beta.logpdf(x, a, b, loc=loc, scale=scale)
+
+def log_prior_custom(x, args):
+    """ A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
+
+    Parameters
+    ----------
+    x: float
+        Parameter value.
+    args: tuple
+        Must contain the density of each bin in the first position and the bounds of the bins in the second position.
+
+    Returns
+    -------
+    Log probability of x in light of a custom distribution of data.
+
+    Example use:
+    ------------
+    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=20, density=True) #  `samples['my_par']` is a list containing samples from a distribution
+    
+    density_my_par_norm = density_my_par/np.sum(density_my_par) # normalise to probability                              
+    
+    prior_fcn = log_prior_custom # this function
+    
+    prior_fcn_args = (density_my_par_norm, bins_my_par) # `Prior_fcn` and `prior_fcn_args` must then be passed on to the pySODM `log_probability` class
+    """
+    density, bins = args
+    if x <= bins.min() or x >= bins.max():
+        return -np.inf
+    else:
+        idx = np.digitize(x, bins)
+        return np.log(density[idx-1])
 
 #############################################
 ## Computing the log posterior probability ##
