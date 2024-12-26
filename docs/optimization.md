@@ -86,75 +86,75 @@
 
 >   **Parameters:**
 
->    * **x** (float) - Parameter value whos probability we want to test.
->    * **bounds** (tuple) - Contains the upper and lower bounds of the parameter value.
+>    * **x** (float) - Parameter value.
+>    * **bounds** (tuple) - Lower and upper bound of the uniform probability distribution.
 
 >    **Returns:**
->    * **lp** (float) Log probability of sample x in light of a uniform prior distribution.
+>    * **lp** (float) Log probability of x in light of a uniform prior distribution.
 
-***function* log_prior_custom(x, args)**
-
->   Computes the probability of a sample in light of a list containing samples.
-
->    **Parameters:**
->    * **x** (float) - Parameter value whos probability we want to test.
->    * **args** (tuple) - Contains the density of each bin in the first position and the bounds of the bins in the second position. Contains a weight given to the custom prior in the third position of the tuple.
-
->    **Returns:**
->    * **lp** (float) Log probability of sample x in light of a custom prior distribution.
-
->    **Example use:**
-
->```python
->density_my_par, bins_my_par = np.histogram([sample_0, sample_1, ..., sample_n], bins=20, density=True)
->density_my_par_norm = density_my_par/np.sum(density_my_par)
->prior_fcn = prior_custom
->prior_fcn_args = (density_my_par_norm, bins_my_par, weight)
->```
-
-***function* log_prior_normal(x, norm_pars)**
-
->   Normal log prior distribution.
-
->    **Parameters:**
->    * **x** (float) - Parameter value whos probability we want to test.
->    * **norm_pars** (tuple) - Tuple containg average and standard deviation of normal distribution.
-
->    **Returns:**
->    * **lp** (float) Log probability of sample x in light of a normal prior distribution.
-
-***function* log_prior_triangle(x, triangle_pars)**
+***function* log_prior_triangle(x, pars)**
 
 >   Triangular log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value whos probability we want to test.
->    * **triangle_pars** (tuple) - Tuple containg lower bound, upper bound and mode of the triangle distribution.
+>    * **x** (float) - Parameter value.
+>    * **pars** (tuple) - Tuple containg the lower bound, upper bound and mode of the triangle distribution.
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a triangular prior distribution.
 
-***function* log_prior_gamma(x, gamma_pars)**
+***function* log_prior_normal(x, pars)**
+
+>   Normal log prior distribution.
+
+>    **Parameters:**
+>    * **x** (float) - Parameter value.
+>    * **pars** (tuple) - Tuple containg the average and standard deviation of a normal distribution.
+
+>    **Returns:**
+>    * **lp** (float) Log probability of sample x in light of a normal prior distribution.
+
+***function* log_prior_gamma(x, pars)**
 
 >   Gamma log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value whos probability we want to test.
->    * **gamma_pars** (tuple) - Tuple containg gamma parameters alpha and beta.
+>    * **x** (float) - Parameter value.
+>    * **pars** (tuple) - Tuple containg the parameters `a`, `loc` and `scale` of `scipy.stats.gamma.logpdf`.
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a gamma prior distribution.
 
-***function* log_prior_weibull(x, weibull_params)**
+***function* log_prior_beta(x, pars)**
 
->   Weibull log prior distribution.
+>   Beta log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value whos probability we want to test.
->    * **weibull_params** (tuple) - Contains the weibull parameters k and lambda.
+>    * **x** (float) - Parameter value.
+>    * **pars** (tuple) - Tuple containg the parameters `a`, `b`, `loc` and `scale` of `scipy.stats.beta.logpdf`.
 
 >    **Returns:**
->    * **lp** (float) Log probability of sample x in light of a weibull prior distribution.
+>    * **lp** (float) Log probability of sample x in light of a beta prior distribution.
+
+
+***function* log_prior_custom(x, args)**
+
+>    A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
+
+>    **Parameters:**
+>    * **x** (float) - Parameter value.
+>    * **args** (tuple) - Must contain the density of each bin in the first position and the bounds of the bins in the second position.
+
+>    **Returns:**
+>    * **lp** (float) Log probability of x in light of a custom distribution of data.
+
+>    **Example use:**
+
+>```python
+>density_my_par, bins_my_par = np.histogram([sample_0, sample_1, ..., sample_n], bins=50, density=True) # convert to a list of samples to a binned PDF
+>prior_fcn = prior_custom
+>prior_fcn_args = (density_my_par_norm, bins_my_par, weight)
+>```
 
 ## nelder_mead.py
 
