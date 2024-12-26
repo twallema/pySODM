@@ -187,7 +187,7 @@ def log_prior_triangle(x, args):
 
     Returns
     -------
-    Log probability of sample x in light of a triangle prior distribution.
+    Log probability of sample x in light of a triangular prior distribution.
     """
     low, high, mode = args
     return triang.logpdf(x, loc=low, scale=high, c=mode)
@@ -259,9 +259,7 @@ def log_prior_custom(x, args):
 
     Example use:
     ------------
-    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=20, density=True) #  `samples['my_par']` is a list containing samples from a distribution
-    
-    density_my_par_norm = density_my_par/np.sum(density_my_par) # normalise to probability                              
+    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=50, density=True) # a list of samples is converted to a binned PDF
     
     prior_fcn = log_prior_custom # this function
     
