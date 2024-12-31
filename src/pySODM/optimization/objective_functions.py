@@ -13,102 +13,156 @@ from pySODM.models.validation import validate_initial_states
 ## Log prior probability functions ##
 #####################################
 
-def log_prior_uniform(x, bounds):
+def log_prior_uniform(x, bounds=None, weight=1):
     """ A uniform log prior distribution
 
     Parameters
     ----------
-    x: float
+    Provided internally by pySODM:
+
+    - x: float
         Parameter value.
-    bounds: tuple
-        Lower and upper bound of the uniform probability distribution.
+
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - bounds: tuple
+        Tuple containing the lower and upper bounds of the uniform probability distribution.
+    - weight: float
+        Regularisation weight (default: 1) -- does nothing.
 
     Returns
     -------
     Log probability of x in light of a uniform prior distribution.
     """
-    if bounds[0] <= x <= bounds[1]:
+    if low <= x <= high:
         return 0 # technically prob = 1/(upper - lower)
     else:
         return -np.inf
 
-def log_prior_triangle(x, args):
+def log_prior_triangle(x, low=None, high=None, mode=None, weight=1):
     """ A triangular log prior distribution
 
     Parameters
     ----------
-    x: float
+    Provided internally by pySODM:
+
+    - x: float
         Parameter value.
-    args: tuple
-        Tuple containg the lower bound, upper bound and mode of the triangle distribution.
+
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - low: float
+        Lower bound of the triangle distribution.
+    - high: float
+        Upper bound of the triangle distribution.
+    - mode: float
+        Mode of the triangle distribution.
+    - weight: float
+        Regularisation weight (default: 1).
 
     Returns
     -------
     Log probability of sample x in light of a triangular prior distribution.
     """
-    low, high, mode = args
-    return triang.logpdf(x, loc=low, scale=high, c=mode)
+    return weight*triang.logpdf(x, loc=low, scale=high, c=mode)
 
-def log_prior_normal(x, args):
+def log_prior_normal(x, mu=None, stdev=None, weight=1):
     """ A normal log prior distribution
 
     Parameters
     ----------
-    x: float
+    Provided internally by pySODM:
+
+    - x: float
         Parameter value.
-    args: tuple
-        Tuple containg the average and standard deviation of a normal distribution.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - mu: float
+        Average of the normal distribution.
+    - stdev: float
+        Standard deviation of the normal distribution.
+    - weight: float
+        Regularisation weight (default: 1).
 
     Returns
     -------
     Log probability of sample x in light of a normal prior distribution.
     """
-    mu, stdev = args
-    return np.sum(norm.logpdf(x, loc=mu, scale=stdev))
+    return weight*np.sum(norm.logpdf(x, loc=mu, scale=stdev))
 
-def log_prior_gamma(x, args):
+def log_prior_gamma(x, a=None, loc=None, scale=None, weight=1):
     """ A gamma distributed log prior distribution
 
     Parameters
     ----------
-    x: float
+    Provided internally by pySODM:
+
+    - x: float
         Parameter value.
-    args: tuple
-        Tuple containg the parameters `a`, `loc` and `scale` of `scipy.stats.gamma.logpdf`.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - a: float
+        Parameter 'a' of `scipy.stats.gamma.logpdf`.
+    - loc: float
+        Location parameter of `scipy.stats.gamma.logpdf`.
+    - scale: float
+        Scale parameter of `scipy.stats.gamma.logpdf`.
+    - weight: float
+        Regularisation weight (default: 1).
 
     Returns
     -------
     Log probability of sample x in light of a gamma prior distribution.
     """
-    a, loc, scale = args
-    return gamma.logpdf(x, a=a, loc=loc, scale=scale)
+    return weight*gamma.logpdf(x, a=a, loc=loc, scale=scale)
 
-def log_prior_beta(x, args):
+def log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1):
     """ A beta distributed log prior distribution
 
     Parameters
     ----------
-    x: float
+    Provided internally by pySODM:
+
+    - x: float
         Parameter value.
-    args: tuple
-        Tuple containg the parameters `a`, `b`, `loc` and `scale` of `scipy.stats.beta.logpdf`.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - a: float
+        Parameter 'a' of `scipy.stats.beta.logpdf`.
+    - b: float
+        Parameter 'b' of `scipy.stats.beta.logpdf`.
+    - loc: float
+        Location parameter of `scipy.stats.beta.logpdf`.
+    - scale: float
+        Scale parameter of `scipy.stats.beta.logpdf`.
+    - weight: float
+        Regularisation weight (default: 1).
 
     Returns
     -------
     Log probability of sample x in light of a beta prior distribution.
     """
-    a, b, loc, scale = args
-    return beta.logpdf(x, a, b, loc=loc, scale=scale)
+    return weight*beta.logpdf(x, a, b, loc=loc, scale=scale)
 
-def log_prior_custom(x, args):
+def log_prior_custom(x, density=None, bins=None, weight=1):
     """ A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
 
     Parameters
     ----------
-    x: float
+    Provided internally by pySODM:
+
+    - x: float
         Parameter value.
-    args: tuple
-        Must contain the density of each bin in the first position and the bounds of the bins in the second position.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - density: array
+        The values of the histogram (generated by `np.histogram()`).
+    - bins: array
+        The histogram's bin edges (generated by `np.histogram()`).
 
     Returns
     -------
@@ -122,41 +176,16 @@ def log_prior_custom(x, args):
     
     prior_fcn_args = (density_my_par_norm, bins_my_par) # `Prior_fcn` and `prior_fcn_args` must then be passed on to the pySODM `log_probability` class
     """
-    density, bins = args
     if x <= bins.min() or x >= bins.max():
         return -np.inf
     else:
         idx = np.digitize(x, bins)
-        return np.log(density[idx-1])
+        return weight*np.log(density[idx-1])
 
 
 ##############################
 ## Log-likelihood functions ##
 ##############################
-
-def log_prior_normal_L2(x, L2_params):
-    """ L2 regularised version of a normal prior
-
-    Corresponds to a normal prior, normalised to zero at the expected value of the parameter, but multiplied by some weight
-    Resolves the issue that the prior is overwhelmed by likelihood in magnitude when a lot of data is used
-    Often referred to as "ridge regression"
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    L2_params: tuple
-        Tuple containg the reguralisation weight (l), the expected value of the parameter (mu) the expected standard deviation (stdev)
-        Higher regularisation weights force the posterior distribution to be more in line with the prior distribution
-        This implies the reguralisation weight express how confident you are about your prior beliefs and acts as a noise filter
-
-    Returns
-    -------
-    Log probability of sample x in light of a normal prior distribution.
-
-    """
-    mu,stdev,l=L2_params
-    return np.sum(l*(norm.logpdf(x, loc=mu, scale=stdev) - norm.logpdf(mu, loc=mu, scale=stdev)))
 
 def ll_lognormal(ymodel, ydata, sigma):
     """
@@ -413,13 +442,13 @@ class log_posterior_probability():
     @staticmethod
     def compute_log_prior_probability(thetas, log_prior_prob_fnc, log_prior_prob_fnc_args):
         """
-        Loops over the log_prior_probability functions and their respective arguments to compute the prior probability of every model parameter in theta.
+        Loops over the log_prior_probability functions and their respective arguments to compute the prior probability of every suggested model parameter value.
         """
         lp=[]
         for idx,fnc in enumerate(log_prior_prob_fnc):
             theta = thetas[idx]
-            args = log_prior_prob_fnc_args[idx]
-            lp.append(fnc(theta,args))
+            kwargs = log_prior_prob_fnc_args[idx]
+            lp.append(fnc(theta, **kwargs))
         return sum(lp)
 
     def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args,
