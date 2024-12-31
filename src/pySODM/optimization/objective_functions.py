@@ -13,6 +13,8 @@ from pySODM.models.validation import validate_initial_states
 ## Log prior probability functions ##
 #####################################
 
+# TODO: check input arguments
+
 def log_prior_uniform(x, bounds=None, weight=1):
     """ A uniform log prior distribution
 
@@ -34,7 +36,7 @@ def log_prior_uniform(x, bounds=None, weight=1):
     -------
     Log probability of x in light of a uniform prior distribution.
     """
-    if low <= x <= high:
+    if bounds[0] <= x <= bounds[1]:
         return 0 # technically prob = 1/(upper - lower)
     else:
         return -np.inf
