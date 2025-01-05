@@ -402,9 +402,9 @@ class log_posterior_probability():
         else:
             self.expanded_labels = self.parameters_names_postprocessing
 
-        ####################################################################
-        ## Input check on number of prior functions + potential expansion ##
-        ####################################################################
+        #################################################
+        ## Input checks on prior functions + expansion ##
+        #################################################
 
         self.log_prior_prob_fnc, self.log_prior_prob_fnc_args = validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, self.expanded_bounds)
 
@@ -917,8 +917,8 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
             required_args = [param for param in params if ((param != 'x') & (param != 'weight'))]
             provided_args = [param for param in kwargs.keys() if param != 'weight']
             if set(required_args) != set(provided_args):
-                redundant_args = set(provided_args).difference(set(required_args))
-                missing_args = set(required_args).difference(set(provided_args))
+                redundant_args = [param for param in set(provided_args).difference(set(required_args)) if param != 'weight']
+                missing_args = list(set(required_args).difference(set(provided_args)))
                 raise ValueError(f"the arguments of the {i}th `log_prior_prob_fnc` are invalid. redundant: {redundant_args}, missing: {missing_args}.")
 
         # EXPANSION
