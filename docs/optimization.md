@@ -17,7 +17,7 @@
 * **log_likelihood_fnc_args** (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (such as `ll_poisson`), provide an empty list. Must have the same length as `data`.
 * **start_sim** (int/float or str/datetime) - optional - Can be used to alter the start of the simulation. By default, the start of the simulation is chosen as the earliest time/date found in the datasets. 
 * **weights** (list) - optional - Contains the weights of every dataset in the final log posterior probability. Defaults to one for every dataset.
-* **log_prior_prob_fnc** (list) - optional - Contains a prior probability function for every calibrated parameter. Defaults to a uniform prior using the provided bounds.
+* **log_prior_prob_fnc** (list) - optional - Contains a log prior probability function for every calibrated parameter in `parameter_names`. If not provided, defaults the log prior probability function to a uniform distribution over `bounds`.
 * **log_prior_prob_fnc_args** (list) - optional - Contains the arguments of the provided prior probability functions.
 * **initial_states** (list) - optional - Contains a dictionary of initial states for every dataset.
 * **aggregation_function** (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an `xarray.DataArray`, resulting from selecting the simulation output at the state we wish to match to the dataset (`model_output_xarray_Dataset['state_name']`), as its input. The output of the function must also be an `xarray.DataArray`. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a fine spatial resolution. However, data is only available on a coarser level. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument `aggregation_function`are: 1) one callable function --> applied to every dataset. 2) A list containing one callable function --> applied to every dataset. 3) A list containing a callable function for every dataset --> every dataset has its own aggregation function.
@@ -107,13 +107,13 @@
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a triangular prior distribution.
 
-***function* log_prior_normal(x, mu=None, stdev=None, weight=1)**
+***function* log_prior_normal(x, avg=None, stdev=None, weight=1)**
 
 >   Normal log prior distribution.
 
 >    **Parameters:**
 >    * **x** (float) - Parameter value. Passed internally by pySODM. 
->    * **mu** (float) - Average of the normal distribution.
+>    * **avg** (float) - Average of the normal distribution.
 >    * **stdev** (float) - Standard deviation of the normal distribution.
 >    * **weight** (float) - Regularisation weight (default: 1).
 

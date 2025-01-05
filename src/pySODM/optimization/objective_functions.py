@@ -13,8 +13,6 @@ from pySODM.models.validation import validate_initial_states
 ## Log prior probability functions ##
 #####################################
 
-# TODO: check input arguments
-
 def log_prior_uniform(x, bounds=None, weight=1):
     """ A uniform log prior distribution
 
@@ -37,7 +35,7 @@ def log_prior_uniform(x, bounds=None, weight=1):
     Log probability of x in light of a uniform prior distribution.
     """
     if bounds[0] <= x <= bounds[1]:
-        return 0 # technically prob = 1/(upper - lower)
+        return 0*weight # technically prob = 1/(upper - lower)
     else:
         return -np.inf
 
@@ -68,7 +66,7 @@ def log_prior_triangle(x, low=None, high=None, mode=None, weight=1):
     """
     return weight*triang.logpdf(x, loc=low, scale=high, c=mode)
 
-def log_prior_normal(x, mu=None, stdev=None, weight=1):
+def log_prior_normal(x, avg=None, stdev=None, weight=1):
     """ A normal log prior distribution
 
     Parameters
@@ -80,7 +78,7 @@ def log_prior_normal(x, mu=None, stdev=None, weight=1):
     
     Provided by user as `log_prior_prob_fnc_args`:
 
-    - mu: float
+    - avg: float
         Average of the normal distribution.
     - stdev: float
         Standard deviation of the normal distribution.
@@ -91,7 +89,7 @@ def log_prior_normal(x, mu=None, stdev=None, weight=1):
     -------
     Log probability of sample x in light of a normal prior distribution.
     """
-    return weight*np.sum(norm.logpdf(x, loc=mu, scale=stdev))
+    return weight*np.sum(norm.logpdf(x, loc=avg, scale=stdev))
 
 def log_prior_gamma(x, a=None, loc=None, scale=None, weight=1):
     """ A gamma distributed log prior distribution
@@ -418,9 +416,9 @@ class log_posterior_probability():
             aggregation_function = validate_aggregation_function(aggregation_function, len(data))
         self.aggregation_function = aggregation_function
 
-        ############################################
+        #######################################
         ## Compare data and model dimensions ##
-        ############################################
+        #######################################
 
         out = create_fake_xarray_output(model.dimensions_per_state, model.state_coordinates, model.initial_states, self.time_index)
         self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
@@ -868,30 +866,64 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
     Validation of the log prior probability function and its arguments.
     Expansion for parameters with multiple entries.
     """
-
-    if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
-        # Setup uniform priors
+    # VALIDATION
+    # ----------
+    # check combinations of user inputted functions/args
+    ## nothing: uniform priors based on bounds
+    if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):                  
         expanded_log_prior_prob_fnc = len(expanded_bounds)*[log_prior_uniform,]
         expanded_log_prior_prob_fnc_args = expanded_bounds
-    elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
+    ## functions without arguments: invalid
+    elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):            
         raise Exception(
-            f"Invalid input. Prior probability functions provided but no prior probability function arguments."
+            f"invalid input. `log_prior_prob_fnc` provided but no `log_prior_prob_fnc_args` provided."
         )
-    elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
+    ## arguments without functions: invalid
+    elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):            
         raise Exception(
-            f"Invalid input. Prior probability function arguments provided but no prior probability functions."
+            f"invalid input. `log_prior_prob_fnc_args` provided but no `log_prior_prob_fnc` provided."
         )
     else:
-        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
-            raise ValueError(
-                f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
-            ) 
+    ## functions and arguments provided: check further
+        # check types are lists
+        if not isinstance(log_prior_prob_fnc, list):
+            raise TypeError(
+                f"`log_prior_prob_fnc` must be a list containing a log prior probability function for every parameter in `parameter_names`. found type: {type(log_prior_prob_fnc)}."
+            )
+        if not isinstance(log_prior_prob_fnc_args, list):
+            raise TypeError(
+                f"`log_prior_prob_fnc_args` must be a list containing the arguments of the log prior probability functions in `log_prior_prob_fnc`. found type: {type(log_prior_prob_fnc_args)}."
+            )
+        # check if they have the right length
         if ((len(log_prior_prob_fnc) != len(parameter_sizes.keys()))&(len(log_prior_prob_fnc) != len(expanded_bounds))):
             raise Exception(
-                f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters ({len(parameter_sizes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters  ({sum(parameter_sizes.values())})"
+                f"The provided number of log prior probability functions ({len(log_prior_prob_fnc)}) must either equal:\n\t1) the number of calibrated parameters ({len(parameter_sizes.keys())}) or,\n\t2) the element-expanded number of calibrated parameters ({sum(parameter_sizes.values())})"
                 )
+        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
+            raise ValueError(
+                f"The provided number of log prior probability functions ({len(log_prior_prob_fnc)}) and the number of log prior probability function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
+            ) 
+        # check `log_prior_prob_fnc` only contains callables
+        non_callable_indices = [i for i, item in enumerate(log_prior_prob_fnc) if not callable(item)]
+        if non_callable_indices:
+            raise TypeError(f"`log_prior_prob_fnc` can only contain functions. found non-callable elements in positions: {non_callable_indices}")
+        # check `log_prior_prob_fnc_args` only contains dicts
+        non_dict_indices = [i for i, item in enumerate(log_prior_prob_fnc_args) if not isinstance(item, dict)]
+        if non_dict_indices:
+            raise TypeError(f"`log_prior_prob_fnc_args` can only contain dictionaries. found non-dict elements in positions: {non_dict_indices}")
+        # check that the correct input arguments to the prior functions are provided
+        for i, (func, kwargs) in enumerate(zip(log_prior_prob_fnc, log_prior_prob_fnc_args)):
+            params = list(inspect.signature(func).parameters.keys())
+            required_args = [param for param in params if ((param != 'x') & (param != 'weight'))]
+            provided_args = [param for param in kwargs.keys() if param != 'weight']
+            if set(required_args) != set(provided_args):
+                redundant_args = set(provided_args).difference(set(required_args))
+                missing_args = set(required_args).difference(set(provided_args))
+                raise ValueError(f"the arguments of the {i}th `log_prior_prob_fnc` are invalid. redundant: {redundant_args}, missing: {missing_args}.")
+
+        # EXPANSION
+        # ---------
         if len(log_prior_prob_fnc) != len(expanded_bounds):
-            # Expand
             expanded_log_prior_prob_fnc = []
             expanded_log_prior_prob_fnc_args = []
             for i, name in enumerate(parameter_sizes.keys()):
@@ -903,7 +935,7 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
                         expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
                         expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
         else:
-            # No expansion needed
+            # no expansion needed
             expanded_log_prior_prob_fnc = log_prior_prob_fnc
             expanded_log_prior_prob_fnc_args = log_prior_prob_fnc_args
 
