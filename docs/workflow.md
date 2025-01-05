@@ -371,7 +371,7 @@ def draw_fcn(parameters, samples):
 To use this draw function, you provide four additional arguments to the `sim()` function,
 1. `N`: the number of repeated simulations,
 2. `draw_function`: the draw function,
-2. `draw_function_kwargs`: a dictionary containing all parameters of the draw function not equal to `parameters` or `initial_states`.
+2. `draw_function_kwargs`: a dictionary containing all parameters of the draw function not equal to `parameters`.
 4. `processes`: the number of cores to divide the `N` simulations over.
 
 As demonstrated in the quickstart example, the `xarray` containing the model output will now contain an additional dimension to accomodate the repeated simulations: `draws`.
