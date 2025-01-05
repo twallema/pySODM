@@ -26,7 +26,7 @@ class log_posterior_probability():
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
         ############################################################################################################
 
-        # TODO: checks on all input types; checks on likelihood functions and arguments
+        # TODO: checks on all input types;
 
         # Check type of `weights`
         if isinstance(weights, (list,np.ndarray)):
