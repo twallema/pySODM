@@ -145,13 +145,13 @@ For an introduction to Bayesian inference, I recommend reading the following [ar
 
 #### Choosing an appropriate prior function
 
-For every model parameter we'll try to calibrate, we'll need to provide a probability function expressing our prior believes with regard to the probability distribution of that parameter. pySODM includes uniform, normal, triangular, gamma and weibull priors, which can be imported as follows (reside in `~/src/pySODM/optimization/objective_functions.py`),
+For every model parameter you calibrate, a probability function expressing our prior believes with regard to the probability distribution of that parameter must be provided. pySODM includes uniform, triangular, normal, gamma and beta priors, which can be imported as follows,
 
 ```
-from pySODM.optimization.objective_functions import log_prior_uniform, log_prior_normal, log_prior_triangle, log_prior_gamma, log_prior_weibull, log_prior_custom
+from pySODM.optimization.objective_functions import log_prior_uniform, log_prior_triangle, log_prior_normal, log_prior_gamma, log_prior_beta
 ```
 
-For most problems, uniform prior probabilities, which simply constraint the parameter values within certain bounds, suffice. When initializing the [`log_posterior probability` class](optimization.md) it is not necessary to define priors for your parameters. If no priors are defined, by default, pySODM will initialize uniform priors for the calibrated parameters.
+When initializing the [`log_posterior probability` class](optimization.md) it is not necessary to define priors for your parameters (arguments `log_prior_prob_fnc` and `log_prior_prob_fnc_args`). If no priors are defined, by default, pySODM will initialize uniform priors for the calibrated parameters. For most problems, uniform prior probabilities -- which simply constraint the parameter values within certain bounds -- suffice.
 
 #### Choosing an appropriate likelihood function
 
@@ -204,7 +204,7 @@ Let's initialize an appropriate [posterior probability function](optimization.md
 4. `data`: A list containing the datasets we wish to calibrate our model to.
 5. `states`: A list containing, for every dataset, the model state that must be matched with it.
 6. `log_likelihood_function`: A list containing, for every dataset, the log likelihood function used to describe deviations between the model prediction and the respective dataset.
-7. `log_likelihood_function_args`: A list containing the arguments of every log likelihood function.
+7. `log_likelihood_function_args`: A list containing the arguments of every log likelihood function. 
 
 The lengths of the number of `data`, `states`, `log_likelihood function` and `log_likelihood_function_args` must always be equal. In the example, as no prior functions are provided, the priors will default to uniform priors over the provided bounds. Providing a label is also optional, if no label is provided, the names provided in `pars` are used as labels.
 
@@ -229,10 +229,23 @@ if __name__ == '__main__':
     bounds = [(1e-6,1),]
     labels = ['$\\beta$',]
     
-    # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model, pars, bounds, data, states, 
-                                                   log_likelihood_fnc, log_likelihood_fnc_args,
-                                                   labels=labels)
+    # Setup objective function
+    # (no priors --> uniform priors based on bounds)
+    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
+```
+
+If we wanted to use a normal prior distribution for `beta`,
+
+```python
+# Import the normal prior probability distribution
+from pySODM.optimization.objective_functions import log_prior_normal
+
+# Define the additional arguments of the log_posterior_probability class
+log_prior_prob_fnc = [log_prior_normal,]
+log_prior_prob_func_args = [{'avg': 0.3, 'stdev': 0.1},]
+
+# Setup objective function
+objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, log_prior_prob_fnc, log_prior_prob_func_args, labels=labels)
 ```
 
 #### Nelder-Mead optimization
