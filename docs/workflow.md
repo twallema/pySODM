@@ -318,12 +318,9 @@ if __name__ == '__main__':
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10,], multiplier=multiplier_mcmc, bounds=bounds)
     # Usefull settings to retain in the samples dictionary (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': d.index.min().strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
-              'n_chains': nwalkers, 'starting_estimate': list(theta)}
+    settings={'start_calibration': d.index.min().strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"), 'n_chains': nwalkers, 'starting_estimate': list(theta)}
     # Run the sampler
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
-                                  fig_path=fig_path, samples_path=samples_path, print_n=print_n,
-                                  processes=processes, progress=True, settings_dict=settings)
+    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, fig_path=fig_path, samples_path=samples_path, print_n=print_n, processes=processes, progress=True, settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
@@ -481,4 +478,3 @@ I hope this tutorial has demonstrated the workflow pySODM can speedup. However, 
 | Enzyme kinetics: 1D Plug-Flow Reactor          | Use the method of lines to discretise a PDE model into an ODE model and simulate it using pySODM.           |
 | Influenza 2017-2018                            | Stochastic jump process epidemiological model with age groups (1D model). Calibration of a 1D model parameter to a 1D dataset.               |
 | SIR-SI Model       | ODE model where states have different dimensions and thus different shapes.                       |
-| Spatial SIR model       | (Coming soon) An epidemiological model with age and space stratification (2D model).                       |
