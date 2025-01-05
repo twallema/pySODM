@@ -2,7 +2,7 @@
 
 pySODM contains a class to build ordinary differential equation models (`ODE`) and a class to build stochastic jump process models (`JumpProcess`), both live in `models/base.py`. To learn more about initialising and simulating these models, see the [quickstart tutorial](quickstart.md).
 
-## base.py
+## pySODM.models.base
 
 ###  *class* ODE
 
