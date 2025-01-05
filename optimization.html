@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Optimization &mdash; pySODM  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -61,16 +61,16 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Optimization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#objective-functions-py">objective_functions.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-optimization-objective-functions">pySODM.optimization.objective_functions</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#log-posterior-probability">Log posterior probability</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#log-likelihood">Log likelihood</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#log-prior-probability">Log prior probability</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#nelder-mead-py">nelder_mead.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pso-py">pso.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#mcmc-py">mcmc.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#utils-py">utils.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-optimization-nelder-mead">pySODM.optimization.nelder_mead</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-optimization-pso">pySODM.optimization.pso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-optimization-mcmc">pySODM.optimization.mcmc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-optimization-utils">pySODM.optimization.utils</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="speedup.html">Speeding up models</a></li>
@@ -109,8 +109,8 @@
              
   <section id="optimization">
 <h1>Optimization<a class="headerlink" href="#optimization" title="Link to this heading">¶</a></h1>
-<section id="objective-functions-py">
-<h2>objective_functions.py<a class="headerlink" href="#objective-functions-py" title="Link to this heading">¶</a></h2>
+<section id="pysodm-optimization-objective-functions">
+<h2>pySODM.optimization.objective_functions<a class="headerlink" href="#pysodm-optimization-objective-functions" title="Link to this heading">¶</a></h2>
 <section id="log-posterior-probability">
 <h3>Log posterior probability<a class="headerlink" href="#log-posterior-probability" title="Link to this heading">¶</a></h3>
 <p><strong><em>class</em> log_posterior_probability(model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None)</strong></p>
@@ -125,8 +125,9 @@
 <li><p><strong>log_likelihood_fnc_args</strong> (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (such as <code class="docutils literal notranslate"><span class="pre">ll_poisson</span></code>), provide an empty list. Must have the same length as <code class="docutils literal notranslate"><span class="pre">data</span></code>.</p></li>
 <li><p><strong>start_sim</strong> (int/float or str/datetime) - optional - Can be used to alter the start of the simulation. By default, the start of the simulation is chosen as the earliest time/date found in the datasets.</p></li>
 <li><p><strong>weights</strong> (list) - optional - Contains the weights of every dataset in the final log posterior probability. Defaults to one for every dataset.</p></li>
-<li><p><strong>log_prior_prob_fnc</strong> (list) - optional - Contains a prior probability function for every calibrated parameter. Defaults to a uniform prior using the provided bounds.</p></li>
-<li><p><strong>log_prior_prob_fnc_args</strong> (list) - optional - Contains the arguments of the provided prior probability functions.</p></li>
+<li><p><strong>log_prior_prob_fnc</strong> (list) - optional - Contains a log prior probability function for every calibrated parameter. Must have the same length as <code class="docutils literal notranslate"><span class="pre">parameter_names</span></code>. If not provided, defaults the log prior probability function to a uniform distribution over <code class="docutils literal notranslate"><span class="pre">bounds</span></code>. The log prior probability functions available in
+<code class="docutils literal notranslate"><span class="pre">pySODM.optimization.objective_functions</span></code> are <code class="docutils literal notranslate"><span class="pre">log_prior_uniform</span></code>, <code class="docutils literal notranslate"><span class="pre">log_prior_triangle</span></code>, <code class="docutils literal notranslate"><span class="pre">log_prior_normal</span></code>, <code class="docutils literal notranslate"><span class="pre">log_prior_gamma</span></code>, <code class="docutils literal notranslate"><span class="pre">log_prior_beta</span></code> and <code class="docutils literal notranslate"><span class="pre">log_prior_custom</span></code>.</p></li>
+<li><p><strong>log_prior_prob_fnc_args</strong> (list) - optional - Contains the arguments of the prior probability functions, as a dictionary. Must have the same length as <code class="docutils literal notranslate"><span class="pre">parameter_names</span></code>. For example, if <code class="docutils literal notranslate"><span class="pre">log_prior_prob_fnc</span> <span class="pre">=</span> <span class="pre">[log_prior_normal,]</span></code> then <code class="docutils literal notranslate"><span class="pre">log_prior_prob_fnc_args</span> <span class="pre">=</span> <span class="pre">[{'avg':</span> <span class="pre">0,</span> <span class="pre">'stdev':</span> <span class="pre">1},]</span></code> or <code class="docutils literal notranslate"><span class="pre">[{'avg':</span> <span class="pre">0,</span> <span class="pre">'stdev':</span> <span class="pre">1,</span> <span class="pre">'weight':</span> <span class="pre">1},]</span></code>.</p></li>
 <li><p><strong>initial_states</strong> (list) - optional - Contains a dictionary of initial states for every dataset.</p></li>
 <li><p><strong>aggregation_function</strong> (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an <code class="docutils literal notranslate"><span class="pre">xarray.DataArray</span></code>, resulting from selecting the simulation output at the state we wish to match to the dataset (<code class="docutils literal notranslate"><span class="pre">model_output_xarray_Dataset['state_name']</span></code>), as its input. The output of the function must also be an <code class="docutils literal notranslate"><span class="pre">xarray.DataArray</span></code>. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a fine spatial resolution. However, data is only available on a coarser level. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument <code class="docutils literal notranslate"><span class="pre">aggregation_function</span></code>are: 1) one callable function –&gt; applied to every dataset. 2) A list containing one callable function –&gt; applied to every dataset. 3) A list containing a callable function for every dataset –&gt; every dataset has its own aggregation function.</p></li>
 <li><p><strong>labels</strong> (list) - optional - Contains a custom label for the calibrated parameters. Defaults to the names provided in <code class="docutils literal notranslate"><span class="pre">parameter_names</span></code>.</p></li>
@@ -212,7 +213,7 @@
 </section>
 <section id="log-prior-probability">
 <h3>Log prior probability<a class="headerlink" href="#log-prior-probability" title="Link to this heading">¶</a></h3>
-<p><strong><em>function</em> log_prior_uniform(x, bounds)</strong></p>
+<p><strong><em>function</em> log_prior_uniform(x, bounds=None, weight=1)</strong></p>
 <blockquote>
 <div><p>Uniform log prior distribution.</p>
 </div></blockquote>
@@ -221,8 +222,9 @@
 </div></blockquote>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>x</strong> (float) - Parameter value.</p></li>
-<li><p><strong>bounds</strong> (tuple) - Lower and upper bound of the uniform probability distribution.</p></li>
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>bounds</strong> (tuple) - Tuple containing the lower and upper bounds of the uniform probability distribution.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1) – does nothing.</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -231,15 +233,18 @@
 <li><p><strong>lp</strong> (float) Log probability of x in light of a uniform prior distribution.</p></li>
 </ul>
 </div></blockquote>
-<p><strong><em>function</em> log_prior_triangle(x, pars)</strong></p>
+<p><strong><em>function</em> log_prior_triangle(x, low=None, high=None, mode=None, weight=1)</strong></p>
 <blockquote>
 <div><p>Triangular log prior distribution.</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>x</strong> (float) - Parameter value.</p></li>
-<li><p><strong>pars</strong> (tuple) - Tuple containg the lower bound, upper bound and mode of the triangle distribution.</p></li>
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>low</strong> (float) - Lower bound of the triangle distribution.</p></li>
+<li><p><strong>high</strong> (float) - Upper bound of the triangle distribution.</p></li>
+<li><p><strong>mode</strong> (float) - Mode of the triangle distribution.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -248,15 +253,17 @@
 <li><p><strong>lp</strong> (float) Log probability of sample x in light of a triangular prior distribution.</p></li>
 </ul>
 </div></blockquote>
-<p><strong><em>function</em> log_prior_normal(x, pars)</strong></p>
+<p><strong><em>function</em> log_prior_normal(x, avg=None, stdev=None, weight=1)</strong></p>
 <blockquote>
 <div><p>Normal log prior distribution.</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>x</strong> (float) - Parameter value.</p></li>
-<li><p><strong>pars</strong> (tuple) - Tuple containg the average and standard deviation of a normal distribution.</p></li>
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>avg</strong> (float) - Average of the normal distribution.</p></li>
+<li><p><strong>stdev</strong> (float) - Standard deviation of the normal distribution.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -265,15 +272,18 @@
 <li><p><strong>lp</strong> (float) Log probability of sample x in light of a normal prior distribution.</p></li>
 </ul>
 </div></blockquote>
-<p><strong><em>function</em> log_prior_gamma(x, pars)</strong></p>
+<p><strong><em>function</em> log_prior_gamma(x, a=None, loc=None, scale=None, weight=1)</strong></p>
 <blockquote>
 <div><p>Gamma log prior distribution.</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>x</strong> (float) - Parameter value.</p></li>
-<li><p><strong>pars</strong> (tuple) - Tuple containg the parameters <code class="docutils literal notranslate"><span class="pre">a</span></code>, <code class="docutils literal notranslate"><span class="pre">loc</span></code> and <code class="docutils literal notranslate"><span class="pre">scale</span></code> of <code class="docutils literal notranslate"><span class="pre">scipy.stats.gamma.logpdf</span></code>.</p></li>
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>a</strong> (float) - Parameter ‘a’ of <code class="docutils literal notranslate"><span class="pre">scipy.stats.gamma.logpdf</span></code>.</p></li>
+<li><p><strong>loc</strong> (float) - Location parameter of <code class="docutils literal notranslate"><span class="pre">scipy.stats.gamma.logpdf</span></code>.</p></li>
+<li><p><strong>scale</strong> (float) - Scale parameter of <code class="docutils literal notranslate"><span class="pre">scipy.stats.gamma.logpdf</span></code>.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -282,15 +292,19 @@
 <li><p><strong>lp</strong> (float) Log probability of sample x in light of a gamma prior distribution.</p></li>
 </ul>
 </div></blockquote>
-<p><strong><em>function</em> log_prior_beta(x, pars)</strong></p>
+<p><strong><em>function</em> log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1)</strong></p>
 <blockquote>
 <div><p>Beta log prior distribution.</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>x</strong> (float) - Parameter value.</p></li>
-<li><p><strong>pars</strong> (tuple) - Tuple containg the parameters <code class="docutils literal notranslate"><span class="pre">a</span></code>, <code class="docutils literal notranslate"><span class="pre">b</span></code>, <code class="docutils literal notranslate"><span class="pre">loc</span></code> and <code class="docutils literal notranslate"><span class="pre">scale</span></code> of <code class="docutils literal notranslate"><span class="pre">scipy.stats.beta.logpdf</span></code>.</p></li>
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>a</strong> (float) - Parameter ‘a’ of <code class="docutils literal notranslate"><span class="pre">scipy.stats.beta.logpdf</span></code>.</p></li>
+<li><p><strong>b</strong> (float) - Parameter ‘b’ of <code class="docutils literal notranslate"><span class="pre">scipy.stats.beta.logpdf</span></code>.</p></li>
+<li><p><strong>loc</strong> (float) - Location parameter of <code class="docutils literal notranslate"><span class="pre">scipy.stats.beta.logpdf</span></code>.</p></li>
+<li><p><strong>scale</strong> (float) - Scale parameter of <code class="docutils literal notranslate"><span class="pre">scipy.stats.beta.logpdf</span></code>.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -299,15 +313,17 @@
 <li><p><strong>lp</strong> (float) Log probability of sample x in light of a beta prior distribution.</p></li>
 </ul>
 </div></blockquote>
-<p><strong><em>function</em> log_prior_custom(x, args)</strong></p>
+<p><strong><em>function</em> log_prior_custom(x, density=None, bins=None, weight=1)</strong></p>
 <blockquote>
 <div><p>A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
-<li><p><strong>x</strong> (float) - Parameter value.</p></li>
-<li><p><strong>args</strong> (tuple) - Must contain the density of each bin in the first position and the bounds of the bins in the second position.</p></li>
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>density</strong> (np.ndarray) - The values of the histogram (generated by <code class="docutils literal notranslate"><span class="pre">np.histogram()</span></code>).</p></li>
+<li><p><strong>bins</strong> (np.ndarray) - The histogram’s bin edges (generated by <code class="docutils literal notranslate"><span class="pre">np.histogram()</span></code>).</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
@@ -328,8 +344,8 @@
 </div></blockquote>
 </section>
 </section>
-<section id="nelder-mead-py">
-<h2>nelder_mead.py<a class="headerlink" href="#nelder-mead-py" title="Link to this heading">¶</a></h2>
+<section id="pysodm-optimization-nelder-mead">
+<h2>pySODM.optimization.nelder_mead<a class="headerlink" href="#pysodm-optimization-nelder-mead" title="Link to this heading">¶</a></h2>
 <p><strong><em>function</em> optimize(func, x_start, step, bounds=None, args=(), kwargs={}, processes=1, no_improve_thr=1e-6, no_improv_break=100, max_iter=1000, alpha=1., gamma=2., rho=-0.5, sigma=0.5)</strong></p>
 <blockquote>
 <div><p>Perform a <a class="reference external" href="https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method">Nelder-Mead minimization</a>.</p>
@@ -366,8 +382,8 @@
 </ul>
 </div></blockquote>
 </section>
-<section id="pso-py">
-<h2>pso.py<a class="headerlink" href="#pso-py" title="Link to this heading">¶</a></h2>
+<section id="pysodm-optimization-pso">
+<h2>pySODM.optimization.pso<a class="headerlink" href="#pysodm-optimization-pso" title="Link to this heading">¶</a></h2>
 <p><strong><em>function</em> optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={}, processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,  debug=False, particle_output=False, transform_pars=None)</strong></p>
 <blockquote>
 <div><p>Perform a <a class="reference external" href="https://en.wikipedia.org/wiki/Particle_swarm_optimization">Particle Swarm Optimization</a>.</p>
@@ -406,8 +422,8 @@
 </ul>
 </div></blockquote>
 </section>
-<section id="mcmc-py">
-<h2>mcmc.py<a class="headerlink" href="#mcmc-py" title="Link to this heading">¶</a></h2>
+<section id="pysodm-optimization-mcmc">
+<h2>pySODM.optimization.mcmc<a class="headerlink" href="#pysodm-optimization-mcmc" title="Link to this heading">¶</a></h2>
 <p><strong><em>function</em> run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.25),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method=’scott’), 0.50)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})</strong></p>
 <blockquote>
 <div><p>Wrapper function to setup an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> and handle all backend-related tasks.</p>
@@ -486,8 +502,8 @@
 </ul>
 </div></blockquote>
 </section>
-<section id="utils-py">
-<h2>utils.py<a class="headerlink" href="#utils-py" title="Link to this heading">¶</a></h2>
+<section id="pysodm-optimization-utils">
+<h2>pySODM.optimization.utils<a class="headerlink" href="#pysodm-optimization-utils" title="Link to this heading">¶</a></h2>
 <p><strong><em>function</em> add_poisson_noise(output)</strong></p>
 <blockquote>
 <div><p>Replace every value x in a simulation output with a realization from a Poisson distribution with expectation value x</p>

@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Speeding up models &mdash; pySODM  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -112,28 +112,28 @@
 <section id="avoid-large-inputs-in-time-dependent-parameter-functions">
 <h2>Avoid large inputs in time-dependent parameter functions<a class="headerlink" href="#avoid-large-inputs-in-time-dependent-parameter-functions" title="Link to this heading">¶</a></h2>
 <p>Using large inputs directly in a time-dependent parameter function will force pySODM to read that input at every timestep in the integration. As the integrator typically takes thousands of steps, the IO operations slow the code down drastically. It is thus recommended to avoid the following syntax:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">TDPF</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">TDPF</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">a_large_dataset</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>Instead, we recommend wrapping the TDPF in a class and using the <code class="docutils literal notranslate"><span class="pre">&#64;lru_cache()</span></code> decorator to place the function where the large dataset is evaluated in working memory.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
 
-<span class="k">class</span> <span class="nc">make_TDPF</span><span class="p">():</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">make_TDPF</span><span class="p">():</span>
 
     <span class="c1"># Assign large dataset to class</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_large_dataset</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">a_large_dataset</span>
 
     <span class="c1"># Place function where large dataset is used in memory</span>
     <span class="nd">@lru_cache</span><span class="p">()</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
         <span class="n">t</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
     
     <span class="c1"># Write a pySODM compatible wrapper </span>
-    <span class="k">def</span> <span class="nf">wrapper_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 
 <span class="c1"># The time-dependent parameter function used in the model initialization</span>

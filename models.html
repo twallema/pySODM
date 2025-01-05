@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Models &mdash; pySODM  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -60,7 +60,7 @@
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Models</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#base-py">base.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pysodm-models-base">pySODM.models.base</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#class-ode"><em>class</em> ODE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#class-jumpprocess"><em>class</em> JumpProcess</a></li>
 </ul>
@@ -105,8 +105,8 @@
   <section id="models">
 <h1>Models<a class="headerlink" href="#models" title="Link to this heading">¶</a></h1>
 <p>pySODM contains a class to build ordinary differential equation models (<code class="docutils literal notranslate"><span class="pre">ODE</span></code>) and a class to build stochastic jump process models (<code class="docutils literal notranslate"><span class="pre">JumpProcess</span></code>), both live in <code class="docutils literal notranslate"><span class="pre">models/base.py</span></code>. To learn more about initialising and simulating these models, see the <a class="reference internal" href="quickstart.html"><span class="std std-doc">quickstart tutorial</span></a>.</p>
-<section id="base-py">
-<h2>base.py<a class="headerlink" href="#base-py" title="Link to this heading">¶</a></h2>
+<section id="pysodm-models-base">
+<h2>pySODM.models.base<a class="headerlink" href="#pysodm-models-base" title="Link to this heading">¶</a></h2>
 <section id="class-ode">
 <h3><em>class</em> ODE<a class="headerlink" href="#class-ode" title="Link to this heading">¶</a></h3>
 <p><strong>Inherits from the user’s model class:</strong></p>
@@ -133,16 +133,16 @@
 </ul>
 <p>Below is a minimal example of a user-defined model class inheriting <code class="docutils literal notranslate"><span class="pre">ODE</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODE class</span>
-<span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ODE</span>
 
 <span class="c1"># Define the model equations</span>
-<span class="k">class</span> <span class="nc">MY_MODEL</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MY_MODEL</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
 
     <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Y1&#39;</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">]</span>
     <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">alpha</span><span class="o">*</span><span class="n">Y1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">*</span><span class="n">Y2</span>
 </pre></div>
 </div>
@@ -159,7 +159,7 @@
 </pre></div>
 </div>
 <p>Or using an <em>initial condition function</em>,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">Y1_0</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">Y1_0</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="n">Y1_0</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">initial_states</span><span class="o">=</span><span class="n">initial_condition_function</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Y1_0&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">})</span>
@@ -216,21 +216,21 @@
 </ul>
 <p>Below is a minimal example of a user-defined model class inheriting <code class="docutils literal notranslate"><span class="pre">JumpProcesses</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the JumpProcesses class</span>
-<span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">JumpProcesses</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">JumpProcesses</span>
 
-<span class="k">class</span> <span class="nc">MY_MODEL</span><span class="p">(</span><span class="n">JumpProcesses</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MY_MODEL</span><span class="p">(</span><span class="n">JumpProcesses</span><span class="p">):</span>
 
     <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Y1&#39;</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">]</span>
     <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
 
     <span class="c1"># define the rates of the system&#39;s transitionings</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">compute_rates</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_rates</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">alpha</span><span class="p">,</span> <span class="p">]}</span>
 
     <span class="c1"># apply the sampled number of transitionings</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">apply_transitionings</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">transitionings</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_transitionings</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">transitionings</span><span class="p">,</span> <span class="n">Y1</span><span class="p">,</span> <span class="n">Y2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
 
         <span class="n">Y1_new</span> <span class="o">=</span> <span class="n">Y1</span> <span class="o">-</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Y1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">Y2_new</span> <span class="o">=</span> <span class="n">Y2</span> <span class="o">+</span> <span class="n">transitionings</span><span class="p">[</span><span class="s1">&#39;Y2&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
@@ -251,7 +251,7 @@
 </pre></div>
 </div>
 <p>Or using an <em>initial condition function</em>,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">Y1_0</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">initial_condition_function</span><span class="p">(</span><span class="n">Y1_0</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Y1&#39;</span><span class="p">:</span> <span class="n">Y1_0</span><span class="p">,</span> <span class="s1">&#39;Y2&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">MY_MODEL</span><span class="p">(</span><span class="n">initial_states</span><span class="o">=</span><span class="n">initial_condition_function</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Y1_0&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">})</span>

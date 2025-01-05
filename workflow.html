@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Modeling and Calibration Workflow &mdash; pySODM  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -132,9 +132,9 @@
 <section id="import-dependencies">
 <h2>Import dependencies<a class="headerlink" href="#import-dependencies" title="Link to this heading">¶</a></h2>
 <p>I typically place all my dependencies together at the top of my script. However, for this demo, we’ll import some common dependencies here and then import the pySODM code on the go. That way, the imports of the necessary pySODM code are located where they are required which is more illustrative than including them all here at once.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 </pre></div>
 </div>
 </section>
@@ -203,10 +203,10 @@ N &amp;=&amp; S + I + R, \\
 <li><p>The integrate function must be a static method (done by decorating with <code class="docutils literal notranslate"><span class="pre">&#64;staticmethod</span></code>)</p></li>
 </ol>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the ODE class</span>
-<span class="kn">from</span> <span class="nn">pySODM.models.base</span> <span class="kn">import</span> <span class="n">ODE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ODE</span>
 
 <span class="c1"># Define the model equations</span>
-<span class="k">class</span> <span class="nc">ODE_SIR</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ODE_SIR</span><span class="p">(</span><span class="n">ODE</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    An SIR model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -215,7 +215,7 @@ N &amp;=&amp; S + I + R, \\
     <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">integrate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
         
         <span class="c1"># Calculate total population</span>
         <span class="n">N</span> <span class="o">=</span> <span class="n">S</span><span class="o">+</span><span class="n">I</span><span class="o">+</span><span class="n">R</span>
@@ -245,11 +245,11 @@ where <span class="math notranslate nohighlight">\(x\)</span> represents the dat
 </section>
 <section id="choosing-an-appropriate-prior-function">
 <h3>Choosing an appropriate prior function<a class="headerlink" href="#choosing-an-appropriate-prior-function" title="Link to this heading">¶</a></h3>
-<p>For every model parameter we’ll try to calibrate, we’ll need to provide a probability function expressing our prior believes with regard to the probability distribution of that parameter. pySODM includes uniform, normal, triangular, gamma and weibull priors, which can be imported as follows (reside in <code class="docutils literal notranslate"><span class="pre">~/src/pySODM/optimization/objective_functions.py</span></code>),</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">log_prior_uniform</span><span class="p">,</span> <span class="n">log_prior_normal</span><span class="p">,</span> <span class="n">log_prior_triangle</span><span class="p">,</span> <span class="n">log_prior_gamma</span><span class="p">,</span> <span class="n">log_prior_weibull</span><span class="p">,</span> <span class="n">log_prior_custom</span>
+<p>For every model parameter you calibrate, a probability function expressing our prior believes with regard to the probability distribution of that parameter must be provided. pySODM includes uniform, triangular, normal, gamma and beta priors, which can be imported as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization.objective_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_prior_uniform</span><span class="p">,</span> <span class="n">log_prior_triangle</span><span class="p">,</span> <span class="n">log_prior_normal</span><span class="p">,</span> <span class="n">log_prior_gamma</span><span class="p">,</span> <span class="n">log_prior_beta</span>
 </pre></div>
 </div>
-<p>For most problems, uniform prior probabilities, which simply constraint the parameter values within certain bounds, suffice. When initializing the <a class="reference internal" href="optimization.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">log_posterior</span> <span class="pre">probability</span></code> class</span></a> it is not necessary to define priors for your parameters. If no priors are defined, by default, pySODM will initialize uniform priors for the calibrated parameters.</p>
+<p>When initializing the <a class="reference internal" href="optimization.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">log_posterior</span> <span class="pre">probability</span></code> class</span></a> it is not necessary to define priors for your parameters (arguments <code class="docutils literal notranslate"><span class="pre">log_prior_prob_fnc</span></code> and <code class="docutils literal notranslate"><span class="pre">log_prior_prob_fnc_args</span></code>). If no priors are defined, by default, pySODM will initialize uniform priors for the calibrated parameters. For most problems, uniform prior probabilities – which simply constraint the parameter values within certain bounds – suffice.</p>
 </section>
 <section id="choosing-an-appropriate-likelihood-function">
 <h3>Choosing an appropriate likelihood function<a class="headerlink" href="#choosing-an-appropriate-likelihood-function" title="Link to this heading">¶</a></h3>
@@ -282,7 +282,7 @@ where <span class="math notranslate nohighlight">\(x\)</span> represents the dat
 </tbody>
 </table>
 <p>The following snippet performs the above procedure on our synthetic dataset.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pySODM.optimization.utils</span> <span class="kn">import</span> <span class="n">variance_analysis</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">variance_analysis</span>
 
 <span class="n">results</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">variance_analysis</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">resample_frequency</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">)</span>
 <span class="n">alpha</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;negative binomial&#39;</span><span class="p">,</span> <span class="s1">&#39;theta&#39;</span><span class="p">]</span>
@@ -317,10 +317,10 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     
     <span class="c1"># Import the log_posterior_probability class</span>
-    <span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">log_posterior_probability</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization.objective_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_posterior_probability</span>
 
     <span class="c1"># Import the negative binomial likelihood function</span>
-    <span class="kn">from</span> <span class="nn">pySODM.optimization.objective_functions</span> <span class="kn">import</span> <span class="n">ll_negative_binomial</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization.objective_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ll_negative_binomial</span>
 
     <span class="c1"># The datasets, the model states to match to the datasets,</span>
     <span class="c1"># the log likelihood functions and log likelihood function arguments</span>
@@ -334,10 +334,21 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
     <span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1e-6</span><span class="p">,</span><span class="mi">1</span><span class="p">),]</span>
     <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;$</span><span class="se">\\</span><span class="s1">beta$&#39;</span><span class="p">,]</span>
     
-    <span class="c1"># Setup objective function (no priors --&gt; uniform priors based on bounds)</span>
-    <span class="n">objective_function</span> <span class="o">=</span> <span class="n">log_posterior_probability</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> 
-                                                   <span class="n">log_likelihood_fnc</span><span class="p">,</span> <span class="n">log_likelihood_fnc_args</span><span class="p">,</span>
-                                                   <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+    <span class="c1"># Setup objective function</span>
+    <span class="c1"># (no priors --&gt; uniform priors based on bounds)</span>
+    <span class="n">objective_function</span> <span class="o">=</span> <span class="n">log_posterior_probability</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">log_likelihood_fnc</span><span class="p">,</span> <span class="n">log_likelihood_fnc_args</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If we wanted to use a normal prior distribution for <code class="docutils literal notranslate"><span class="pre">beta</span></code>,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the normal prior probability distribution</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization.objective_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_prior_normal</span>
+
+<span class="c1"># Define the additional arguments of the log_posterior_probability class</span>
+<span class="n">log_prior_prob_fnc</span> <span class="o">=</span> <span class="p">[</span><span class="n">log_prior_normal</span><span class="p">,]</span>
+<span class="n">log_prior_prob_func_args</span> <span class="o">=</span> <span class="p">[{</span><span class="s1">&#39;avg&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},]</span>
+
+<span class="c1"># Setup objective function</span>
+<span class="n">objective_function</span> <span class="o">=</span> <span class="n">log_posterior_probability</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">log_likelihood_fnc</span><span class="p">,</span> <span class="n">log_likelihood_fnc_args</span><span class="p">,</span> <span class="n">log_prior_prob_fnc</span><span class="p">,</span> <span class="n">log_prior_prob_func_args</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -346,7 +357,7 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <p>The following code snippet starts a Nelder-Mead optimization from the initial guess <span class="math notranslate nohighlight">\(\beta = 0.35\)</span>, perturbated with a <code class="docutils literal notranslate"><span class="pre">step</span></code> of 10%. Running on <code class="docutils literal notranslate"><span class="pre">processes=1</span></code> cores for <code class="docutils literal notranslate"><span class="pre">max_iter=10</span></code> iterations.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="c1"># Import the Nelder-Mead algorithm</span>
-    <span class="kn">from</span> <span class="nn">pySODM.optimization</span> <span class="kn">import</span> <span class="n">nelder_mead</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">nelder_mead</span>
     <span class="c1"># Initial guess</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.35</span><span class="p">,]</span>
     <span class="c1"># Run Nelder-Mead optimisation</span>
@@ -387,7 +398,7 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <p>The output of the above procedure yields an <code class="docutils literal notranslate"><span class="pre">emcee.EnsembleSampler</span></code> object containing our 100 iterations for 9 chains. We can extract the chains quite by using the <code class="docutils literal notranslate"><span class="pre">get_chain()</span></code> method (see the <a class="reference external" href="https://emcee.readthedocs.io/en/stable/user/sampler/">emcee documentation</a>). However, we’re interested in building a dictionary of samples because this interfaces nicely to pySODM’s <em>draw functions</em> (introduced below). Using <code class="docutils literal notranslate"><span class="pre">emcee_sampler_to_dictionary()</span></code>, the generated chains and the entries provided in <code class="docutils literal notranslate"><span class="pre">settings</span></code> are formatted into a dictionary <code class="docutils literal notranslate"><span class="pre">samples</span></code>, which is automatically saved in a json format. Finally, we’ll use the third-party <code class="docutils literal notranslate"><span class="pre">corner</span></code> package to visualize the distributions of the five calibrated parameters.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
 
-    <span class="kn">from</span> <span class="nn">pySODM.optimization.mcmc</span> <span class="kn">import</span> <span class="n">perturbate_theta</span><span class="p">,</span> <span class="n">run_EnsembleSampler</span><span class="p">,</span> <span class="n">emcee_sampler_to_dictionary</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pySODM.optimization.mcmc</span><span class="w"> </span><span class="kn">import</span> <span class="n">perturbate_theta</span><span class="p">,</span> <span class="n">run_EnsembleSampler</span><span class="p">,</span> <span class="n">emcee_sampler_to_dictionary</span>
 
     <span class="c1"># Settings</span>
     <span class="n">n_mcmc</span> <span class="o">=</span> <span class="mi">100</span>
@@ -401,12 +412,9 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
     <span class="c1"># Perturbate previously obtained estimate</span>
     <span class="n">ndim</span><span class="p">,</span> <span class="n">nwalkers</span><span class="p">,</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">perturbate_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">pert</span><span class="o">=</span><span class="p">[</span><span class="mf">0.10</span><span class="p">,],</span> <span class="n">multiplier</span><span class="o">=</span><span class="n">multiplier_mcmc</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">)</span>
     <span class="c1"># Usefull settings to retain in the samples dictionary (no pd.Timestamps or np.arrays allowed!)</span>
-    <span class="n">settings</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;start_calibration&#39;</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">),</span> <span class="s1">&#39;end_calibration&#39;</span><span class="p">:</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">),</span>
-              <span class="s1">&#39;n_chains&#39;</span><span class="p">:</span> <span class="n">nwalkers</span><span class="p">,</span> <span class="s1">&#39;starting_estimate&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">theta</span><span class="p">)}</span>
+    <span class="n">settings</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;start_calibration&#39;</span><span class="p">:</span> <span class="n">d</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">),</span> <span class="s1">&#39;end_calibration&#39;</span><span class="p">:</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">),</span> <span class="s1">&#39;n_chains&#39;</span><span class="p">:</span> <span class="n">nwalkers</span><span class="p">,</span> <span class="s1">&#39;starting_estimate&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">theta</span><span class="p">)}</span>
     <span class="c1"># Run the sampler</span>
-    <span class="n">sampler</span> <span class="o">=</span> <span class="n">run_EnsembleSampler</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">n_mcmc</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">objective_function</span><span class="p">,</span>
-                                  <span class="n">fig_path</span><span class="o">=</span><span class="n">fig_path</span><span class="p">,</span> <span class="n">samples_path</span><span class="o">=</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">print_n</span><span class="o">=</span><span class="n">print_n</span><span class="p">,</span>
-                                  <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">settings_dict</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">run_EnsembleSampler</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">n_mcmc</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">objective_function</span><span class="p">,</span> <span class="n">fig_path</span><span class="o">=</span><span class="n">fig_path</span><span class="p">,</span> <span class="n">samples_path</span><span class="o">=</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">print_n</span><span class="o">=</span><span class="n">print_n</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">processes</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">settings_dict</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
     <span class="c1"># Generate a sample dictionary and save it as .json for long-term storage</span>
     <span class="n">samples_dict</span> <span class="o">=</span> <span class="n">emcee_sampler_to_dictionary</span><span class="p">(</span><span class="n">samples_path</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">discard</span><span class="o">=</span><span class="n">discard</span><span class="p">)</span>
 
@@ -443,7 +451,7 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <p>To repeatedly simulate a model and update a parameter value in each consecutive run, you can use pySODM’s <em>draw function</em>. These functions <strong>always</strong> take the model <code class="docutils literal notranslate"><span class="pre">parameters</span></code> as its first input argument, and the <code class="docutils literal notranslate"><span class="pre">initial_states</span></code> as the second argument, followed by an arbitrary number of user-defined parameters to aid in the draw function. A draw function must always return the dictionary of model <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and the dictionary of <code class="docutils literal notranslate"><span class="pre">initial_states</span></code>, without alterations to the dictionaries keys. The draw function defines how parameters and initial conditions can change during consecutive simulations of the model, i.e. it updates parameter values in the model parameters dictionary. This feature is useful to perform sensitivty analysis.</p>
 <p>In this example, we’ll use a draw function to replace <code class="docutils literal notranslate"><span class="pre">beta</span></code> with a random value obtained from its posterior probability distribution obtained during calibration. We accomplish this by defining a draw function with one additional argument, <code class="docutils literal notranslate"><span class="pre">samples</span></code>, which is a list containing the samples of the posterior probability distribution of <code class="docutils literal notranslate"><span class="pre">beta</span></code>. <code class="docutils literal notranslate"><span class="pre">np.random.choice()</span></code> is used to sample a random value of <code class="docutils literal notranslate"><span class="pre">beta</span></code> and assign it to the model parameteres dictionary,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define draw function</span>
-<span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">):</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">parameters</span>
 </pre></div>
@@ -452,7 +460,7 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <ol class="arabic simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">N</span></code>: the number of repeated simulations,</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">draw_function</span></code>: the draw function,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">draw_function_kwargs</span></code>: a dictionary containing all parameters of the draw function not equal to <code class="docutils literal notranslate"><span class="pre">parameters</span></code> or <code class="docutils literal notranslate"><span class="pre">initial_states</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">draw_function_kwargs</span></code>: a dictionary containing all parameters of the draw function not equal to <code class="docutils literal notranslate"><span class="pre">parameters</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">processes</span></code>: the number of cores to divide the <code class="docutils literal notranslate"><span class="pre">N</span></code> simulations over.</p></li>
 </ol>
 <p>As demonstrated in the quickstart example, the <code class="docutils literal notranslate"><span class="pre">xarray</span></code> containing the model output will now contain an additional dimension to accomodate the repeated simulations: <code class="docutils literal notranslate"><span class="pre">draws</span></code>.</p>
@@ -479,7 +487,7 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 <p>Finally, let us introduce the concept of varying model parameters over the course of the simulation. We would like to model what would happen if we could somehow reduce the infectivity of the disease by 50% starting January 21st. In the real world this could be accomplished by raising awareness to the disease and applying preventive measures.</p>
 <p>We’ll first need to implement a function to let our model know how a given parameter should vary over time: a <em>time-dependent model parameter function</em> (TDPF). Then, we’ll need to re-initialize our model and tell it what model parameter should be varied in accordance to our function. For our problem, a TDPF would have the following syntax,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a time-dependent parameter function</span>
-<span class="k">def</span> <span class="nf">lower_infectivity</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">start_measures</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lower_infectivity</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">start_measures</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">start_measures</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">param</span>
     <span class="k">else</span><span class="p">:</span>
@@ -526,7 +534,7 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 </ul>
 <p>To simulate ramp-like adoptation of measures, we can add the number of additional days it takes beyond January 21st, 2023 to adopt the measures by sampling from a triangular distribution with a minimum and mode of zero days, and a maximum adoptation time of <code class="docutils literal notranslate"><span class="pre">ramp_length</span></code> days. All we have to do is add one line to the draw function,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define draw function</span>
-<span class="k">def</span> <span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">ramp_length</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">draw_fcn</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">ramp_length</span><span class="p">):</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
     <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;start_measures&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">triangular</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">right</span><span class="o">=</span><span class="n">ramp_length</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">parameters</span>
@@ -557,9 +565,6 @@ negative<span class="w"> </span>binomial<span class="w">   </span><span class="m
 </tr>
 <tr class="row-odd"><td><p>SIR-SI Model</p></td>
 <td><p>ODE model where states have different dimensions and thus different shapes.</p></td>
-</tr>
-<tr class="row-even"><td><p>Spatial SIR model</p></td>
-<td><p>(Coming soon) An epidemiological model with age and space stratification (2D model).</p></td>
 </tr>
 </tbody>
 </table>

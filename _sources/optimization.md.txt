@@ -1,6 +1,6 @@
 # Optimization
 
-## objective_functions.py
+## pySODM.optimization.objective_functions
 
 ### Log posterior probability
 
@@ -17,8 +17,9 @@
 * **log_likelihood_fnc_args** (list) - Contains the arguments of the log likelihood functions. If the log likelihood function has no arguments (such as `ll_poisson`), provide an empty list. Must have the same length as `data`.
 * **start_sim** (int/float or str/datetime) - optional - Can be used to alter the start of the simulation. By default, the start of the simulation is chosen as the earliest time/date found in the datasets. 
 * **weights** (list) - optional - Contains the weights of every dataset in the final log posterior probability. Defaults to one for every dataset.
-* **log_prior_prob_fnc** (list) - optional - Contains a prior probability function for every calibrated parameter. Defaults to a uniform prior using the provided bounds.
-* **log_prior_prob_fnc_args** (list) - optional - Contains the arguments of the provided prior probability functions.
+* **log_prior_prob_fnc** (list) - optional - Contains a log prior probability function for every calibrated parameter. Must have the same length as `parameter_names`. If not provided, defaults the log prior probability function to a uniform distribution over `bounds`. The log prior probability functions available in
+`pySODM.optimization.objective_functions` are `log_prior_uniform`, `log_prior_triangle`, `log_prior_normal`, `log_prior_gamma`, `log_prior_beta` and `log_prior_custom`.
+* **log_prior_prob_fnc_args** (list) - optional - Contains the arguments of the prior probability functions, as a dictionary. Must have the same length as `parameter_names`. For example, if `log_prior_prob_fnc = [log_prior_normal,]` then `log_prior_prob_fnc_args = [{'avg': 0, 'stdev': 1},]` or `[{'avg': 0, 'stdev': 1, 'weight': 1},]`.
 * **initial_states** (list) - optional - Contains a dictionary of initial states for every dataset.
 * **aggregation_function** (callable function or list) - optional - A user-defined function to manipulate the model output before matching it to data. The function takes as input an `xarray.DataArray`, resulting from selecting the simulation output at the state we wish to match to the dataset (`model_output_xarray_Dataset['state_name']`), as its input. The output of the function must also be an `xarray.DataArray`. No checks are performed on the input or output of the aggregation function, use at your own risk. Illustrative use case: I have a spatially explicit epidemiological model and I desire to simulate it a fine spatial resolution. However, data is only available on a coarser level. Hence, I use an aggregation function to properly aggregate the spatial levels. I change the coordinates on the spatial dimensions in the model output. Valid inputs for the argument `aggregation_function`are: 1) one callable function --> applied to every dataset. 2) A list containing one callable function --> applied to every dataset. 3) A list containing a callable function for every dataset --> every dataset has its own aggregation function.
 * **labels** (list) - optional - Contains a custom label for the calibrated parameters. Defaults to the names provided in `parameter_names`.
@@ -80,70 +81,85 @@
 
 ### Log prior probability
 
-***function* log_prior_uniform(x, bounds)**
+***function* log_prior_uniform(x, bounds=None, weight=1)**
 
 >   Uniform log prior distribution.
 
 >   **Parameters:**
 
->    * **x** (float) - Parameter value.
->    * **bounds** (tuple) - Lower and upper bound of the uniform probability distribution.
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **bounds** (tuple) - Tuple containing the lower and upper bounds of the uniform probability distribution.
+>    * **weight** (float) - optional - Regularisation weight (default: 1) -- does nothing.
 
 >    **Returns:**
 >    * **lp** (float) Log probability of x in light of a uniform prior distribution.
 
-***function* log_prior_triangle(x, pars)**
+***function* log_prior_triangle(x, low=None, high=None, mode=None, weight=1)**
 
 >   Triangular log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value.
->    * **pars** (tuple) - Tuple containg the lower bound, upper bound and mode of the triangle distribution.
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **low** (float) - Lower bound of the triangle distribution.
+>    * **high** (float) - Upper bound of the triangle distribution.
+>    * **mode** (float) - Mode of the triangle distribution.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a triangular prior distribution.
 
-***function* log_prior_normal(x, pars)**
+***function* log_prior_normal(x, avg=None, stdev=None, weight=1)**
 
 >   Normal log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value.
->    * **pars** (tuple) - Tuple containg the average and standard deviation of a normal distribution.
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **avg** (float) - Average of the normal distribution.
+>    * **stdev** (float) - Standard deviation of the normal distribution.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a normal prior distribution.
 
-***function* log_prior_gamma(x, pars)**
+***function* log_prior_gamma(x, a=None, loc=None, scale=None, weight=1)**
 
 >   Gamma log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value.
->    * **pars** (tuple) - Tuple containg the parameters `a`, `loc` and `scale` of `scipy.stats.gamma.logpdf`.
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **a** (float) - Parameter 'a' of `scipy.stats.gamma.logpdf`.
+>    * **loc** (float) - Location parameter of `scipy.stats.gamma.logpdf`.
+>    * **scale** (float) - Scale parameter of `scipy.stats.gamma.logpdf`.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a gamma prior distribution.
 
-***function* log_prior_beta(x, pars)**
+***function* log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1)**
 
 >   Beta log prior distribution.
 
 >    **Parameters:**
->    * **x** (float) - Parameter value.
->    * **pars** (tuple) - Tuple containg the parameters `a`, `b`, `loc` and `scale` of `scipy.stats.beta.logpdf`.
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **a** (float) - Parameter 'a' of `scipy.stats.beta.logpdf`.
+>    * **b** (float) - Parameter 'b' of `scipy.stats.beta.logpdf`.
+>    * **loc** (float) - Location parameter of `scipy.stats.beta.logpdf`.
+>    * **scale** (float) - Scale parameter of `scipy.stats.beta.logpdf`.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a beta prior distribution.
 
 
-***function* log_prior_custom(x, args)**
+***function* log_prior_custom(x, density=None, bins=None, weight=1)**
 
 >    A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
 
 >    **Parameters:**
->    * **x** (float) - Parameter value.
->    * **args** (tuple) - Must contain the density of each bin in the first position and the bounds of the bins in the second position.
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **density** (np.ndarray) - The values of the histogram (generated by `np.histogram()`).
+>    * **bins** (np.ndarray) - The histogram's bin edges (generated by `np.histogram()`).
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
 
 >    **Returns:**
 >    * **lp** (float) Log probability of x in light of a custom distribution of data.
@@ -156,7 +172,7 @@
 >prior_fcn_args = (density_my_par_norm, bins_my_par, weight)
 >```
 
-## nelder_mead.py
+## pySODM.optimization.nelder_mead
 
 ***function* optimize(func, x_start, step, bounds=None, args=(), kwargs={}, processes=1, no_improve_thr=1e-6, no_improv_break=100, max_iter=1000, alpha=1., gamma=2., rho=-0.5, sigma=0.5)**
 
@@ -184,7 +200,7 @@
 >    * **theta** (list) - Optimised parameter values.
 >    * **score** (float) - Corresponding corresponding objective function value.
 
-## pso.py
+## pySODM.optimization.pso
 
 ***function* optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={}, processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,  debug=False, particle_output=False, transform_pars=None)**
 
@@ -214,7 +230,7 @@
 >    * **theta** (list) - Optimised parameter values.
 >    * **score** (float) - Corresponding corresponding objective function value.
 
-## mcmc.py
+## pySODM.optimization.mcmc
 
 ***function* run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None, moves=[(emcee.moves.DEMove(), 0.25),(emcee.moves.DESnookerMove(),0.25),(emcee.moves.KDEMove(bw_method='scott'), 0.50)], fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={})**
 
@@ -273,7 +289,7 @@ Samples path, identifier and run_date are combined to find the right .hdf5 `emce
 >   **Returns:**
 >   * **samples** (dict) - Dictionary containing the discarded and thinned MCMC samples and settings.
  
-## utils.py
+## pySODM.optimization.utils
 
 ***function* add_poisson_noise(output)**
 
