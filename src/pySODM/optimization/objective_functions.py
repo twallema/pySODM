@@ -80,9 +80,9 @@ class log_posterior_probability():
 
         parameter_sizes, self.parameter_shapes = validate_calibrated_parameters(parameter_names, model.parameters)
 
-        ##########################################################
-        ## Expand parameter names, bounds, and labels if needed ##
-        ##########################################################
+        #####################################################################
+        ## Expand parameter names, bounds, and labels for n-dim parameters ##
+        #####################################################################
 
         self.parameters_names_postprocessing, self.expanded_bounds, self.expanded_labels = expand_pars_bounds_labels(self.parameter_shapes, parameter_sizes, bounds, labels)
 
@@ -782,6 +782,7 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
 def expand_pars_bounds_labels(parameter_shapes, parameter_sizes, bounds, labels):
     """
     A wrapper function to expand the parameter names, bounds and labels
+    Wraps around `expand_parameter_names`, `expand_bounds` and `expand_labels`
     """
     # Expand parameter names 
     parameters_names_postprocessing = expand_parameter_names(parameter_shapes)
@@ -1199,6 +1200,7 @@ def compare_data_model_coordinates(output, data, calibration_state_names, aggreg
         aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], dims_coords))
 
     return coordinates_data_also_in_model, aggregate_over
+
 
 def validate_log_likelihood_funtion(log_likelihood_function):
     """
