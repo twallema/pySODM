@@ -4,8 +4,9 @@ import pandas as pd
 from datetime import datetime
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
-from pySODM.optimization.utils import add_negative_binomial_noise
-from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial, \
+                                                    log_prior_uniform, log_prior_triangle, log_prior_normal, log_prior_gamma, log_prior_beta
+
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
 
 # Only tested for ODE but the model output is identical so this shouldn't matter
@@ -57,8 +58,10 @@ class SIR(ODE):
         dR = gamma*I
         return dS, dI, dR
 
-# Do the same for every input argument of the log_posterior_probability
+# TODO: Do the same for every optional input argument of the `log_posterior_probability` class
 def test_weights():
+    """ weights
+    """
     # Define parameters and initial states
     parameters = {"beta": 0.1, "gamma": 0.2}
     initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
@@ -74,18 +77,65 @@ def test_weights():
     bounds = [(1e-6,1),]
 
     # Correct: list
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=[1,])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,])
     # Correct: np.array
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=np.array([1,]))
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.array([1,]))
     # Incorrect: list of wrong length
     with pytest.raises(ValueError, match="the extra arguments of the log likelihood function"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=[1,1])
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,1])
     # Incorrect: numpy array with more than one dimension
     with pytest.raises(TypeError, match="Expected a 1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=np.ones([3,3]))
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.ones([3,3]))
     # Incorrect: datatype string
     with pytest.raises(TypeError, match="Expected a list/1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights='hey')
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights='hey')
+
+def test_priors():
+    """ log_prior_prob_fnc and log_prior_prob_fnc_args
+    """
+
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    bounds = [(1e-6,1),]
+
+    # Implicitly checked: no priors provided
+    # Correct: uniform without weight
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,], log_prior_prob_fnc_args=[{'bounds': (1e-6,1)}])
+    # Correct: uniform with weight
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,], log_prior_prob_fnc_args=[{'bounds': (1e-6,1), 'weight': 10}])
+    # Correct: triangle, normal, gamma, beta
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_triangle,], log_prior_prob_fnc_args=[{'low': 1e-6, 'high': 1, 'mode': 0.5}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_normal,], log_prior_prob_fnc_args=[{'avg': 0, 'stdev': 1}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_gamma,], log_prior_prob_fnc_args=[{'a': 1, 'loc': 1, 'scale': 1}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_beta,], log_prior_prob_fnc_args=[{'a': 1, 'b': 1, 'loc': 1, 'scale': 1}])
+    # Incorrect: provide only functions
+    with pytest.raises(Exception, match="invalid input. `log_prior_prob_fnc` provided but no"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,])
+    # Incorrect: provide only arguments
+    with pytest.raises(Exception, match="invalid input. `log_prior_prob_fnc_args` provided but no"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc_args=[{'bounds': (1e-6,1)}])  
+    # Incorrect: wrong arguments
+    with pytest.raises(ValueError, match="the arguments of the 0th `log_prior_prob_fnc` are invalid."):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,], log_prior_prob_fnc_args=[{'avg': 1}])
 
 def test_start_sim():
 
@@ -111,7 +161,6 @@ def test_start_sim():
     # Incorrect: startdate after enddate
     with pytest.raises(AssertionError, match="make sure 'start_sim' is chronologically before the start of the earliest datapoint."):
         log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=100)  
-
 
 def test_correct_approach_wo_dimension():
 
@@ -759,6 +808,7 @@ def test_SIR_SI():
 ########################
 
 test_weights()
+test_priors()
 test_start_sim()
 test_correct_approach_wo_dimension()
 break_stuff_wo_dimension()
