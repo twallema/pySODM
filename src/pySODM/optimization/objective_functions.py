@@ -872,7 +872,7 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
     ## nothing: uniform priors based on bounds
     if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):                  
         expanded_log_prior_prob_fnc = len(expanded_bounds)*[log_prior_uniform,]
-        expanded_log_prior_prob_fnc_args = expanded_bounds
+        expanded_log_prior_prob_fnc_args = [{'bounds': expanded_bound} for expanded_bound in expanded_bounds]
     ## functions without arguments: invalid
     elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):            
         raise Exception(
