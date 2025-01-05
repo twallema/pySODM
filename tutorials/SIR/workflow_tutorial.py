@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from pySODM.optimization import nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta, variance_analysis
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
-from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial, log_prior_normal
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 
 ######################################################
 ## Generate a synthetic dataset with overdispersion ##
@@ -105,10 +105,7 @@ if __name__ == '__main__':
     labels = ['$\\beta$',]
     bounds = [(0,10),]
     # Setup objective function (no priors --> uniform priors based on bounds)
-    log_prior_prob_fnc = [log_prior_normal,]
-    log_prior_prob_fnc_args = [{'mu': 0.3, 'stdev': 0.1},]
-    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                                                   log_prior_prob_fnc=log_prior_prob_fnc, log_prior_prob_fnc_args=log_prior_prob_fnc_args, labels=labels)
+    objective_function = log_posterior_probability(model, pars, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args, labels=labels)
     # Extract start- and enddate
     start_date = d.index.min()
     end_date = d.index.max()
