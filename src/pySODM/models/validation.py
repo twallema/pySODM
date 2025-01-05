@@ -437,7 +437,6 @@ def validate_initial_states(initial_states, state_shapes):
 
     # check if type is right (redundant; already checked in `get_initial_states_fuction_parameters`)
     if not isinstance(initial_states, dict):
-        
         raise TypeError("initial states should be a dictionary by this point. contact Tijs Alleman if this error occurs.")
 
     # validate the states shape; if not present initialise with zeros
