@@ -26,6 +26,8 @@ class log_posterior_probability():
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
         ############################################################################################################
 
+        # TODO: checks on all input types; checks on likelihood functions and arguments
+
         # Check type of `weights`
         if isinstance(weights, (list,np.ndarray)):
             if isinstance(weights, np.ndarray):
@@ -82,31 +84,7 @@ class log_posterior_probability():
         ## Expand parameter names, bounds, and labels if needed ##
         ##########################################################
 
-        # Expand parameter names 
-        self.parameters_names_postprocessing = expand_parameter_names(self.parameter_shapes)
-        # Expand bounds
-        if len(bounds) == len(parameter_names):
-            check_bounds(bounds)
-            self.expanded_bounds = expand_bounds(parameter_sizes, bounds)
-        elif len(bounds) == sum(parameter_sizes.values()):
-            check_bounds(bounds)
-            self.expanded_bounds = bounds
-        else:
-            raise Exception(
-                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameters_names_postprocessing}'  ({len(self.parameters_names_postprocessing)})"
-            )
-        # Expand labels
-        if labels:
-            if len(labels) == len(parameter_names):
-                self.expanded_labels = expand_labels(self.parameter_shapes, labels)
-            elif len(labels) == sum(parameter_sizes.values()):
-                self.expanded_labels = labels
-            else:
-                raise Exception(
-                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameters_names_postprocessing}'  ({len(self.parameters_names_postprocessing)})"
-                )
-        else:
-            self.expanded_labels = self.parameters_names_postprocessing
+        self.parameters_names_postprocessing, self.expanded_bounds, self.expanded_labels = expand_pars_bounds_labels(self.parameter_shapes, parameter_sizes, bounds, labels)
 
         #################################################
         ## Input checks on prior functions + expansion ##
@@ -801,11 +779,60 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
 
     return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
 
-def expand_parameter_names(parameter_shapes):
-    """A function to expand the names of parameters with multiple entries
+def expand_pars_bounds_labels(parameter_shapes, parameter_sizes, bounds, labels):
     """
+    A wrapper function to expand the parameter names, bounds and labels
+    """
+    # Expand parameter names 
+    parameters_names_postprocessing = expand_parameter_names(parameter_shapes)
+    # Expand bounds
+    if len(bounds) == len(parameter_shapes.keys()):
+        check_bounds(bounds)
+        expanded_bounds = expand_bounds(parameter_sizes, bounds)
+    elif len(bounds) == sum(parameter_sizes.values()):
+        check_bounds(bounds)
+        expanded_bounds = bounds
+    else:
+        raise Exception(
+            f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_shapes.keys()}' ({len(parameter_shapes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameters_names_postprocessing}' ({len(parameters_names_postprocessing)})"
+        )
+    # Expand labels
+    if labels:
+        if len(labels) == len(parameter_shapes.keys()):
+            expanded_labels = expand_labels(parameter_shapes, labels)
+        elif len(labels) == sum(parameter_sizes.values()):
+            expanded_labels = labels
+        else:
+            raise Exception(
+                f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_shapes.keys()}' ({len(parameter_shapes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameters_names_postprocessing}' ({len(parameters_names_postprocessing)})"
+            )
+    else:
+        expanded_labels = parameters_names_postprocessing
+    
+    return parameters_names_postprocessing, expanded_bounds, expanded_labels
+
+
+def expand_parameter_names(parameter_shapes):
+    """
+    A function to expand the names of parameters with multiple entries
+
+    input
+    -----
+
+    parameter_shapes: dict
+        Key: parameter name, value: (tuple) shape
+        f.i. {'beta': (2,)}
+
+    returns
+    -------
+
+    expanded_names: list
+        Expanded name of parameter containing more than one value (1D or nD numpy array)
+        f.i. beta_{0}, beta_{1}
+    """
+
     expanded_names = []
-    for i, name in enumerate(parameter_shapes.keys()):
+    for _, name in enumerate(parameter_shapes.keys()):
         if parameter_shapes[name] == (1,):
             expanded_names.append(name)
         else:
@@ -818,17 +845,6 @@ def expand_parameter_names(parameter_shapes):
                 expanded_names.append(n)
     return expanded_names
 
-def check_bounds(bounds):
-    """
-    A function to check the elements in 'bounds': type(list/tuple), length (2), ub > lb
-    """
-    for i,bound in enumerate(bounds):
-        # Check type
-        assert isinstance(bound, (list,tuple)), f'parameter bound (position {i}) is not a list or tuple'
-        # Check length
-        assert len(bound)==2, f'parameter bound (position {i}) contains {len(bound)} entries instead of 2'
-        # Check ub > lb
-        assert bound[0] < bound[1], f'upper-bound value must be greater than lower-bound value (position {i})'
 
 def expand_bounds(parameter_sizes, bounds):
     """"
@@ -842,6 +858,7 @@ def expand_bounds(parameter_sizes, bounds):
             for _ in range(parameter_sizes[name]):
                 expanded_bounds.append(bounds[i])
     return expanded_bounds
+
 
 def expand_labels(parameter_shapes, labels):
     """A function to expand the labels of parameters with multiple entries
@@ -859,6 +876,20 @@ def expand_labels(parameter_shapes, labels):
                 n+='}'
                 expanded_labels.append(n)
     return expanded_labels
+
+
+def check_bounds(bounds):
+    """
+    A function to check the elements in 'bounds': type(list/tuple), length (2), ub > lb
+    """
+    for i,bound in enumerate(bounds):
+        # Check type
+        assert isinstance(bound, (list,tuple)), f'parameter bound (position {i}) is not a list or tuple'
+        # Check length
+        assert len(bound)==2, f'parameter bound (position {i}) contains {len(bound)} entries instead of 2'
+        # Check ub > lb
+        assert bound[0] < bound[1], f'upper-bound value must be greater than lower-bound value (position {i})'
+
 
 def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, expanded_bounds):
     """ 
