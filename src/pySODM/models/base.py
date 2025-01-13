@@ -7,7 +7,7 @@ from multiprocessing import get_context
 from functools import partial
 from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
-from pySODM.models.utils import int_to_date, list_to_dict
+from pySODM.models.utils import int_to_date, list_to_dict, cut_ICF_parameters_from_parameters
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
@@ -97,8 +97,8 @@ class JumpProcess:
         validate_apply_transitionings_signature(self.apply_transitionings, self.parameters_names_modeldeclaration, self.states_names)
 
         # Get additional parameters of the IC function
-        self._extra_params_initial_condition_function = get_initial_states_fuction_parameters(self.states)
-        all_params.extend(self._extra_params_initial_condition_function)
+        self._extra_params_ICF = get_initial_states_fuction_parameters(self.states)
+        all_params.extend(self._extra_params_ICF)
         
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(set(all_params), parameters, self.states_names)
@@ -366,21 +366,18 @@ class JumpProcess:
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
 
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Update initial condition if a function was provided by user
         if self.initial_states_function:
-            # Call the initial state function to update the initial state
+            ## Call the initial state function to update the initial state
             initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
-            # Check the initial states size and fill states not provided with zeros
+            ## Check the initial states size and fill states not provided with zeros
             initial_states = validate_initial_states(initial_states, self.state_shapes)
-            # Throw out parameters belonging (uniquely) to the initial condition function
-            union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_modeldeclaration)  # Union of TDPF pars and integrate pars
-            unique_ICF = set(self._extra_params_initial_condition_function) - union_TDPF_integrate # Compute the difference between initial condition pars and union TDPF and integrate pars
-            params = {key: value for key, value in self.parameters.items() if key in union_TDPF_integrate or key not in unique_ICF}
+            ## Throw out parameters belonging (uniquely) to the initial condition function
+            params = cut_ICF_parameters_from_parameters(self.parameters_names_modeldeclaration, self._extra_params_TDPF, self._extra_params_ICF, self.parameters)
         else:
+            ## Do nothing
             initial_states = self.initial_states
             params = self.parameters
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         # Flatten initial states
         y0=[]
@@ -574,8 +571,8 @@ class ODE:
         all_params, self._extra_params_TDPF = validate_integrate_or_compute_rates_signature(self.integrate, self.parameters_names_modeldeclaration, self.states_names, self._function_parameters)
 
         # Get additional parameters of the IC function
-        self._extra_params_initial_condition_function = get_initial_states_fuction_parameters(self.states)
-        all_params.extend(self._extra_params_initial_condition_function)
+        self._extra_params_ICF = get_initial_states_fuction_parameters(self.states)
+        all_params.extend(self._extra_params_ICF)
         
         # Verify all parameters were provided
         self.parameters = validate_provided_parameters(set(all_params), parameters, self.states_names)
@@ -682,21 +679,18 @@ class ODE:
         t0, t1 = time
         t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
 
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Update initial condition if a function was provided by user
         if self.initial_states_function:
-            # Call the initial state function to update the initial state
+            ## Call the initial state function to update the initial state
             initial_states = self.initial_states_function(**{key: self.parameters[key] for key in self.initial_states_function_args})
-            # Check the initial states size and fill states not provided with zeros
+            ## Check the initial states size and fill states not provided with zeros
             initial_states = validate_initial_states(initial_states, self.state_shapes)
-            # Throw out parameters belonging (uniquely) to the initial condition function
-            union_TDPF_integrate = set(self._extra_params_TDPF) | set(self.parameters_names_modeldeclaration)  # Union of TDPF pars and integrate pars
-            unique_ICF = set(self._extra_params_initial_condition_function) - union_TDPF_integrate # Compute the difference between initial condition pars and union TDPF and integrate pars
-            params = {key: value for key, value in self.parameters.items() if key in union_TDPF_integrate or key not in unique_ICF}
+            ## Throw out parameters belonging (uniquely) to the initial condition function
+            params = cut_ICF_parameters_from_parameters(self.parameters_names_modeldeclaration, self._extra_params_TDPF, self._extra_params_ICF, self.parameters)
         else:
+            ## Do nothing
             initial_states = self.initial_states
             params = self.parameters
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         # Flatten initial states
         y0=[]
