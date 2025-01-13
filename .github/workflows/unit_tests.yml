@@ -1,11 +1,6 @@
 name: Run unit tests
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
+on: [pull_request]
 jobs:
   deploy:
     runs-on: ${{ matrix.os }}
