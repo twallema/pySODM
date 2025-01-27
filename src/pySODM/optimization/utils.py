@@ -114,7 +114,7 @@ def assign_theta(param_dict, parameter_names, thetas):
 
     _, parameter_shapes = validate_calibrated_parameters(parameter_names, param_dict)
     thetas_dict = list_to_dict(np.array(thetas), parameter_shapes, retain_floats=True)
-    for i, (param, value) in enumerate(thetas_dict.items()):
+    for _, (param, value) in enumerate(thetas_dict.items()):
         param_dict.update({param: value})
     return param_dict
 
