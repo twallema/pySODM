@@ -720,6 +720,7 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
 
     return start_sim, end_sim
 
+
 def validate_calibrated_parameters(parameters_function, parameters_model):
     """
     Validates the parameters the user wants to calibrate. Parameters must: 1) Be valid model parameters, 2) Have one value, or, have multiple values (list or np.ndarray).
@@ -743,7 +744,7 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
     parameters_shapes: dict
         Dictionary containing the shape of every model parameter.    
     """
-
+    
     parameters_sizes = []
     parameters_shapes = []
     for param_name in parameters_function:
@@ -756,9 +757,9 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
             # Check the datatype: only int, float, list of int/float, np.array
             if isinstance(parameters_model[param_name], bool):
                 raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(parameters_model[param_name])}'"
                     )
-            elif isinstance(parameters_model[param_name], (int,float)):
+            elif isinstance(parameters_model[param_name], (int,float,np.int32,np.int64,np.float32,np.float64)):
                 parameters_shapes.append((1,))
                 parameters_sizes.append(1)
             elif isinstance(parameters_model[param_name], np.ndarray):
@@ -774,10 +775,11 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
                     parameters_shapes.append(np.array(parameters_model[param_name]).size)
             else:
                 raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(parameters_model[param_name])}'"
                         )
 
     return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
+
 
 def expand_pars_bounds_labels(parameter_shapes, parameter_sizes, bounds, labels):
     """
