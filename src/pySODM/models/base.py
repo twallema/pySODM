@@ -18,8 +18,78 @@ from typing import Callable, Dict, Optional, Any, Union
 
 class JumpProcess:
     """
-    #TODO: a better docstring here
+    Your model class should inherit pySODM's `JumpProcess` class to set up a jump process model.
+
+    ### Your model class contains
+
+    - states: list
+        - names of the model’s states.
+
+    - parameters: list
+        - names of the model’s parameters.
+
+    - compute_rates: staticmethod (callable)
+        - function to compute the rates of transitioning between the model states. 
+        - must be a static method (decorated with @staticmethod).
+        - signature: `def compute_rates(t, states, parameters, stratified_parameters)`
+            - t (float): timestep
+            - states: model’s states
+            - parameters and stratified parameters        
+        - returns: dict
+            - keys: model states, values: list containing the rates of the possible transitionings of the state.
+            - a model state can have multiple transitionings.
+    
+    - apply_transitionings: callable
+        - function to update the states with the number of drawn transitionings.
+        - signature: `def apply_transitionings(t, tau, transitionings, states, parameters, stratified_parameters)`
+            - t (float): timestep
+            - tau (float): solver timestep
+            - transitionings (dict): drawn transitionings between the states
+            - states: model’s states
+            - parameters and stratified parameters        
+
+    - (optional) dimensions: list
+        - names of the model’s dimensions. number of dimensions determines the dimensions of the model’s states.
+            - no dimensions: states are 0-D (scalar)
+            - 1 dimension: states are 1-D (np.ndarray)
+            - 2 dimensions: states are 2-D (np.ndarray)
+
+    - (optional) stratified_parameters: list
+        - names of the stratified parameters. stratified parameters are one-dimensional parameter associated with a model dimension.
+            - 0 dimensions: not possible to have stratified parameters
+            - 1 dimension: list containing strings - ['stratpar_1', 'stratpar_2']
+            - 2+ dimensions: list contains n sublists, where n must equal the number of model dimensions. each sublist contains names of stratified parameters associated with the dimension in the corresponding position in dimensions 
+            - example for 3 dimensions model: [['stratpar_1', 'stratpar_2'],[],['stratpar_3']], first dimension in dimensions has two stratified parameters stratpar_1 and stratpar_2, second dimension has no stratified parameters, third dimensions has one stratified parameter stratpar_3.
+    
+    - (optional) dimensions_per_state: list
+        - specify the dimension of each model state seperately. allows you to define models with states of different sizes.
+        - if `dimensions_per_state` is not provided, all model states will have the same number of dimensions, equal to the number of model dimensions specified using dimensions.
+        - if specified, `dimensions_per_state` must contain n sublists, where n is the number of model states (`n = len(states)`). if a model state has no dimensions (i.e. it is a float), specify an empty list.
+
+    ### Minimal example
+    
+    ```
+    class MY_MODEL(JumpProcesses):
+
+    states = ['Y1', 'Y2']
+    parameters = ['alpha']
+
+    # define the rates of the system's transitionings
+    @staticmethod
+    def compute_rates(t, Y1, Y2, alpha):
+        return {'Y1': [alpha, ]}
+
+    # apply the sampled number of transitionings
+    @staticmethod
+    def apply_transitionings(t, tau, transitionings, Y1, Y2, alpha):
+
+        Y1_new = Y1 - transitionings['Y1'][0]
+        Y2_new = Y2 + transitionings['Y2'][0]
+
+        return Y1_new, Y2_new
+    ```
     """
+
     states = None
     parameters = None
     stratified_parameters = None
@@ -499,7 +569,56 @@ class JumpProcess:
 
 class ODE:
     """
-    #TODO: a better docstring here
+    Your model class should inherit pySODM's `ODE` class to set up an ordinary differential equations model.
+
+    ### Your model class contains
+
+    - states: list
+        - names of the model’s states.
+
+    - parameters: list
+        - names of the model’s parameters.
+
+    - integrate: staticmethod (callable)
+        - function computing the differentials of every model state.
+        - must be a static method (decorated with @staticmethod).
+        - signature: `def integrate(t, states, parameters, stratified_parameters)`
+            - t (float): timestep
+            - states: model’s states
+            - parameters and stratified parameters
+        - returns: a differential for every model state, in the same order as in `states`.
+
+    - (optional) dimensions: list
+        - names of the model’s dimensions. number of dimensions determines the dimensions of the model’s states.
+            - no dimensions: states are 0-D (scalar)
+            - 1 dimension: states are 1-D (np.ndarray)
+            - 2 dimensions: states are 2-D (np.ndarray)
+
+    - (optional) stratified_parameters: list
+        - names of the stratified parameters. stratified parameters are one-dimensional parameter associated with a model dimension.
+            - 0 dimensions: not possible to have stratified parameters
+            - 1 dimension: list containing strings - ['stratpar_1', 'stratpar_2']
+            - 2+ dimensions: list contains n sublists, where n must equal the number of model dimensions. each sublist contains names of stratified parameters associated with the dimension in the corresponding position in dimensions 
+            - example for 3 dimensions model: [['stratpar_1', 'stratpar_2'],[],['stratpar_3']], first dimension in dimensions has two stratified parameters stratpar_1 and stratpar_2, second dimension has no stratified parameters, third dimensions has one stratified parameter stratpar_3.
+    
+    - (optional) dimensions_per_state: list
+        - specify the dimension of each model state seperately. allows you to define models with states of different sizes.
+        - if `dimensions_per_state` is not provided, all model states will have the same number of dimensions, equal to the number of model dimensions specified using dimensions.
+        - if specified, `dimensions_per_state` must contain n sublists, where n is the number of model states (`n = len(states)`). if a model state has no dimensions (i.e. it is a float), specify an empty list.
+
+    ### Minimal example
+    
+    ```
+    # Define the model equations
+    class MY_MODEL(ODE):
+
+        states = ['Y1', 'Y2']
+        parameters = ['alpha']
+
+        @staticmethod
+        def integrate(t, Y1, Y2, alpha):
+            return -alpha*Y1, alpha*Y2
+    ```
     """
 
     states = None
