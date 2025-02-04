@@ -32,28 +32,28 @@ class JumpProcess:
                  coordinates: Optional[Dict[str, list]]=None,
                  time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
         """
-        Initialise a jump process solved using Gillespie's SSA or Tau-Leaping
+        Initialise a jump process model solved using Gillespie's SSA or Tau-Leaping
 
         Parameters
         ----------
-        To initialise the model, provide following inputs:
 
-        initial_states : dictionary
-            contains the initial values of all non-zero model states, f.i. for an SIR model,
-            e.g. {'S': 1000, 'I': 1}
-            initialising zeros is not required
-        parameters : dictionary
-            values of all parameters, stratified_parameters, TDPF parameters
-        coordinates: dictionary, optional
-            Specify for each 'dimension_name' the coordinates to be used.
-            These coordinates can then be used to acces data easily in the output xarray.
-            Example: {'spatial_units': ['city_1','city_2','city_3']}    
-        time_dependent_parameters : dictionary, optional
-            Optionally specify a function for time dependency on the parameters. The
-            signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
-            the time, the initial parameter value, and potentially additional
-            keyword argument, and should return the new parameter value for
-            time `t`.
+        - initial_states : dict or callable 
+            - dict: contains the initial values of all non-zero model states, f.i. for an SIR model: {'S': 1000, 'I': 1}. Initialising zeros is not required.
+            - function: an initial condition function (ICF) generating a dictionary can be provided. arguments of the ICF must be added to `parameters`.
+
+        - parameters : dict
+            - keys: names of all parameters, stratified_parameters, TDPF and ICF parameters. values: associated parameter values. 
+
+        - (optional) coordinates: dict
+            - for each `dimension_name` in the model, specifies the coordinates associated with that dimension.
+            - f.e. {'spatial_units': ['city_1','city_2','city_3']}        
+
+        - (optional) time_dependent_parameters : dict
+            - keys: name of the parameter you want to impose a time-dependency on. values: time-dependent parameter function.
+            - a pySODM-compatible TDPF has the signature `fun(t, states, param, other_parameter_1, ...)`, where:
+                - t (float or datetime): current simulation timestep
+                - states (dict): dictionary containing the model states at time `t`
+                - param (any): value of the parameter the time dependency acts on
         """
             
         # Add a suffix _names to all user-defined name declarations 
@@ -520,25 +520,24 @@ class ODE:
 
         Parameters
         ----------
-        To initialise the model, provide following inputs:
 
-        initial_states : dictionary or callable 
-            contains the initial values of all non-zero model states, f.i. for an SIR model,
-            e.g. {'S': 1000, 'I': 1}
-            initialising zeros is not required
-            alternatively, a function generating a dictionary can be provided. arguments of the function must be supplied as parameters.
-        parameters : dictionary
-            values of all parameters, stratified_parameters, TDPF parameters
-        coordinates: dictionary, optional
-            Specify for each 'dimension_name' the coordinates to be used.
-            These coordinates can then be used to acces data easily in the output xarray.
-            Example: {'spatial_units': ['city_1','city_2','city_3']}        
-        time_dependent_parameters : dictionary, optional
-            Optionally specify a function for time dependency on the parameters. The
-            signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
-            the time, the initial parameter value, and potentially additional
-            keyword argument, and should return the new parameter value for
-            time `t`.
+        - initial_states : dict or callable 
+            - dict: contains the initial values of all non-zero model states, f.i. for an SIR model: {'S': 1000, 'I': 1}. Initialising zeros is not required.
+            - function: an initial condition function (ICF) generating a dictionary can be provided. arguments of the ICF must be added to `parameters`.
+
+        - parameters : dict
+            - keys: names of all parameters, stratified_parameters, TDPF and ICF parameters. values: associated parameter values. 
+
+        - (optional) coordinates: dict
+            - for each `dimension_name` in the model, specifies the coordinates associated with that dimension.
+            - f.e. {'spatial_units': ['city_1','city_2','city_3']}        
+
+        - (optional) time_dependent_parameters : dict
+            - keys: name of the parameter you want to impose a time-dependency on. values: time-dependent parameter function.
+            - a pySODM-compatible TDPF has the signature `fun(t, states, param, other_parameter_1, ...)`, where:
+                - t (float or datetime): current simulation timestep
+                - states (dict): dictionary containing the model states at time `t`
+                - param (any): value of the parameter the time dependency acts on
         """
 
         # Add a suffix _names to all user-defined name declarations 
