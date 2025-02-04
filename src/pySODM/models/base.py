@@ -17,9 +17,9 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
 
 class JumpProcess:
     """
-    Your model class should inherit pySODM's `JumpProcess` class to set up a jump process model.
+    Make a class with `JumpProcess` as input to build a pySODM model.
 
-    ### Your model class contains
+    ### Your class must contain
 
     - states: list
         - names of the model’s states.
@@ -576,9 +576,9 @@ class JumpProcess:
 
 class ODE:
     """
-    Your model class should inherit pySODM's `ODE` class to set up an ordinary differential equations model.
+    Make a class with `ODE` as input to build a pySODM model.
 
-    ### Your model class contains
+    ### Your class must contain
 
     - states: list
         - names of the model’s states.
