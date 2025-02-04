@@ -28,7 +28,7 @@ def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
     """
 
     # Extract dimensions of sampler output
-    nsamples,nwalkers, ndim = samples.shape
+    _, _, ndim = samples.shape
     # Generate list of lables if none provided
     if not labels:
         labels = [f"$\\theta_{i}$" for i in range(ndim)]
@@ -51,7 +51,7 @@ def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
     n = step_autocorr * np.arange(1, index + 1)
 
     # Make figure
-    fig,ax=plt.subplots(figsize=(10,4))
+    _,ax=plt.subplots(figsize=(10,4))
     # Autocorrelation
     ax.plot(n, np.array(tau_vect), **plt_kwargs)
     ax.plot(n, n/50, "--k")
@@ -63,7 +63,7 @@ def autocorrelation_plot(samples, labels=None, filename=None, plt_kwargs={}):
 
     # Save result if desired
     if filename:
-        plt.savefig(filename, dpi=600, bbox_inches='tight', orientation='portrait')
+        plt.savefig(filename, dpi=200, bbox_inches='tight', orientation='portrait')
 
     return ax, tau_vect[-1]
 
@@ -79,14 +79,14 @@ def traceplot(samples, labels=None, filename=None, plt_kwargs={}):
     labels: list
         A list containing the names of the sampled parameters. Must be the same length as the z-dimension of the samples np.array.
     plt_kwargs: dictionary
-        A dictionary containing arguments for the plt.plot function.
+        A dictionary containing arguments for the `ax.plot()` function used to visualise the traces.
 
     Returns
     -------
     ax
     """
     # Extract dimensions of sampler output
-    nsamples,nwalkers, ndim = samples.shape
+    nsamples, _, ndim = samples.shape
     # Generate list of lables if none provided
     if not labels:
         labels = [f"$\\theta_{i}$" for i in range(ndim)]
@@ -99,23 +99,27 @@ def traceplot(samples, labels=None, filename=None, plt_kwargs={}):
             )
 
     # initialise figure
-    fig, axes = plt.subplots(len(labels))
-    # Error when only one parameter is calibrated: axes not suscribable
-    if ndim == 1:
-        axes = [axes]
-    # set size
-    fig.set_size_inches(10, len(labels)*7/3)
-    # plot data
+    _, axes = plt.subplots(nrows=len(labels), ncols=2, figsize=(8.3,(11.7/6)*len(labels)), width_ratios=[2.5,1])
+
+    # visualise data
+    axes =  np.atleast_2d(axes) # np.atleast_2d() solves error if number of parameters equal to one
     for i in range(ndim):
-        ax = axes[i]
-        ax.plot(samples[:, :, i], **plt_kwargs)
-        ax.set_xlim(0, nsamples)
-        ax.set_ylabel(labels[i])
-        ax.grid(False)
-    axes[-1].set_xlabel("Iteration (-)")
+        ax = axes[i,:] 
+        # traces
+        ax[0].plot(samples[:, :, i], **plt_kwargs)
+        ax[0].set_xlim(0, nsamples)
+        ax[0].set_ylabel(labels[i])
+        ax[0].grid(False)
+        # marginal distribution
+        d = np.random.choice(samples[:, :, i].flatten(), int(min(len(samples[:, :, i].flatten())/3, 1000)))
+        ax[1].hist(d, color='black', density=True)
+        ax[1].axvline(np.median(d), color='red', linewidth=1, linestyle='--')
+
+    # axes labels
+    axes[-1,0].set_xlabel("Iteration (-)")
 
     # Save result if desired
     if filename:
-        plt.savefig(filename, dpi=600, bbox_inches='tight', orientation='portrait')
+        plt.savefig(filename, dpi=200, bbox_inches='tight', orientation='portrait')
 
     return ax
