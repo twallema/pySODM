@@ -14,6 +14,12 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess, \
                                                     get_initial_states_fuction_parameters, check_overlap, evaluate_initial_condition_function, check_formatting_names
 
+from typing import Callable, Dict, Optional, Any, Union
+# Type alias for model states
+ModelStates = Dict[str, Union[int, float, np.ndarray]]
+# Type alias for a time-dependent parameter function
+TDPFunction = Callable[[Union[int, float, datetime], ModelStates, Any, *tuple], Any]
+
 class JumpProcess:
     """
     Initialise a jump process solved using Gillespie's SSA or Tau-Leaping
@@ -46,7 +52,11 @@ class JumpProcess:
     dimensions = None
     dimensions_per_state = None
 
-    def __init__(self, initial_states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self,
+                 initial_states: Dict[str, Union[int, float, np.ndarray]],
+                 parameters: Dict[str, Any],
+                 coordinates: Optional[Dict[str, list]]=None,
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[int, float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
