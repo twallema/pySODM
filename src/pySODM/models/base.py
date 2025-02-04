@@ -15,37 +15,11 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
                                                     get_initial_states_fuction_parameters, check_overlap, evaluate_initial_condition_function, check_formatting_names
 
 from typing import Callable, Dict, Optional, Any, Union
-# Type alias for model states
-ModelStates = Dict[str, Union[int, float, np.ndarray]]
-# Type alias for a time-dependent parameter function
-TDPFunction = Callable[[Union[int, float, datetime], ModelStates, Any, *tuple], Any]
 
 class JumpProcess:
     """
-    Initialise a jump process solved using Gillespie's SSA or Tau-Leaping
-
-    Parameters
-    ----------
-    To initialise the model, provide following inputs:
-
-    initial_states : dictionary
-        contains the initial values of all non-zero model states, f.i. for an SIR model,
-        e.g. {'S': 1000, 'I': 1}
-        initialising zeros is not required
-    parameters : dictionary
-        values of all parameters, stratified_parameters, TDPF parameters
-    time_dependent_parameters : dictionary, optional
-        Optionally specify a function for time dependency on the parameters. The
-        signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
-        the time, the initial parameter value, and potentially additional
-        keyword argument, and should return the new parameter value for
-        time `t`.
-    coordinates: dictionary, optional
-        Specify for each 'dimension_name' the coordinates to be used.
-        These coordinates can then be used to acces data easily in the output xarray.
-        Example: {'spatial_units': ['city_1','city_2','city_3']}
+    #TODO: a better docstring here
     """
-
     states = None
     parameters = None
     stratified_parameters = None
@@ -53,11 +27,35 @@ class JumpProcess:
     dimensions_per_state = None
 
     def __init__(self,
-                 initial_states: Dict[str, Union[int, float, np.ndarray]],
+                 initial_states: Union[Dict[str, Union[int, float, np.ndarray]], Callable[..., Dict[str, Union[int, float, np.ndarray]]]],
                  parameters: Dict[str, Any],
                  coordinates: Optional[Dict[str, list]]=None,
-                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[int, float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
+        """
+        Initialise a jump process solved using Gillespie's SSA or Tau-Leaping
 
+        Parameters
+        ----------
+        To initialise the model, provide following inputs:
+
+        initial_states : dictionary
+            contains the initial values of all non-zero model states, f.i. for an SIR model,
+            e.g. {'S': 1000, 'I': 1}
+            initialising zeros is not required
+        parameters : dictionary
+            values of all parameters, stratified_parameters, TDPF parameters
+        coordinates: dictionary, optional
+            Specify for each 'dimension_name' the coordinates to be used.
+            These coordinates can then be used to acces data easily in the output xarray.
+            Example: {'spatial_units': ['city_1','city_2','city_3']}    
+        time_dependent_parameters : dictionary, optional
+            Optionally specify a function for time dependency on the parameters. The
+            signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
+            the time, the initial parameter value, and potentially additional
+            keyword argument, and should return the new parameter value for
+            time `t`.
+        """
+            
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
         self.parameters_names = self.parameters
@@ -501,29 +499,7 @@ class JumpProcess:
 
 class ODE:
     """
-    Initialise an ordinary differential equations model
-
-    Parameters
-    ----------
-    To initialise the model, provide following inputs:
-
-    initial_states : dictionary or callable 
-        contains the initial values of all non-zero model states, f.i. for an SIR model,
-        e.g. {'S': 1000, 'I': 1}
-        initialising zeros is not required
-        alternatively, a function generating a dictionary can be provided. arguments of the function must be supplied as parameters.
-    parameters : dictionary
-        values of all parameters, stratified_parameters, TDPF parameters
-    time_dependent_parameters : dictionary, optional
-        Optionally specify a function for time dependency on the parameters. The
-        signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
-        the time, the initial parameter value, and potentially additional
-        keyword argument, and should return the new parameter value for
-        time `t`.
-    coordinates: dictionary, optional
-        Specify for each 'dimension_name' the coordinates to be used.
-        These coordinates can then be used to acces data easily in the output xarray.
-        Example: {'spatial_units': ['city_1','city_2','city_3']}
+    #TODO: a better docstring here
     """
 
     states = None
@@ -533,7 +509,37 @@ class ODE:
     dimensions_per_state = None
     # TODO: states, parameters, dimensions --> list containing str (check input!)
 
-    def __init__(self, initial_states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self,
+                 initial_states: Union[Dict[str, Union[int, float, np.ndarray]], Callable[..., Dict[str, Union[int, float, np.ndarray]]]],
+                 parameters: Dict[str, Any],
+                 coordinates: Optional[Dict[str, list]]=None,
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
+        
+        """
+        Initialise an ordinary differential equations model
+
+        Parameters
+        ----------
+        To initialise the model, provide following inputs:
+
+        initial_states : dictionary or callable 
+            contains the initial values of all non-zero model states, f.i. for an SIR model,
+            e.g. {'S': 1000, 'I': 1}
+            initialising zeros is not required
+            alternatively, a function generating a dictionary can be provided. arguments of the function must be supplied as parameters.
+        parameters : dictionary
+            values of all parameters, stratified_parameters, TDPF parameters
+        coordinates: dictionary, optional
+            Specify for each 'dimension_name' the coordinates to be used.
+            These coordinates can then be used to acces data easily in the output xarray.
+            Example: {'spatial_units': ['city_1','city_2','city_3']}        
+        time_dependent_parameters : dictionary, optional
+            Optionally specify a function for time dependency on the parameters. The
+            signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
+            the time, the initial parameter value, and potentially additional
+            keyword argument, and should return the new parameter value for
+            time `t`.
+        """
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
