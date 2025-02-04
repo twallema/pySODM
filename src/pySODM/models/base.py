@@ -7,14 +7,13 @@ from multiprocessing import get_context
 from functools import partial
 from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
+from typing import List, Callable, Dict, Optional, Any, Union
 from pySODM.models.utils import int_to_date, list_to_dict, cut_ICF_parameters_from_parameters
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
                                                 validate_apply_transitionings_signature, validate_compute_rates, validate_apply_transitionings, validate_solution_methods_ODE, validate_solution_methods_JumpProcess, \
                                                     get_initial_states_fuction_parameters, check_overlap, evaluate_initial_condition_function, check_formatting_names
-
-from typing import Callable, Dict, Optional, Any, Union
 
 class JumpProcess:
     """
@@ -478,11 +477,19 @@ class JumpProcess:
         # simulate model
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
+    def sim(self,
+            time: Union[int, float, List[Union[int, float]], List[Union[str, datetime]]],
+            N: int=1,
+            draw_function: Optional[Callable[[Dict[str, Any], *tuple[Any, ...]], Dict[str, Any]]]=None,
+            draw_function_kwargs: Dict={},
+            processes: Optional[int]=None,
+            method: str='tau_leap',
+            tau: Union[int, float] = 1,
+            output_timestep: Union[int, float]=1) -> xarray.Dataset:
 
         """
         Interate a JumpProcess model over a specified time interval.
-        Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
+        Can optionally perform `N` repeated simulations with sampling of model parameters using a sampling function `draw_function`.
 
         input
         -----
@@ -849,8 +856,18 @@ class ODE:
         # simulate model
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
+    
+    def sim(self,
+            time: Union[int, float, List[Union[int, float]], List[Union[str, datetime]]],
+            N: int=1,
+            draw_function: Optional[Callable[[Dict[str, Any], *tuple[Any, ...]], Dict[str, Any]]]=None,
+            draw_function_kwargs: Dict={},
+            processes: Optional[int]=None,
+            method: str='RK45',
+            rtol: float=1e-4,
+            tau: Optional[Union[int,float]]=None,
+            output_timestep: Union[int, float]=1) -> xarray.Dataset:
 
-    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK45', rtol=1e-4, tau=None, output_timestep=1):
         """
         Integrate an ODE model over a specified time interval.
         Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
