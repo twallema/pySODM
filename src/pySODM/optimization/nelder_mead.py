@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import multiprocessing as mp
 from functools import partial
+from typing import Callable, List, Tuple, Optional, Union, Dict, Any
 
 """
     A pure Python/Numpy implementation of the Nelder-Mead simplex algorithm with multiprocessing support.
@@ -14,44 +15,56 @@ def _obj_wrapper(func, args, kwargs, x):
     """
     return -func(x, *args, **kwargs)
 
-def optimize(func, x_start, step,
-                bounds=None, args=(), kwargs={},
-                processes=1, no_improve_thr=1e-6,
-                no_improv_break=100, max_iter=1000,
-                alpha=1., gamma=2., rho=-0.5, sigma=0.5):
+def optimize(
+    func: Callable[..., float],  
+    x_start: Union[List[float], np.ndarray],  
+    step: Union[List[float], np.ndarray],  
+    bounds: Optional[List[Tuple[float, float]]] = None,  
+    args: Tuple[Any] = (),  
+    kwargs: Dict[str, Any] = {},  
+    processes: int = 1,  
+    no_improve_thr: float = 1e-6,  
+    no_improv_break: int = 100,  
+    max_iter: int = 1000,  
+    alpha: float = 1.0,  
+    gamma: float = 2.0,  
+    rho: float = -0.5,  
+    sigma: float = 0.5  
+    ) -> Tuple[List[float], float]:  
+    
     """
     Perform a Nelder-Mead simplex optimization -- minimization of an objective function
 
     Parameters
     ==========
 
-    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
-        The objective function to be minimized
-    x_start: list or 1D np.ndarray
-        Starting estimate for the search algorithm. Length must equal the number of provided bounds.
-    step: list or 1D np.ndarray
-        Size of the initial search simplex   
+    - func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        - The objective function to be minimized
+    - x_start: list or 1D np.ndarray
+        - Starting estimate for the search algorithm. Length must equal the number of provided bounds.
+    - step: list or 1D np.ndarray
+        - Size of the initial search simplex   
 
     Optional
     ========    
 
-    bounds: list containing tuples
-        The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
-        If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
-        If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
-    args : tuple
-        Additional arguments passed to objective function
-    kwargs : dict
-        Additional keyword arguments passed to objective function
+    - bounds: list containing tuples
+        - The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
+        - If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
+        - If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
+    - args : tuple
+        - Additional arguments passed to objective function
+    - kwargs : dict
+        - Additional keyword arguments passed to objective function
 
     Returns
     =======
 
-    theta: list
-        optimised parameter values
+    - theta: list
+        - optimised parameter values
     
-    score: float
-        corresponding objective function value
+    - score: float
+        - corresponding objective function value
     """
 
     ##################

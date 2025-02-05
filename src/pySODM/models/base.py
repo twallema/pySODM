@@ -7,6 +7,7 @@ from multiprocessing import get_context
 from functools import partial
 from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
+from typing import List, Callable, Dict, Optional, Any, Union, Tuple
 from pySODM.models.utils import int_to_date, list_to_dict, cut_ICF_parameters_from_parameters
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
@@ -16,28 +17,76 @@ from pySODM.models.validation import merge_parameter_names_parameter_stratified_
 
 class JumpProcess:
     """
-    Initialise a jump process solved using Gillespie's SSA or Tau-Leaping
+    Make a class with `JumpProcess` as input to build a pySODM model.
 
-    Parameters
-    ----------
-    To initialise the model, provide following inputs:
+    ### Your class must contain
 
-    initial_states : dictionary
-        contains the initial values of all non-zero model states, f.i. for an SIR model,
-        e.g. {'S': 1000, 'I': 1}
-        initialising zeros is not required
-    parameters : dictionary
-        values of all parameters, stratified_parameters, TDPF parameters
-    time_dependent_parameters : dictionary, optional
-        Optionally specify a function for time dependency on the parameters. The
-        signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
-        the time, the initial parameter value, and potentially additional
-        keyword argument, and should return the new parameter value for
-        time `t`.
-    coordinates: dictionary, optional
-        Specify for each 'dimension_name' the coordinates to be used.
-        These coordinates can then be used to acces data easily in the output xarray.
-        Example: {'spatial_units': ['city_1','city_2','city_3']}
+    - states: list
+        - names of the model’s states.
+
+    - parameters: list
+        - names of the model’s parameters.
+
+    - compute_rates: staticmethod (callable)
+        - function to compute the rates of transitioning between the model states. 
+        - must be a static method (decorated with @staticmethod).
+        - signature: `def compute_rates(t, states, parameters, stratified_parameters)`
+            - t (float): timestep
+            - states: model’s states
+            - parameters and stratified parameters        
+        - returns: dict
+            - keys: model states, values: list containing the rates of the possible transitionings of the state.
+            - a model state can have multiple transitionings.
+    
+    - apply_transitionings: callable
+        - function to update the states with the number of drawn transitionings.
+        - signature: `def apply_transitionings(t, tau, transitionings, states, parameters, stratified_parameters)`
+            - t (float): timestep
+            - tau (float): solver timestep
+            - transitionings (dict): drawn transitionings between the states
+            - states: model’s states
+            - parameters and stratified parameters        
+
+    - (optional) dimensions: list
+        - names of the model’s dimensions. number of dimensions determines the dimensions of the model’s states.
+            - no dimensions: states are 0-D (scalar)
+            - 1 dimension: states are 1-D (np.ndarray)
+            - 2 dimensions: states are 2-D (np.ndarray)
+
+    - (optional) stratified_parameters: list
+        - names of the stratified parameters. stratified parameters are one-dimensional parameter associated with a model dimension.
+            - 0 dimensions: not possible to have stratified parameters
+            - 1 dimension: list containing strings - ['stratpar_1', 'stratpar_2']
+            - 2+ dimensions: list contains n sublists, where n must equal the number of model dimensions. each sublist contains names of stratified parameters associated with the dimension in the corresponding position in dimensions 
+            - example for 3 dimensions model: [['stratpar_1', 'stratpar_2'],[],['stratpar_3']], first dimension in dimensions has two stratified parameters stratpar_1 and stratpar_2, second dimension has no stratified parameters, third dimensions has one stratified parameter stratpar_3.
+    
+    - (optional) dimensions_per_state: list
+        - specify the dimension of each model state seperately. allows you to define models with states of different sizes.
+        - if `dimensions_per_state` is not provided, all model states will have the same number of dimensions, equal to the number of model dimensions specified using dimensions.
+        - if specified, `dimensions_per_state` must contain n sublists, where n is the number of model states (`n = len(states)`). if a model state has no dimensions (i.e. it is a float), specify an empty list.
+
+    ### Minimal example
+    
+    ```
+    class MY_MODEL(JumpProcesses):
+
+    states = ['Y1', 'Y2']
+    parameters = ['alpha']
+
+    # define the rates of the system's transitionings
+    @staticmethod
+    def compute_rates(t, Y1, Y2, alpha):
+        return {'Y1': [alpha, ]}
+
+    # apply the sampled number of transitionings
+    @staticmethod
+    def apply_transitionings(t, tau, transitionings, Y1, Y2, alpha):
+
+        Y1_new = Y1 - transitionings['Y1'][0]
+        Y2_new = Y2 + transitionings['Y2'][0]
+
+        return Y1_new, Y2_new
+    ```
     """
 
     states = None
@@ -46,8 +95,36 @@ class JumpProcess:
     dimensions = None
     dimensions_per_state = None
 
-    def __init__(self, initial_states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self,
+                 initial_states: Union[Dict[str, Union[int, float, np.ndarray]], Callable[..., Dict[str, Union[int, float, np.ndarray]]]],
+                 parameters: Dict[str, Any],
+                 coordinates: Optional[Dict[str, list]]=None,
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, tuple], Any]]]=None) -> None:
+        """
+        Initialise a jump process model solved using Gillespie's SSA or Tau-Leaping
 
+        Parameters
+        ----------
+
+        - initial_states : dict or callable 
+            - dict: contains the initial values of all non-zero model states, f.i. for an SIR model: {'S': 1000, 'I': 1}. Initialising zeros is not required.
+            - function: an initial condition function (ICF) generating a dictionary can be provided. arguments of the ICF must be added to `parameters`.
+
+        - parameters : dict
+            - keys: names of all parameters, stratified_parameters, TDPF and ICF parameters. values: associated parameter values. 
+
+        - (optional) coordinates: dict
+            - for each `dimension_name` in the model, specifies the coordinates associated with that dimension.
+            - f.e. {'spatial_units': ['city_1','city_2','city_3']}        
+
+        - (optional) time_dependent_parameters : dict
+            - keys: name of the parameter you want to impose a time-dependency on. values: time-dependent parameter function.
+            - a pySODM-compatible TDPF has the signature `fun(t, states, param, other_parameter_1, ...)`, where:
+                - t (float or datetime): current simulation timestep
+                - states (dict): dictionary containing the model states at time `t`
+                - param (any): value of the parameter the time dependency acts on
+        """
+            
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
         self.parameters_names = self.parameters
@@ -400,49 +477,56 @@ class JumpProcess:
         # simulate model
         return self._sim_single(time, actual_start_date, method, tau, output_timestep)
 
-    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=1, output_timestep=1):
+    def sim(self,
+            time: Union[int, float, List[Union[int, float]], List[Union[str, datetime]]],
+            N: int=1,
+            draw_function: Optional[Callable[[Dict[str, Any], *tuple[Any, ...]], Dict[str, Any]]]=None,
+            draw_function_kwargs: Dict={},
+            processes: Optional[int]=None,
+            method: str='tau_leap',
+            tau: Union[int, float] = 1,
+            output_timestep: Union[int, float]=1) -> xarray.Dataset:
 
         """
         Interate a JumpProcess model over a specified time interval.
-        Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
+        Can optionally perform `N` repeated simulations with sampling of model parameters using a sampling function `draw_function`.
 
         input
         -----
 
-        time : 1) int/float, 2) list of int/float of type: [start_time, stop_time], 3) list of datetime.datetime or str of type: ["YYYY-MM-DD", "YYYY-MM-DD"],
-            The start and stop "time" for the simulation run.
-            1) Input is converted to [0, time]. Floats are automatically rounded.
-            2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
-            3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
+        - time : The start and stop "time" for the simulation run.
+            - 1) int/float: Interpreted as `[0, time]`. Floats are automatically rounded.
+            - 2) list of int/float of type: [start_time, stop_time]: Interpreted as [start_time, stop_time]. Time axis in xarray simulation output is named 'time'. Floats are automatically rounded.
+            - 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD']: Interpreted as [start_date, stop_date]. Time axis in xarray simulation output is named 'date'. Floats are automatically rounded.
 
-        N : int
-            Number of repeated simulations (default: 1)
+        - N : int
+            - Number of repeated simulations (default: 1)
 
-        draw_function : function
-            A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
-            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
+        - draw_function : function
+            - A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
+            - Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
 
-        draw_function_kwargs : dictionary
-            A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
+        - draw_function_kwargs : dictionary
+            - A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
 
-        processes: int
-            Number of cores to distribute the `N` draws over (default: 1)
+        - processes: int
+            - Number of cores to distribute the `N` draws over (default: 1)
 
-        method: str
-            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap'). (default: 'tau_leap').
+        - method: str
+            - Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap'). (default: 'tau_leap').
     
-        tau: int/float
-            Timestep used by the tau-leaping algorithm (default: 0.5)
+        - tau: int/float
+            - Timestep used by the tau-leaping algorithm (default: 0.5)
 
-        output_timestep: int/flat
-            Interpolate model output to every `output_timestep` time (default: 1)
-            For datetimes: expressed in days
+        - output_timestep: int/flat
+            - Interpolate model output to every `output_timestep` time (default: 1)
+            - For datetimes: expressed in days
 
         output
         ------
 
-        output: xarray.Dataset
-            Simulation output
+        - output: xarray.Dataset
+            - Simulation output
         """
         
         # Input checks on solution settings
@@ -491,29 +575,56 @@ class JumpProcess:
 
 class ODE:
     """
-    Initialise an ordinary differential equations model
+    Make a class with `ODE` as input to build a pySODM model.
 
-    Parameters
-    ----------
-    To initialise the model, provide following inputs:
+    ### Your class must contain
 
-    initial_states : dictionary or callable 
-        contains the initial values of all non-zero model states, f.i. for an SIR model,
-        e.g. {'S': 1000, 'I': 1}
-        initialising zeros is not required
-        alternatively, a function generating a dictionary can be provided. arguments of the function must be supplied as parameters.
-    parameters : dictionary
-        values of all parameters, stratified_parameters, TDPF parameters
-    time_dependent_parameters : dictionary, optional
-        Optionally specify a function for time dependency on the parameters. The
-        signature of the function should be `fun(t, states, param, other_parameter_1, ...)` taking
-        the time, the initial parameter value, and potentially additional
-        keyword argument, and should return the new parameter value for
-        time `t`.
-    coordinates: dictionary, optional
-        Specify for each 'dimension_name' the coordinates to be used.
-        These coordinates can then be used to acces data easily in the output xarray.
-        Example: {'spatial_units': ['city_1','city_2','city_3']}
+    - states: list
+        - names of the model’s states.
+
+    - parameters: list
+        - names of the model’s parameters.
+
+    - integrate: staticmethod (callable)
+        - function computing the differentials of every model state.
+        - must be a static method (decorated with @staticmethod).
+        - signature: `def integrate(t, states, parameters, stratified_parameters)`
+            - t (float): timestep
+            - states: model’s states
+            - parameters and stratified parameters
+        - returns: a differential for every model state, in the same order as in `states`.
+
+    - (optional) dimensions: list
+        - names of the model’s dimensions. number of dimensions determines the dimensions of the model’s states.
+            - no dimensions: states are 0-D (scalar)
+            - 1 dimension: states are 1-D (np.ndarray)
+            - 2 dimensions: states are 2-D (np.ndarray)
+
+    - (optional) stratified_parameters: list
+        - names of the stratified parameters. stratified parameters are one-dimensional parameter associated with a model dimension.
+            - 0 dimensions: not possible to have stratified parameters
+            - 1 dimension: list containing strings - ['stratpar_1', 'stratpar_2']
+            - 2+ dimensions: list contains n sublists, where n must equal the number of model dimensions. each sublist contains names of stratified parameters associated with the dimension in the corresponding position in dimensions 
+            - example for 3 dimensions model: [['stratpar_1', 'stratpar_2'],[],['stratpar_3']], first dimension in dimensions has two stratified parameters stratpar_1 and stratpar_2, second dimension has no stratified parameters, third dimensions has one stratified parameter stratpar_3.
+    
+    - (optional) dimensions_per_state: list
+        - specify the dimension of each model state seperately. allows you to define models with states of different sizes.
+        - if `dimensions_per_state` is not provided, all model states will have the same number of dimensions, equal to the number of model dimensions specified using dimensions.
+        - if specified, `dimensions_per_state` must contain n sublists, where n is the number of model states (`n = len(states)`). if a model state has no dimensions (i.e. it is a float), specify an empty list.
+
+    ### Minimal example
+    
+    ```
+    # Define the model equations
+    class MY_MODEL(ODE):
+
+        states = ['Y1', 'Y2']
+        parameters = ['alpha']
+
+        @staticmethod
+        def integrate(t, Y1, Y2, alpha):
+            return -alpha*Y1, alpha*Y2
+    ```
     """
 
     states = None
@@ -523,7 +634,36 @@ class ODE:
     dimensions_per_state = None
     # TODO: states, parameters, dimensions --> list containing str (check input!)
 
-    def __init__(self, initial_states, parameters, coordinates=None, time_dependent_parameters=None):
+    def __init__(self,
+                 initial_states: Union[Dict[str, Union[int, float, np.ndarray]], Callable[..., Dict[str, Union[int, float, np.ndarray]]]],
+                 parameters: Dict[str, Any],
+                 coordinates: Optional[Dict[str, list]]=None,
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, tuple], Any]]]=None) -> None:
+        
+        """
+        Initialise an ordinary differential equations model
+
+        Parameters
+        ----------
+
+        - initial_states : dict or callable 
+            - dict: contains the initial values of all non-zero model states, f.i. for an SIR model: {'S': 1000, 'I': 1}. Initialising zeros is not required.
+            - function: an initial condition function (ICF) generating a dictionary can be provided. arguments of the ICF must be added to `parameters`.
+
+        - parameters : dict
+            - keys: names of all parameters, stratified_parameters, TDPF and ICF parameters. values: associated parameter values. 
+
+        - (optional) coordinates: dict
+            - for each `dimension_name` in the model, specifies the coordinates associated with that dimension.
+            - f.e. {'spatial_units': ['city_1','city_2','city_3']}        
+
+        - (optional) time_dependent_parameters : dict
+            - keys: name of the parameter you want to impose a time-dependency on. values: time-dependent parameter function.
+            - a pySODM-compatible TDPF has the signature `fun(t, states, param, other_parameter_1, ...)`, where:
+                - t (float or datetime): current simulation timestep
+                - states (dict): dictionary containing the model states at time `t`
+                - param (any): value of the parameter the time dependency acts on
+        """
 
         # Add a suffix _names to all user-defined name declarations 
         self.states_names = self.states
@@ -715,8 +855,18 @@ class ODE:
         # simulate model
         out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
         return out
+    
+    def sim(self,
+            time: Union[int, float, List[Union[int, float]], List[Union[str, datetime]]],
+            N: int=1,
+            draw_function: Optional[Callable[[Dict[str, Any], *tuple[Any, ...]], Dict[str, Any]]]=None,
+            draw_function_kwargs: Dict={},
+            processes: Optional[int]=None,
+            method: str='RK45',
+            rtol: float=1e-4,
+            tau: Optional[Union[int,float]]=None,
+            output_timestep: Union[int, float]=1) -> xarray.Dataset:
 
-    def sim(self, time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK45', rtol=1e-4, tau=None, output_timestep=1):
         """
         Integrate an ODE model over a specified time interval.
         Can optionally perform `N` repeated simulations with sampling of model parameters using a function `draw_function`.
@@ -724,43 +874,42 @@ class ODE:
         input
         -----
 
-        time : 1) int/float, 2) list of int/float of type: [start_time, stop_time], 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD'],
-            The start and stop "time" for the simulation run.
-            1) Input is converted to [0, time]. Floats are automatically rounded.
-            2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
-            3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
+        - time : The start and stop "time" for the simulation run.
+            - 1) int/float: Interpreted as `[0, time]`. Floats are automatically rounded.
+            - 2) list of int/float of type: [start_time, stop_time]: Interpreted as [start_time, stop_time]. Time axis in xarray simulation output is named 'time'. Floats are automatically rounded.
+            - 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD']: Interpreted as [start_date, stop_date]. Time axis in xarray simulation output is named 'date'. Floats are automatically rounded.
 
-        N : int
-            Number of repeated simulations (default: 1)
+        - N : int
+            - Number of repeated simulations (default: 1)
 
-        draw_function : function
-            A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
-            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
+        - draw_function : function
+            - A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
+            - Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
 
-        draw_function_kwargs : dictionary
-            A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
+        - draw_function_kwargs : dictionary
+            - A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
 
-        processes: int
-            Number of cores to distribute the `N` draws over (default: 1)
+        - processes: int
+            - Number of cores to distribute the `N` draws over (default: 1)
 
-        method: str
-            Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK45'.
+        - method: str
+            - Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK45'.
 
-        rtol: float
-            Relative tolerance of Scipy `solve_ivp`. Default: 1e-4.
+        - rtol: float
+            - Relative tolerance of Scipy `solve_ivp`. Default: 1e-4.
         
-        tau: int/float
-            If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
+        - tau: int/float
+            - If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
 
-        output_timestep: int/flat
-            Interpolate model output to every `output_timestep` time (default: 1)
-            For datetimes: expressed in days
+        - output_timestep: int/flat
+            - Interpolate model output to every `output_timestep` time (default: 1)
+            - For datetimes: expressed in days
 
         output
         ------
 
-        output: xarray.Dataset
-            Simulation output
+        - output: xarray.Dataset
+            - Simulation output
         """
 
         # Input checks on solution settings

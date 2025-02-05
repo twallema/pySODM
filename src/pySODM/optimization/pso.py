@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from functools import partial
+from typing import Callable, List, Tuple, Optional, Union, Dict, Any
 
 def _obj_wrapper(func, args, kwargs, x):
     """
@@ -24,69 +25,72 @@ def _cons_ieqcons_wrapper(ieqcons, args, kwargs, x):
 def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
     return np.array(f_ieqcons(x, *args, **kwargs))
 
-
-def optimize(func, bounds=None, args=(), kwargs={},
-             ieqcons=[], f_ieqcons=None, processes=1,
-             swarmsize=100, max_iter=100, minstep=1e-12,
-             minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,
-             debug=False, transform_pars=None):
+def optimize(
+    func: Callable[..., float],  
+    bounds: Optional[List[Tuple[float, float]]] = None,  
+    args: Tuple[Any] = (),  
+    kwargs: Dict[str, Any] = {},  
+    ieqcons: List[Callable[[float, tuple], float]] = [],  
+    f_ieqcons: Optional[Callable[..., List[float]]] = None,  
+    processes: int = 1,  
+    swarmsize: int = 100,  
+    max_iter: int = 100,  
+    minstep: float = 1e-12,  
+    minfunc: float = 1e-12,  
+    omega: float = 0.8,  
+    phip: float = 0.8,  
+    phig: float = 0.8,  
+    debug: bool = False,  
+    transform_pars: Optional[Callable[..., Any]] = None  
+    ) -> Tuple[List[float], float]:
+    
     """
     Perform a particle swarm optimization (PSO) -- minimization of an objective function
 
     Parameters
     ==========
 
-    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
-        The objective function to be minimized
-    bounds: list containing tuples
-        The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
-        If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
-        If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
+    - func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        - The objective function to be minimized
+    - bounds: list containing tuples
+        - The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
+        - If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
+        - If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
 
     Optional
     ========
 
-    args : tuple
-        Additional arguments passed to objective function
-        (Default: empty tuple)
-    kwargs : dict
-        Additional keyword arguments passed to objective function
-    ieqcons : list
-        A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in 
-        a successfully optimized problem (Default: [])
-    f_ieqcons : function
-        Returns a 1-D array in which each element must be greater or equal 
-        to 0.0 in a successfully optimized problem. If f_ieqcons is specified, 
-        ieqcons is ignored (Default: None)
-    phig : scalar
-        Scaling factor to search away from the swarm's best known position
-        (Default: 0.5)
-    max_iter : int
-        The maximum number of iterations for the swarm to search (Default: 100)
-    minstep : scalar
-        The minimum stepsize of swarm's best position before the search
-        terminates (Default: 1e-8)
-    minfunc : scalar
-        The minimum change of swarm's best objective value before the search
-        terminates (Default: 1e-8)
-    debug : boolean
-        If True, progress statements will be displayed every iteration
-        (Default: False)
-    processes : int
-        The number of processes to use to evaluate objective function and 
-        constraints (default: 1)
-    transform_pars : None / function
-        Transform the parameter values. E.g. to integer values or to map to
-        a list of possibilities.
+    - args : tuple
+        - Additional arguments passed to objective function. (Default: empty tuple).
+    - kwargs : dict
+        - Additional keyword arguments passed to objective function
+    - ieqcons : list
+        - A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in a successfully optimized problem (Default: []).
+    - f_ieqcons : function
+        - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored (Default: None)
+    - phig : scalar
+        - Scaling factor to search away from the swarm's best known position. (Default: 0.5).
+    - max_iter : int
+        - The maximum number of iterations for the swarm to search. (Default: 100).
+    - minstep : scalar
+        - The minimum stepsize of swarm's best position before the search terminates (Default: 1e-8)
+    - minfunc : scalar
+        - The minimum change of swarm's best objective value before the search terminates. (Default: 1e-8).
+    - debug : boolean
+        - If True, progress statements will be displayed every iteration. (Default: False).
+    - processes : int
+        - The number of processes to use to evaluate objective function and constraints. (default: 1).
+    - transform_pars : None / function
+        - Transform the parameter values. E.g. to integer values or to map to a list of possibilities.
 
     Returns
     =======
 
-    theta: list
-        optimised parameter values
+    - theta: list
+        - optimised parameter values
     
-    score: float
-        corresponding objective function value
+    - score: float
+        - corresponding objective function value
     """
 
     if not bounds:
