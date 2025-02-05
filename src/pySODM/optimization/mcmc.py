@@ -5,6 +5,7 @@ import emcee
 import datetime
 import json
 import numpy as np
+import xarray as xr
 import matplotlib.pyplot as plt
 from multiprocessing import get_context
 from typing import List, Tuple, Union, Callable, Optional, Dict, Any
@@ -29,6 +30,8 @@ def run_EnsembleSampler(
     fig_path: Optional[str] = None,  
     samples_path: Optional[str] = None,  
     print_n: int = 10,  
+    discard: int = 0,
+    thin: int = 1,
     backend: Optional[str] = None,  
     processes: int = 1,  
     progress: bool = True,  
@@ -58,6 +61,10 @@ def run_EnsembleSampler(
             - Location where the `.hdf5` backend and settings `.json` should be saved.
         - print_n: int
             - Print autocorrelation and trace plots every `print_n` iterations.
+        - discard: int
+            - Number of iterations to remove from the beginning of the markov chains ("burn-in").
+        - thin: int
+            - Retain only every `thin`-th iteration.
         - processes: int
             - Number of cores to use.
         - settings_dict: dict
@@ -137,7 +144,7 @@ def run_EnsembleSampler(
         backend_path=os.path.join(os.getcwd(), samples_path+backend)
         try:
             backend = emcee.backends.HDFBackend(backend)
-            pos = backend.get_chain(discard=0, thin=1, flat=False)[-1, ...]
+            pos = backend.get_chain(discard=discard, thin=thin, flat=False)[-1, ...]
         except:
             raise FileNotFoundError("backend not found.")    
         
@@ -166,25 +173,32 @@ def run_EnsembleSampler(
             if sampler.iteration % print_n:
                 continue
 
-            #############################
-            # UPDATE DIAGNOSTIC FIGURES #
-            #############################
+            ##############################
+            ## UPDATE DIAGNOSTIC FIGURES ##
+            ##############################
             
             # Update autocorrelation plot
-            _, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
+            _, tau = autocorrelation_plot(sampler.get_chain(discard=discard, thin=thin), labels=objective_function.expanded_labels,
                                             filename=fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={})
             # Update traceplot
-            traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
+            traceplot(sampler.get_chain(discard=discard, thin=thin),labels=objective_function.expanded_labels,
                         filename=fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth': 1,'color': 'black','alpha': 0.2})
             # Garbage collection
             plt.close('all')
             gc.collect()
 
-            #####################
-            # CHECK CONVERGENCE #
-            #####################
+            ###################################
+            ## SAVE SAMPLES IN XARRAY FORMAT ##
+            ###################################
+
+            _ = dump_sampler_to_xarray(sampler.get_chain(discard=discard, thin=thin), objective_function.parameter_shapes,
+                                        filename=samples_path+identifier+'_SAMPLES_'+run_date+'.nc', settings_dict=settings_dict)
+
+            #######################
+            ## CHECK CONVERGENCE ##
+            #######################
 
             # Hardcode threshold values defining convergence
             thres_multi = 50.0
@@ -198,6 +212,77 @@ def run_EnsembleSampler(
             old_tau = tau
 
     return sampler
+
+
+def dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, Tuple], filename: str=None, settings_dict: Dict=None) -> xr.Dataset:
+    """
+    A function converting the raw samples from `emcee` (numpy matrix) to an xarray dataset for convenience
+
+    Parameters
+    ----------
+
+    - samples_np: np.ndarray
+        - 3D numpy array, indexed: iteration, markov chain, parameter. 
+        - obtained using `sampler.get_chain()`
+
+    - parameter_shapes: dict
+        - keys: parameter name, value: parameter shape (type: tuple)
+
+    - filename: str (optional)
+        - path and filename to store samples in (default: None -- samples not saved)
+
+    - settings_dict: dict
+        - contains calibration settings retained for long-term storage. appended as metadata to the xarray output.
+    
+    Returns
+    -------
+
+    - samples_xr: xarray.Dataset
+        - samples formatted in an xarray.Dataset
+        - scalar parameters:
+            - dimensions: ['iteration', 'chain']
+            - coordinates: [samples_np.shape[0], samples_np.shape[1]]
+        - n-D  parameters:
+            - dimensions: ['iteration', 'chain', '{parname}_dim_0', ..., '{parname}_dim_n']
+            - coordinates: [samples_np.shape[0], samples_np.shape[1], parameter_shapes[parname][0], ..., parameter_shapes[parname][n]]
+    """
+
+    data = {}
+    count=0
+    for name,shape in parameter_shapes.items():
+        # pre-allocate dims and coords
+        dims = ['iteration', 'chain']
+        coords = {'iteration': range(samples_np.shape[0]), 'chain': range(samples_np.shape[1])}
+        # multi-dimensional parameter
+        if shape != (1,):
+            # samples
+            param_samples = samples_np[:, :, count : count + np.prod(shape)]                            # extract relevant slice
+            reshaped_samples = param_samples.reshape(samples_np.shape[0], samples_np.shape[1], *shape)  # reshape into nD array
+            arr = reshaped_samples
+            count += np.prod(shape)
+            # dimensions and coordinates
+            for i, len_dim in enumerate(shape):
+                dims.append(f'{name}_dim_{i}')
+                coords[f'{name}_dim_{i}'] = range(len_dim)
+        # scalar parameter
+        else:  # Scalar parameter case
+            arr = samples_np[:, :, count]  # Keep as 2D array
+            count += 1
+        # wrap in an xarray
+        data[name] = xr.DataArray(arr, dims=dims, coords=coords)
+
+    # combine it all
+    samples_xr = xr.Dataset(data)
+
+    # append settings as attributes
+    samples_xr.attrs.update(settings_dict)
+
+    # save it
+    if filename:
+        samples_xr.to_netcdf(filename)
+
+    return samples_xr
+        
 
 def perturbate_theta(theta: Union[List[float], np.ndarray],
                      pert: Union[List[float], np.ndarray],

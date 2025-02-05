@@ -150,7 +150,7 @@ if __name__ == '__main__':
     # Sample
     sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, 
                                     fig_path=fig_path, samples_path=samples_path, print_n=print_n,
-                                    processes=processes, progress=True,settings_dict=settings)
+                                    processes=processes, progress=True, settings_dict=settings)
     # Generate a sample dictionary and save it as .json for long-term storage
     samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
     
