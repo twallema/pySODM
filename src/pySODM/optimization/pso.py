@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from functools import partial
+from typing import Callable, List, Tuple, Optional, Union, Dict, Any
 
 def _obj_wrapper(func, args, kwargs, x):
     """
@@ -24,12 +25,25 @@ def _cons_ieqcons_wrapper(ieqcons, args, kwargs, x):
 def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
     return np.array(f_ieqcons(x, *args, **kwargs))
 
-
-def optimize(func, bounds=None, args=(), kwargs={},
-             ieqcons=[], f_ieqcons=None, processes=1,
-             swarmsize=100, max_iter=100, minstep=1e-12,
-             minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8,
-             debug=False, transform_pars=None):
+def optimize(
+    func: Callable[..., float],  
+    bounds: Optional[List[Tuple[float, float]]] = None,  
+    args: Tuple[Any] = (),  
+    kwargs: Dict[str, Any] = {},  
+    ieqcons: List[Callable[[float, *tuple], float]] = [],  
+    f_ieqcons: Optional[Callable[..., List[float]]] = None,  
+    processes: int = 1,  
+    swarmsize: int = 100,  
+    max_iter: int = 100,  
+    minstep: float = 1e-12,  
+    minfunc: float = 1e-12,  
+    omega: float = 0.8,  
+    phip: float = 0.8,  
+    phig: float = 0.8,  
+    debug: bool = False,  
+    transform_pars: Optional[Callable[..., Any]] = None  
+    ) -> Tuple[List[float], float]:
+    
     """
     Perform a particle swarm optimization (PSO) -- minimization of an objective function
 
