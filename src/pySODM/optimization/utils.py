@@ -118,7 +118,9 @@ def assign_theta(param_dict, parameter_names, thetas):
         param_dict.update({param: value})
     return param_dict
 
-def variance_analysis(data, resample_frequency):
+from typing import Tuple
+def variance_analysis(data: pd.Series, resample_frequency: str) -> Tuple[pd.DataFrame, plt.Axes]:
+
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
         ================================================================================================
 
