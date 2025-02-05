@@ -7,15 +7,34 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing import get_context
+from typing import List, Tuple, Union, Callable, Optional, Dict, Any
 from pySODM.optimization.visualization import traceplot, autocorrelation_plot
 
 abs_dir = os.path.dirname(__file__)
 
-def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_function_args=None, objective_function_kwargs=None,
-                        moves=[(emcee.moves.DEMove(), 0.5*0.5*0.9),(emcee.moves.DEMove(gamma0=1.0),0.5*0.5*0.1),
-                               (emcee.moves.DESnookerMove(),0.5*0.5),(emcee.moves.KDEMove(bw_method='scott'), 0.25),
-                               (emcee.moves.StretchMove(live_dangerously=True), 0.25)],
-                        fig_path=None, samples_path=None, print_n=10, backend=None, processes=1, progress=True, settings_dict={}):
+def run_EnsembleSampler(
+    pos: np.ndarray,  
+    max_n: int,  
+    identifier: str,  
+    objective_function: Callable[[Union[List, np.ndarray], ...], float],  
+    objective_function_args: Optional[Tuple] = None,  
+    objective_function_kwargs: Optional[Dict[str, Any]] = None,  
+    moves: List[Tuple[emcee.moves.Move, float]] = [
+        (emcee.moves.DEMove(), 0.5*0.5*0.9), 
+        (emcee.moves.DEMove(gamma0=1.0), 0.5*0.5*0.1),
+        (emcee.moves.DESnookerMove(), 0.5*0.5),
+        (emcee.moves.KDEMove(bw_method='scott'), 0.25),
+        (emcee.moves.StretchMove(live_dangerously=True), 0.25)
+    ],  
+    fig_path: Optional[str] = None,  
+    samples_path: Optional[str] = None,  
+    print_n: int = 10,  
+    backend: Optional[str] = None,  
+    processes: int = 1,  
+    progress: bool = True,  
+    settings_dict: Dict[str, Any] = {}  
+) -> emcee.EnsembleSampler:
+
     """
     Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
     
@@ -33,6 +52,8 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             Arguments of the objective function. If using `log_posterior_probability` as objective function, use default `None`.
         objective_function_kwargs: dict
             Keyworded arguments of the objective function. If using `log_posterior_probability` as objective function, use default `None`.
+        fig_path: str
+            Location where the traceplot and autocorrelation plots should be saved.
         samples_path: str
             Location where the `.hdf5` backend and settings `.json` should be saved.
         print_n: int
@@ -47,7 +68,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
         moves: list
             Algorithm used for updating the coordinates of walkers in an ensemble sampler. By default, pySODM uses a shotgun approach by implementing a balanced cocktail of `emcee` moves. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/moves/).
         backend: str
-            Location of backend previous sampling. If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
+            Location of backend previous sampling (samples_path + backend). If a backend is provided, the sampler is restarted from the last iteration of the previous run. Consult the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/backends/).
         progress: bool
             Enables the progress bar.
 
@@ -56,7 +77,6 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
 
     sampler: emcee.EnsembleSampler
         Emcee sampler object ([see](https://emcee.readthedocs.io/en/stable/user/sampler/)). To extract a dictionary of samples + settings, use `emcee_sampler_to_dictionary`.
-
     """
 
     # Set default fig_path/samples_path as same directory as calibration script
@@ -140,7 +160,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
     with get_context("spawn").Pool(processes=processes) as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_function, backend=backend, pool=pool,
                         args=objective_function_args, kwargs=objective_function_kwargs, moves=moves)
-        for sample in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
+        for _ in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
             
             # Only check convergence every print_n steps
             if sampler.iteration % print_n:
@@ -151,7 +171,7 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
             #############################
             
             # Update autocorrelation plot
-            ax, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
+            _, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
                                             filename=fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={})
             # Update traceplot
@@ -251,7 +271,7 @@ def perturbate_theta(theta: Union[List[float], np.ndarray],
         sys.stdout.flush()
     return ndim, nwalkers, pos
 
-def emcee_sampler_to_dictionary(samples_path, identifier, run_date=str(datetime.date.today()), discard=0, thin=1):
+def emcee_sampler_to_dictionary(samples_path: str, identifier: str, run_date: str=str(datetime.date.today()), discard: int=0, thin: int=1) -> dict:
     """
     A function to discard and thin the samples available in the `emcee` sampler object and subsequently convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
     Automatically appends a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).
