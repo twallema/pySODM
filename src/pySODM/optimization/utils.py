@@ -1,9 +1,14 @@
-from scipy.optimize import minimize
 import numpy as np
 import pandas as pd
+import xarray as xr
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+from typing import List, Tuple, Union, Dict, Any
+from pySODM.models.utils import list_to_dict
+from pySODM.optimization.objective_functions import validate_calibrated_parameters
 
-def add_poisson_noise(output):
+
+def add_poisson_noise(output: xr.Dataset) -> xr.Dataset:
     """A function to add poisson noise to a simulation result
 
     Parameters
@@ -26,7 +31,8 @@ def add_poisson_noise(output):
         new_output[varname].values = values
     return new_output
 
-def add_gaussian_noise(output, sigma, relative=True):
+
+def add_gaussian_noise(output: xr.Dataset, sigma: float, relative: bool=True) -> xr.Dataset:
     """A function to add absolute gaussian noise to a simulation result
 
     Parameters
@@ -59,7 +65,8 @@ def add_gaussian_noise(output, sigma, relative=True):
         new_output[varname].values = values
     return new_output
 
-def add_negative_binomial_noise(output, alpha):
+
+def add_negative_binomial_noise(output: xr.Dataset, alpha: float) -> xr.Dataset:
     """A function to add negative binomial noise to a simulation result
 
     Parameters
@@ -87,10 +94,8 @@ def add_negative_binomial_noise(output, alpha):
         new_output[varname].values = values
     return new_output
 
-from pySODM.models.utils import list_to_dict
-from pySODM.optimization.objective_functions import validate_calibrated_parameters
 
-def assign_theta(param_dict, parameter_names, thetas):
+def assign_theta(param_dict: Dict[str, Any], parameter_names: List[str], thetas: Union[List[float], np.ndarray]) -> Dict[str, Any]:
     """ A generic function to assign the output of a PSO/Nelder-Mead calibration to the model parameters dictionary
 
     Parameters
@@ -118,7 +123,7 @@ def assign_theta(param_dict, parameter_names, thetas):
         param_dict.update({param: value})
     return param_dict
 
-from typing import Tuple
+
 def variance_analysis(data: pd.Series, resample_frequency: str) -> Tuple[pd.DataFrame, plt.Axes]:
 
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
