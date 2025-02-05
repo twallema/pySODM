@@ -326,9 +326,11 @@ class log_posterior_probability():
                                                   self.coordinates_data_also_in_model[idx], aggfunc)
         return lp
 
+
 #####################################
 ## Log prior probability functions ##
 #####################################
+
 
 def log_prior_uniform(x: float, bounds: tuple=None, weight: float=1) -> float:
     """ A uniform log prior distribution
@@ -355,6 +357,7 @@ def log_prior_uniform(x: float, bounds: tuple=None, weight: float=1) -> float:
         return 0*weight # technically prob = 1/(upper - lower)
     else:
         return -np.inf
+
 
 def log_prior_triangle(x: float, low: float=None, high: float=None, mode: float=None, weight: float=1) -> float:
     """ A triangular log prior distribution
@@ -383,6 +386,7 @@ def log_prior_triangle(x: float, low: float=None, high: float=None, mode: float=
     """
     return weight*triang.logpdf(x, loc=low, scale=high, c=mode)
 
+
 def log_prior_normal(x: float, avg: float=None, stdev: float=None, weight: float=1) -> float:
     """ A normal log prior distribution
 
@@ -407,6 +411,7 @@ def log_prior_normal(x: float, avg: float=None, stdev: float=None, weight: float
     Log probability of sample x in light of a normal prior distribution.
     """
     return weight*np.sum(norm.logpdf(x, loc=avg, scale=stdev))
+
 
 def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
     """ A gamma distributed log prior distribution
@@ -434,6 +439,7 @@ def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None,
     Log probability of sample x in light of a gamma prior distribution.
     """
     return weight*gamma.logpdf(x, a=a, loc=loc, scale=scale)
+
 
 def log_prior_beta(x: float, a: float=None, b: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
     """ A beta distributed log prior distribution
@@ -463,6 +469,7 @@ def log_prior_beta(x: float, a: float=None, b: float=None, loc: float=None, scal
     Log probability of sample x in light of a beta prior distribution.
     """
     return weight*beta.logpdf(x, a, b, loc=loc, scale=scale)
+
 
 def log_prior_custom(x: float, density: np.ndarray=None, bins: np.ndarray=None, weight: float=1) -> float:
     """ A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
@@ -504,6 +511,7 @@ def log_prior_custom(x: float, density: np.ndarray=None, bins: np.ndarray=None, 
 ## Log-likelihood functions ##
 ##############################
 
+
 def ll_lognormal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[float], np.ndarray]) -> float:
     """
     Loglikelihood of a lognormal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
@@ -535,6 +543,7 @@ def ll_lognormal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List
     
     return - 1/2 * np.sum((np.log(ydata+1)-np.log(ymodel+1))**2/sigma**2 + np.log(2*np.pi*sigma**2) + np.log(ydata+1))
 
+
 def ll_normal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[float], np.ndarray]) -> float:
     """
     Loglikelihood of a normal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
@@ -565,6 +574,7 @@ def ll_normal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[fl
         )
     return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
 
+
 def ll_poisson(ymodel: np.ndarray, ydata: np.ndarray):
     """Loglikelihood of Poisson distribution
     
@@ -586,6 +596,7 @@ def ll_poisson(ymodel: np.ndarray, ydata: np.ndarray):
     ydata = ydata.astype('float64') + 1
 
     return - np.sum(ymodel) + np.sum(ydata*np.log(ymodel)) - np.sum(gammaln(ydata))
+
 
 def ll_negative_binomial(ymodel: np.ndarray, ydata: np.ndarray, alpha: Union[float, List[float]]):
     """Loglikelihood of negative binomial distribution
@@ -619,9 +630,11 @@ def ll_negative_binomial(ymodel: np.ndarray, ydata: np.ndarray, alpha: Union[flo
 
     return np.sum(ydata*np.log(ymodel)) - np.sum((ydata + 1/alpha)*np.log(1+alpha*ymodel)) + np.sum(ydata*np.log(alpha)) + np.sum(gammaln(ydata+1/alpha)) - np.sum(gammaln(ydata+1))- np.sum(ydata.shape[0]*gammaln(1/alpha))
 
+
 #############################################
 ## Validation of log posterior probability ##
 #############################################
+
 
 def validate_dataset(data):
     """
