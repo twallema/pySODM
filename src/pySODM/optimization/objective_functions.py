@@ -6,6 +6,7 @@ import xarray as xr
 from datetime import datetime
 from scipy.special import gammaln
 from scipy.stats import norm, triang, gamma, beta
+from typing import List, Tuple, Union, Callable, Optional, Dict, Any
 from pySODM.models.utils import list_to_dict
 from pySODM.models.validation import validate_initial_states
 
@@ -14,13 +15,91 @@ from pySODM.models.validation import validate_initial_states
 #############################################
 
 class log_posterior_probability():
-    """ Computation of log posterior probability
-
-    A generic implementation to compute the log posterior probability of a model given some data, computed as the sum of the log prior probabilities and the log likelihoods.
-    # TODO: fully document docstring
     """
-    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                 start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
+    Compute the log posterior probability of a model given data, computed as the sum of the log prior probabilities and the log likelihoods.
+
+    Parameters
+    ----------
+
+    - model: object
+        - a pySODM ODE or JumpProcess model.
+
+    - parameter_names: list
+        - names of model parameters (str) to calibrate.
+        - valid parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
+
+    - bounds: list
+        - lower and upper bounds of calibrated parameters.
+        - format: list containing a list or tuple with the lower and upper bound for every parameter in `parameter_names`.
+        - example: `bounds = [(lb_1, ub_1), ..., (lb_n, ub_n)]`, where `n = len(parameter_names)`.
+    
+    - data: list
+        - contains the datasets (type: pd.Series/pd.DataFrame). 
+        - if there is only one dataset use `data = [df,]`.
+        - DataFrame must contain an index named 'time' or 'date'.
+        - stratified data can be incorporated using a pd.Multiindex, whose index level's names must be a valid model dimension, and whose indices must be valid dimension coordinates.
+
+    - states: list
+        - names of the model states (str) the datasets should be matched to.
+        - must have the same length as `data`
+
+    - log_likelihood_fnc: list
+        - log likelihood function for every dataset.
+        - must have the same length as `data`.
+
+    - log_likelihood_fnc_args: list
+        - arguments of the log likelihood functions.
+        - if the log likelihood function has no arguments (such as `ll_poisson`), provide an empty list.
+        - must have the same length as data.
+
+    - (optional) start_sim: int/float or str/datetime
+        - can be used to alter the start of the simulation.
+        - by default, the start of the simulation is chosen as the earliest time/date found in the datasets.
+    
+    - (optional) weights: list
+        -  weight of every dataset's log likelihood in the final log posterior probability.
+        - defaults to one.
+    
+    - (optional) log_prior_prob_fnc: list
+        - a log prior probability function for every calibrated parameter.
+        - must have the same length as `parameter_names`.
+        - defaults the log prior probability function to a uniform distribution over `bounds`.
+
+    - (optional) log_prior_prob_fnc_args: list
+        - Contains the arguments of the prior probability functions, as a dictionary. Must have the same length as parameter_names. For example, if log_prior_prob_fnc = [log_prior_normal,] then log_prior_prob_fnc_args = [{'avg': 0, 'stdev': 1},] or [{'avg': 0, 'stdev': 1, 'weight': 1},].
+
+    - (optional) initial_states: list
+        - a dictionary of initial states for every dataset.
+        - must have the same length as `data`.
+
+    - (optional) aggregation_function: callable or list
+        - a user-defined function to manipulate the model output before matching it to data.
+        - takes as input an xarray.DataArray, resulting from selecting the simulation output at the state we wish to match to the dataset (model_output_xarray_Dataset['state_name']), as its input. The output of the function must also be an xarray.DataArray.
+        - no checks are performed on the input or output of the aggregation function, use at your own risk.
+        - example use: a spatially-explicit epidemiological model is simulated a fine spatial resolution. however, data is only available on a coarser level.
+        - valid inputs are: 1) one callable function –> applied to every dataset. 2) A list containing one callable function –> applied to every dataset. 3) A list containing a callable function for every dataset –> every dataset has its own aggregation function.
+
+    - (optional) labels: list 
+        - custom label for the calibrated parameters.
+        - must have the same length as `parameter_names`
+        - defaults to the names provided in parameter_names.
+    """
+
+    def __init__(self,
+                 model: object,
+                 parameter_names: List[str],
+                 bounds: List[Union[Tuple[float, float], List[float, float]]],
+                 data: List[Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset]],
+                 states: List[str],
+                 log_likelihood_fnc: List[Callable[[np.ndarray, np.ndarray, ...], float]],
+                 log_likelihood_fnc_args: List[Any],
+                 start_sim: Optional[Union[int, float, str, datetime]] = None,
+                 weights: Optional[List[float]] = None,
+                 log_prior_prob_fnc: Optional[List[Callable[[float, ...]], float]] = None,
+                 log_prior_prob_fnc_args: Optional[List[Dict[str, Any]]] = None,
+                 initial_states: Optional[List[Dict[str, Union[int,float,np.ndarray]]]] = None,
+                 aggregation_function: Optional[Union[Callable[[xr.DataArray], xr.DataArray], List[Callable[[xr.DataArray], xr.DataArray]]]] = None,
+                 labels: Optional[List[str]]=None):
 
         ############################################################################################################
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
@@ -190,7 +269,7 @@ class log_posterior_probability():
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata, *[log_likelihood_fnc_args,])
         return total_ll
 
-    def __call__(self, thetas, simulation_kwargs={}):
+    def __call__(self, thetas: np.ndarray, simulation_kwargs: Dict={}) -> float:
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
