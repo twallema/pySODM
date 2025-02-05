@@ -50,57 +50,47 @@ def optimize(
     Parameters
     ==========
 
-    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
-        The objective function to be minimized
-    bounds: list containing tuples
-        The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
-        If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
-        If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
+    - func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        - The objective function to be minimized
+    - bounds: list containing tuples
+        - The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
+        - If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
+        - If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
 
     Optional
     ========
 
-    args : tuple
-        Additional arguments passed to objective function
-        (Default: empty tuple)
-    kwargs : dict
-        Additional keyword arguments passed to objective function
-    ieqcons : list
-        A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in 
-        a successfully optimized problem (Default: [])
-    f_ieqcons : function
-        Returns a 1-D array in which each element must be greater or equal 
-        to 0.0 in a successfully optimized problem. If f_ieqcons is specified, 
-        ieqcons is ignored (Default: None)
-    phig : scalar
-        Scaling factor to search away from the swarm's best known position
-        (Default: 0.5)
-    max_iter : int
-        The maximum number of iterations for the swarm to search (Default: 100)
-    minstep : scalar
-        The minimum stepsize of swarm's best position before the search
-        terminates (Default: 1e-8)
-    minfunc : scalar
-        The minimum change of swarm's best objective value before the search
-        terminates (Default: 1e-8)
-    debug : boolean
-        If True, progress statements will be displayed every iteration
-        (Default: False)
-    processes : int
-        The number of processes to use to evaluate objective function and 
-        constraints (default: 1)
-    transform_pars : None / function
-        Transform the parameter values. E.g. to integer values or to map to
-        a list of possibilities.
+    - args : tuple
+        - Additional arguments passed to objective function. (Default: empty tuple).
+    - kwargs : dict
+        - Additional keyword arguments passed to objective function
+    - ieqcons : list
+        - A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in a successfully optimized problem (Default: []).
+    - f_ieqcons : function
+        - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored (Default: None)
+    - phig : scalar
+        - Scaling factor to search away from the swarm's best known position. (Default: 0.5).
+    - max_iter : int
+        - The maximum number of iterations for the swarm to search. (Default: 100).
+    - minstep : scalar
+        - The minimum stepsize of swarm's best position before the search terminates (Default: 1e-8)
+    - minfunc : scalar
+        - The minimum change of swarm's best objective value before the search terminates. (Default: 1e-8).
+    - debug : boolean
+        - If True, progress statements will be displayed every iteration. (Default: False).
+    - processes : int
+        - The number of processes to use to evaluate objective function and constraints. (default: 1).
+    - transform_pars : None / function
+        - Transform the parameter values. E.g. to integer values or to map to a list of possibilities.
 
     Returns
     =======
 
-    theta: list
-        optimised parameter values
+    - theta: list
+        - optimised parameter values
     
-    score: float
-        corresponding objective function value
+    - score: float
+        - corresponding objective function value
     """
 
     if not bounds:

@@ -494,40 +494,39 @@ class JumpProcess:
         input
         -----
 
-        time : 1) int/float, 2) list of int/float of type: [start_time, stop_time], 3) list of datetime.datetime or str of type: ["YYYY-MM-DD", "YYYY-MM-DD"],
-            The start and stop "time" for the simulation run.
-            1) Input is converted to [0, time]. Floats are automatically rounded.
-            2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
-            3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
+        - time : The start and stop "time" for the simulation run.
+            - 1) int/float: Interpreted as `[0, time]`. Floats are automatically rounded.
+            - 2) list of int/float of type: [start_time, stop_time]: Interpreted as [start_time, stop_time]. Time axis in xarray simulation output is named 'time'. Floats are automatically rounded.
+            - 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD']: Interpreted as [start_date, stop_date]. Time axis in xarray simulation output is named 'date'. Floats are automatically rounded.
 
-        N : int
-            Number of repeated simulations (default: 1)
+        - N : int
+            - Number of repeated simulations (default: 1)
 
-        draw_function : function
-            A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
-            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
+        - draw_function : function
+            - A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
+            - Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
 
-        draw_function_kwargs : dictionary
-            A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
+        - draw_function_kwargs : dictionary
+            - A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
 
-        processes: int
-            Number of cores to distribute the `N` draws over (default: 1)
+        - processes: int
+            - Number of cores to distribute the `N` draws over (default: 1)
 
-        method: str
-            Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap'). (default: 'tau_leap').
+        - method: str
+            - Stochastic simulation method. Either 'Stochastic Simulation Algorithm' ('SSA'), or its tau-leaping approximation ('tau_leap'). (default: 'tau_leap').
     
-        tau: int/float
-            Timestep used by the tau-leaping algorithm (default: 0.5)
+        - tau: int/float
+            - Timestep used by the tau-leaping algorithm (default: 0.5)
 
-        output_timestep: int/flat
-            Interpolate model output to every `output_timestep` time (default: 1)
-            For datetimes: expressed in days
+        - output_timestep: int/flat
+            - Interpolate model output to every `output_timestep` time (default: 1)
+            - For datetimes: expressed in days
 
         output
         ------
 
-        output: xarray.Dataset
-            Simulation output
+        - output: xarray.Dataset
+            - Simulation output
         """
         
         # Input checks on solution settings
@@ -875,43 +874,42 @@ class ODE:
         input
         -----
 
-        time : 1) int/float, 2) list of int/float of type: [start_time, stop_time], 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD'],
-            The start and stop "time" for the simulation run.
-            1) Input is converted to [0, time]. Floats are automatically rounded.
-            2) Input is interpreted as [start_time, stop_time]. Time axis in xarray output is named 'time'. Floats are automatically rounded.
-            3) Input is interpreted as [start_date, stop_date]. Time axis in xarray output is named 'date'. Floats are automatically rounded.
+        - time : The start and stop "time" for the simulation run.
+            - 1) int/float: Interpreted as `[0, time]`. Floats are automatically rounded.
+            - 2) list of int/float of type: [start_time, stop_time]: Interpreted as [start_time, stop_time]. Time axis in xarray simulation output is named 'time'. Floats are automatically rounded.
+            - 3) list of datetime.datetime or str of type: ['YYYY-MM-DD', 'YYYY-MM-DD']: Interpreted as [start_date, stop_date]. Time axis in xarray simulation output is named 'date'. Floats are automatically rounded.
 
-        N : int
-            Number of repeated simulations (default: 1)
+        - N : int
+            - Number of repeated simulations (default: 1)
 
-        draw_function : function
-            A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
-            Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
+        - draw_function : function
+            - A function altering parameters in the model parameters dictionary between consecutive simulations, usefull to propagate uncertainty, perform sensitivity analysis
+            - Has the dictionary of model parameters ('parameters') as its first obligatory input, followed by a variable number of additional inputs.
 
-        draw_function_kwargs : dictionary
-            A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
+        - draw_function_kwargs : dictionary
+            - A dictionary containing the additional input arguments of the draw function (all inputs except 'parameters').
 
-        processes: int
-            Number of cores to distribute the `N` draws over (default: 1)
+        - processes: int
+            - Number of cores to distribute the `N` draws over (default: 1)
 
-        method: str
-            Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK45'.
+        - method: str
+            - Method used by Scipy `solve_ivp` for integration of differential equations. Default: 'RK45'.
 
-        rtol: float
-            Relative tolerance of Scipy `solve_ivp`. Default: 1e-4.
+        - rtol: float
+            - Relative tolerance of Scipy `solve_ivp`. Default: 1e-4.
         
-        tau: int/float
-            If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
+        - tau: int/float
+            - If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
 
-        output_timestep: int/flat
-            Interpolate model output to every `output_timestep` time (default: 1)
-            For datetimes: expressed in days
+        - output_timestep: int/flat
+            - Interpolate model output to every `output_timestep` time (default: 1)
+            - For datetimes: expressed in days
 
         output
         ------
 
-        output: xarray.Dataset
-            Simulation output
+        - output: xarray.Dataset
+            - Simulation output
         """
 
         # Input checks on solution settings

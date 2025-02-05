@@ -38,33 +38,33 @@ def optimize(
     Parameters
     ==========
 
-    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
-        The objective function to be minimized
-    x_start: list or 1D np.ndarray
-        Starting estimate for the search algorithm. Length must equal the number of provided bounds.
-    step: list or 1D np.ndarray
-        Size of the initial search simplex   
+    - func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        - The objective function to be minimized
+    - x_start: list or 1D np.ndarray
+        - Starting estimate for the search algorithm. Length must equal the number of provided bounds.
+    - step: list or 1D np.ndarray
+        - Size of the initial search simplex   
 
     Optional
     ========    
 
-    bounds: list containing tuples
-        The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
-        If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
-        If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
-    args : tuple
-        Additional arguments passed to objective function
-    kwargs : dict
-        Additional keyword arguments passed to objective function
+    - bounds: list containing tuples
+        - The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
+        - If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
+        - If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
+    - args : tuple
+        - Additional arguments passed to objective function
+    - kwargs : dict
+        - Additional keyword arguments passed to objective function
 
     Returns
     =======
 
-    theta: list
-        optimised parameter values
+    - theta: list
+        - optimised parameter values
     
-    score: float
-        corresponding objective function value
+    - score: float
+        - corresponding objective function value
     """
 
     ##################

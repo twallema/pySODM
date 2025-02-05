@@ -330,7 +330,7 @@ class log_posterior_probability():
 ## Log prior probability functions ##
 #####################################
 
-def log_prior_uniform(x, bounds=None, weight=1):
+def log_prior_uniform(x: float, bounds: tuple=None, weight: float=1) -> float:
     """ A uniform log prior distribution
 
     Parameters
@@ -338,14 +338,14 @@ def log_prior_uniform(x, bounds=None, weight=1):
     Provided internally by pySODM:
 
     - x: float
-        Parameter value.
+        - Parameter value.
 
     Provided by user as `log_prior_prob_fnc_args`:
 
     - bounds: tuple
-        Tuple containing the lower and upper bounds of the uniform probability distribution.
+        - Tuple containing the lower and upper bounds of the uniform probability distribution.
     - weight: float
-        Regularisation weight (default: 1) -- does nothing.
+        - Regularisation weight (default: 1) -- does nothing.
 
     Returns
     -------
@@ -356,7 +356,7 @@ def log_prior_uniform(x, bounds=None, weight=1):
     else:
         return -np.inf
 
-def log_prior_triangle(x, low=None, high=None, mode=None, weight=1):
+def log_prior_triangle(x: float, low: float=None, high: float=None, mode: float=None, weight: float=1) -> float:
     """ A triangular log prior distribution
 
     Parameters
@@ -364,18 +364,18 @@ def log_prior_triangle(x, low=None, high=None, mode=None, weight=1):
     Provided internally by pySODM:
 
     - x: float
-        Parameter value.
+        - Parameter value.
 
     Provided by user as `log_prior_prob_fnc_args`:
 
     - low: float
-        Lower bound of the triangle distribution.
+        - Lower bound of the triangle distribution.
     - high: float
-        Upper bound of the triangle distribution.
+        - Upper bound of the triangle distribution.
     - mode: float
-        Mode of the triangle distribution.
+        - Mode of the triangle distribution.
     - weight: float
-        Regularisation weight (default: 1).
+        - Regularisation weight (default: 1).
 
     Returns
     -------
@@ -383,7 +383,7 @@ def log_prior_triangle(x, low=None, high=None, mode=None, weight=1):
     """
     return weight*triang.logpdf(x, loc=low, scale=high, c=mode)
 
-def log_prior_normal(x, avg=None, stdev=None, weight=1):
+def log_prior_normal(x: float, avg: float=None, stdev: float=None, weight: float=1) -> float:
     """ A normal log prior distribution
 
     Parameters
@@ -391,16 +391,16 @@ def log_prior_normal(x, avg=None, stdev=None, weight=1):
     Provided internally by pySODM:
 
     - x: float
-        Parameter value.
+        - Parameter value.
     
     Provided by user as `log_prior_prob_fnc_args`:
 
     - avg: float
-        Average of the normal distribution.
+        - Average of the normal distribution.
     - stdev: float
-        Standard deviation of the normal distribution.
+        - Standard deviation of the normal distribution.
     - weight: float
-        Regularisation weight (default: 1).
+        - Regularisation weight (default: 1).
 
     Returns
     -------
@@ -408,7 +408,7 @@ def log_prior_normal(x, avg=None, stdev=None, weight=1):
     """
     return weight*np.sum(norm.logpdf(x, loc=avg, scale=stdev))
 
-def log_prior_gamma(x, a=None, loc=None, scale=None, weight=1):
+def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
     """ A gamma distributed log prior distribution
 
     Parameters
@@ -416,18 +416,18 @@ def log_prior_gamma(x, a=None, loc=None, scale=None, weight=1):
     Provided internally by pySODM:
 
     - x: float
-        Parameter value.
+        - Parameter value.
     
     Provided by user as `log_prior_prob_fnc_args`:
 
     - a: float
-        Parameter 'a' of `scipy.stats.gamma.logpdf`.
+        - Parameter 'a' of `scipy.stats.gamma.logpdf`.
     - loc: float
-        Location parameter of `scipy.stats.gamma.logpdf`.
+        - Location parameter of `scipy.stats.gamma.logpdf`.
     - scale: float
-        Scale parameter of `scipy.stats.gamma.logpdf`.
+        - Scale parameter of `scipy.stats.gamma.logpdf`.
     - weight: float
-        Regularisation weight (default: 1).
+        - Regularisation weight (default: 1).
 
     Returns
     -------
@@ -435,7 +435,7 @@ def log_prior_gamma(x, a=None, loc=None, scale=None, weight=1):
     """
     return weight*gamma.logpdf(x, a=a, loc=loc, scale=scale)
 
-def log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1):
+def log_prior_beta(x: float, a: float=None, b: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
     """ A beta distributed log prior distribution
 
     Parameters
@@ -443,20 +443,20 @@ def log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1):
     Provided internally by pySODM:
 
     - x: float
-        Parameter value.
+        - Parameter value.
     
     Provided by user as `log_prior_prob_fnc_args`:
 
     - a: float
-        Parameter 'a' of `scipy.stats.beta.logpdf`.
+        - Parameter 'a' of `scipy.stats.beta.logpdf`.
     - b: float
-        Parameter 'b' of `scipy.stats.beta.logpdf`.
+        - Parameter 'b' of `scipy.stats.beta.logpdf`.
     - loc: float
-        Location parameter of `scipy.stats.beta.logpdf`.
+        - Location parameter of `scipy.stats.beta.logpdf`.
     - scale: float
-        Scale parameter of `scipy.stats.beta.logpdf`.
+        - Scale parameter of `scipy.stats.beta.logpdf`.
     - weight: float
-        Regularisation weight (default: 1).
+        - Regularisation weight (default: 1).
 
     Returns
     -------
@@ -464,7 +464,7 @@ def log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1):
     """
     return weight*beta.logpdf(x, a, b, loc=loc, scale=scale)
 
-def log_prior_custom(x, density=None, bins=None, weight=1):
+def log_prior_custom(x: float, density: np.ndarray=None, bins: np.ndarray=None, weight: float=1) -> float:
     """ A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
 
     Parameters
@@ -472,14 +472,14 @@ def log_prior_custom(x, density=None, bins=None, weight=1):
     Provided internally by pySODM:
 
     - x: float
-        Parameter value.
+        - Parameter value.
     
     Provided by user as `log_prior_prob_fnc_args`:
 
     - density: array
-        The values of the histogram (generated by `np.histogram()`).
+        - The values of the histogram (generated by `np.histogram()`).
     - bins: array
-        The histogram's bin edges (generated by `np.histogram()`).
+        - The histogram's bin edges (generated by `np.histogram()`).
 
     Returns
     -------
@@ -510,17 +510,17 @@ def ll_lognormal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List
 
     Parameters
     ----------
-    ymodel: np.ndarray
-        mean values of the lognormal distribution (i.e. "mu" values), as predicted by the model
-    ydata: np.ndarray
-        time series to be matched with the model predictions
-    sigma: float/list of floats/np.ndarray
-        Standard deviation of the lognormal distribution around the mean value 'ymodel'
+    - ymodel: np.ndarray
+        - mean values of the lognormal distribution (i.e. "mu" values), as predicted by the model
+    - ydata: np.ndarray
+        - time series to be matched with the model predictions
+    - sigma: float/list of floats/np.ndarray
+        - standard deviation of the lognormal distribution around the mean value 'ymodel'
 
     Returns
     -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
+    - ll: float
+        - loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
     """
 
     # expand first dimensions on 'sigma' to match the axes
@@ -541,17 +541,17 @@ def ll_normal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[fl
 
     Parameters
     ----------
-    ymodel: np.ndarray
-        mean values of the normal distribution (i.e. "mu" values), as predicted by the model
-    ydata: np.ndarray
-        time series to be matched with the model predictions
-    sigma: float/list of floats/np.ndarray
-        Standard deviation of the normal distribution around the mean value 'ymodel'
+    - ymodel: np.ndarray
+        - mean values of the normal distribution (i.e. "mu" values), as predicted by the model
+    - ydata: np.ndarray
+        - time series to be matched with the model predictions
+    - sigma: float/list of floats/np.ndarray
+        - Standard deviation of the normal distribution around the mean value 'ymodel'
 
     Returns
     -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
+    - ll: float
+        - Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
     """
 
     # expand first dimensions on 'sigma' to match the axes
@@ -570,15 +570,15 @@ def ll_poisson(ymodel: np.ndarray, ydata: np.ndarray):
     
     Parameters
     ----------
-    ymodel: np.ndarray
-        mean values of the Poisson distribution (i.e. "lambda" values), as predicted by the model
-    ydata: np.ndarray
-        data time series values to be matched with the model predictions
+    - ymodel: np.ndarray
+        - mean values of the Poisson distribution (i.e. "lambda" values), as predicted by the model
+    - ydata: np.ndarray
+        - data time series values to be matched with the model predictions
 
     Returns
     -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction.
+    - ll: float
+        - Loglikelihood belonging to the comparison of the data points and the model prediction.
     """
 
     # Convert datatype to float and add one
@@ -597,17 +597,17 @@ def ll_negative_binomial(ymodel: np.ndarray, ydata: np.ndarray, alpha: Union[flo
 
     Parameters
     ----------
-    ymodel: np.ndarray
-        mean values of the negative binomial distribution, as predicted by the model
-    ydata: np.ndarray
-        data time series values to be matched with the model predictions
-    alpha: float/list
-        Dispersion. The variance in the dataseries is equal to 1/dispersion and hence dispersion is bounded [0,1].
+    - ymodel: np.ndarray
+        - mean values of the negative binomial distribution, as predicted by the model
+    - ydata: np.ndarray
+        - data time series values to be matched with the model predictions
+    - alpha: float/list
+        - Dispersion. The variance in the dataseries is equal to 1/dispersion and hence dispersion is bounded [0,1].
  
     Returns
     -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction.
+    - ll: float
+        - Loglikelihood belonging to the comparison of the data points and the model prediction.
     """
     
     # Expand first dimensions on 'alpha' to match the axes
