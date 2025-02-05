@@ -30,7 +30,7 @@ def optimize(
     bounds: Optional[List[Tuple[float, float]]] = None,  
     args: Tuple[Any] = (),  
     kwargs: Dict[str, Any] = {},  
-    ieqcons: List[Callable[[float, *tuple], float]] = [],  
+    ieqcons: List[Callable[[float, tuple], float]] = [],  
     f_ieqcons: Optional[Callable[..., List[float]]] = None,  
     processes: int = 1,  
     swarmsize: int = 100,  
