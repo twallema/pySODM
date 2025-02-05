@@ -504,7 +504,7 @@ def log_prior_custom(x, density=None, bins=None, weight=1):
 ## Log-likelihood functions ##
 ##############################
 
-def ll_lognormal(ymodel, ydata, sigma):
+def ll_lognormal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[float], np.ndarray]) -> float:
     """
     Loglikelihood of a lognormal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
 
@@ -535,7 +535,7 @@ def ll_lognormal(ymodel, ydata, sigma):
     
     return - 1/2 * np.sum((np.log(ydata+1)-np.log(ymodel+1))**2/sigma**2 + np.log(2*np.pi*sigma**2) + np.log(ydata+1))
 
-def ll_normal(ymodel, ydata, sigma):
+def ll_normal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[float], np.ndarray]) -> float:
     """
     Loglikelihood of a normal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
 
@@ -565,7 +565,7 @@ def ll_normal(ymodel, ydata, sigma):
         )
     return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
 
-def ll_poisson(ymodel, ydata):
+def ll_poisson(ymodel: np.ndarray, ydata: np.ndarray):
     """Loglikelihood of Poisson distribution
     
     Parameters
@@ -587,7 +587,7 @@ def ll_poisson(ymodel, ydata):
 
     return - np.sum(ymodel) + np.sum(ydata*np.log(ymodel)) - np.sum(gammaln(ydata))
 
-def ll_negative_binomial(ymodel, ydata, alpha):
+def ll_negative_binomial(ymodel: np.ndarray, ydata: np.ndarray, alpha: Union[float, List[float]]):
     """Loglikelihood of negative binomial distribution
 
     https://ncss-wpengine.netdna-ssl.com/wp-content/themes/ncss/pdf/Procedures/NCSS/Negative_Binomial_Regression.pdf
