@@ -7,7 +7,7 @@ from multiprocessing import get_context
 from functools import partial
 from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
-from typing import List, Callable, Dict, Optional, Any, Union
+from typing import List, Callable, Dict, Optional, Any, Union, Tuple
 from pySODM.models.utils import int_to_date, list_to_dict, cut_ICF_parameters_from_parameters
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
@@ -99,7 +99,7 @@ class JumpProcess:
                  initial_states: Union[Dict[str, Union[int, float, np.ndarray]], Callable[..., Dict[str, Union[int, float, np.ndarray]]]],
                  parameters: Dict[str, Any],
                  coordinates: Optional[Dict[str, list]]=None,
-                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, tuple], Any]]]=None) -> None:
         """
         Initialise a jump process model solved using Gillespie's SSA or Tau-Leaping
 
@@ -639,7 +639,7 @@ class ODE:
                  initial_states: Union[Dict[str, Union[int, float, np.ndarray]], Callable[..., Dict[str, Union[int, float, np.ndarray]]]],
                  parameters: Dict[str, Any],
                  coordinates: Optional[Dict[str, list]]=None,
-                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, *tuple], Any]]]=None) -> None:
+                 time_dependent_parameters: Optional[Dict[str, Callable[[Union[float, datetime], Dict[str, Union[int, float, np.ndarray]], Any, tuple], Any]]]=None) -> None:
         
         """
         Initialise an ordinary differential equations model
