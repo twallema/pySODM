@@ -179,17 +179,21 @@ def run_EnsembleSampler(pos, max_n, identifier, objective_function, objective_fu
 
     return sampler
 
-def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
+def perturbate_theta(theta: Union[List[float], np.ndarray],
+                     pert: Union[List[float], np.ndarray],
+                     multiplier: int=2,
+                     bounds: Optional[List[Tuple[float, float]]] = None,
+                     verbose: Optional[bool]=None) -> Tuple[int, int, np.ndarray]:
     """ A function to perturbate a PSO estimate and construct a matrix with initial positions for the MCMC chains
 
     Parameters
     ----------
 
-    theta : list (of floats) or np.array
-        Result of PSO calibration, results must correspond to the order of the parameter names list (pars)
+    theta : list (containing floats) or np.array
+        Parameter estimate.
 
-    pert : list (of floats)
-        Relative perturbation factors (plus-minus) on PSO estimate
+    pert : list (containing floats) or np.array
+        Relative perturbation factors (plus-minus) on parameter estimate. Must have the same length as `theta`.
 
     multiplier : int
         Multiplier determining the total number of markov chains that will be run by emcee.
@@ -226,7 +230,7 @@ def perturbate_theta(theta, pert, multiplier=2, bounds=None, verbose=None):
     # Define clipping values: perturbed value must not fall outside this range
     lower_bounds = [bounds[i][0]/(1-pert[i]) for i in range(len(bounds))]
     upper_bounds = [bounds[i][1]/(1+pert[i]) for i in range(len(bounds))]
-    
+    # Start loop
     ndim = len(theta)
     nwalkers = ndim*multiplier
     cond_number=np.inf
