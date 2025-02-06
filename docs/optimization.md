@@ -272,22 +272,6 @@
 >    * **ndim** (int) - Number of parameters. Equal to `len(theta)`.
 >    * **nwalkers** (int) - Number of Markov chains.
 >    * **pos** (np.ndarray) - Initial positions of the Markov chains. Dimensions: `[ndim, nwalkers]`.
-
-***function* emcee_sampler_to_dictionary(samples_path, identifier, discard=0, thin=1, run_date=str(datetime.date.today()))**
-
-> A function to discard and thin the samples available in the `emcee` sampler object and subsequently convert them to a dictionary of format: `{parameter_name: [sample_0, ..., sample_n]}`. Appends the dictionary of settings. Automatically saves the resulting dictionary in a .json format.
-
->    **Parameters:**
->    * **samples_path** (str) - Path to the .hdf5 `emcee` backend.
->    * **identifier** (str) - Identifier used for the calibration.
->    * **discard** (int) - optional - Number of samples to discard at the start of the Markov chain.
->    * **thin** (int) - optional - Thinning ratio of the Markov chain.
->    * **run_date** (datetime) - optional - Date of calibration.
-
-Samples path, identifier and run_date are combined to find the right .hdf5 `emcee` backend and the `.json` containing the settings. 
-
->   **Returns:**
->   * **samples** (dict) - Dictionary containing the discarded and thinned MCMC samples and settings.
  
 ## pySODM.optimization.utils
 
