@@ -288,18 +288,19 @@ This approach moves away from the idea of accepting a single parameter value bei
 
 We'll use our previous estimate to initiate our Markov-Chain Monte-Carlo sampler. This requires the help of two functions: [perturbate_theta()](optimization.md) and [run_EnsembleSampler()](optimization.md). We'll initiate 9 chains per calibrated parameter, so there will be 9 chains in total. To do so, we'll first use `perturbate_theta` to perturbate our previously obtained estimate `theta` by 10%. The result is a np.ndarray `pos` of shape `(1, 9)`, which we'll then pass on to `run_EnsembleSampler()`.
 
-Then, we'll setup and run the sampler using `run_EnsembleSampler()` until the chains converge. We'll run the sampler for `n_mcmc=100` iterations and print the diagnostic autocorrelation and trace plots every `print_n=10` iterations in a folder called `sampler_output/`. For convenience, a copy of the samples is saved there as well. As an identifier for our *experiment*, we'll use `'username'`. While the sampler is running, have a look in the `sampler_output/` folder, which should look as follows,
+Then, we'll setup and run the sampler using `run_EnsembleSampler()` until the chains converge. We'll run the sampler for `n_mcmc=100` iterations and print the diagnostic autocorrelation and trace plots every `print_n=10` iterations in a folder called `sampler_output/`. For convenience, a copy of the samples is saved in an `xarray.Dataset` as well every `print_n=10` iterations. As an identifier for our *experiment*, we'll use `'username'`. While the sampler is running, have a look in the `sampler_output/` folder, which should look as follows,
 
 ```bash
 ├── sampler_output 
-|   |── username_BACKEND_2022-12-16.hdf5
+|   |── username_BACKEND_YYYY-MM-DD.hdf5
+|   |── username_SAMPLES_YYYY-MM-DD.nc
 │   ├── autocorrelation
-│       └── username_AUTOCORR_2022-12-16.pdf
+│       └── username_AUTOCORR_YYYY-MM-DD.pdf
 │   └── traceplots
-│       └── username_TRACE_2022-12-16.pdf
+│       └── username_TRACE_YYYY-MM-DD.pdf
 ```
 
-The output of the above procedure yields an `emcee.EnsembleSampler` object containing our 100 iterations for 9 chains. We can extract the chains quite by using the `get_chain()` method (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, we're interested in building a dictionary of samples because this interfaces nicely to pySODM's *draw functions* (introduced below). Using `emcee_sampler_to_dictionary()`, the generated chains and the entries provided in `settings` are formatted into a dictionary `samples`, which is automatically saved in a json format. Finally, we'll use the third-party `corner` package to visualize the distributions of the five calibrated parameters.
+The first output of `run_EnsembleSampler()` is an `emcee.EnsembleSampler` object containing our 100 iterations for 9 chains. We can extract the samples manually by using its `get_chain()` method, along with many more `emcee` related operations (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, we're interested in the second output of `run_EnsembleSampler()`, which contains the samples in an `xarray.Dataset`, indexed on the chain and iteration numbers. This interfaces nicely to pySODM's *draw functions* (introduced below). Finally, we'll use the third-party `corner` package to visualize the distributions of the five calibrated parameters.
 
 ```python
 if __name__ == '__main__':
@@ -318,18 +319,27 @@ if __name__ == '__main__':
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10,], multiplier=multiplier_mcmc, bounds=bounds)
     # Usefull settings to retain in the samples dictionary (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': d.index.min().strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"), 'n_chains': nwalkers, 'starting_estimate': list(theta)}
+    settings={'start_calibration': d.index.min().strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"), 'starting_estimate': list(theta)}
     # Run the sampler
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, fig_path=fig_path, samples_path=samples_path, print_n=print_n, processes=processes, progress=True, settings_dict=settings)
-    # Generate a sample dictionary and save it as .json for long-term storage
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
+    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, fig_path=fig_path, samples_path=samples_path, print_n=print_n, processes=processes, progress=True, settings_dict=settings)
 
-    print(samples_dict)
+    print(samples_xr)
 ```
 
-The resulting dictionary of samples contains the samples of `beta`, as well as the variables defined in the `settings` dictionary.
+The resulting `xarray.Dataset` contains the samples of `beta`, as well as the variables defined in the `settings` dictionary. It is identical to the samples automatically saved in `sampler_output/username_SAMPLES_YYYY-MM-DD.nc`.
+
 ```bash
-{'beta': [0.2758539499364022, ...,  0.27321610939267427, 0.27459471960360476], 'start_calibration': '2022-12-01', 'end_calibration': '2023-01-20', 'n_chains': 9, 'starting_estimate': [0.2745855197310446]}
+<xarray.Dataset> Size: 24kB
+Dimensions:    (iteration: 300, chain: 9)
+Coordinates:
+  * iteration  (iteration) int64 2kB 0 1 2 3 4 ... 296 297 298 299
+  * chain      (chain) int64 72B 0 1 2 3 4 5 6 7 8
+Data variables:
+    beta       (iteration, chain) float64 22kB 0.2818 ... 0.2761
+Attributes:
+    start_calibration:  2022-12-01
+    end_calibration:    2023-01-20
+    starting_estimate:  [np.float64(0.2764298804104327)]
 ```
 
 ### Results
@@ -345,7 +355,7 @@ Using the obtained samples, we find a basic reproduction number of {math}`R_0 = 
 ```python
 # Visualize the distribution of the basic reproduction number
 fig,ax=plt.subplots()
-ax.hist(np.array(samples_dict['beta'])*model.parameters['gamma'], density=True, color='black', alpha=0.6)
+ax.hist(samples_xr['beta'].values.flatten()*model.parameters['gamma'], density=True, color='black', alpha=0.6)
 ax.set_xlabel('$R_0$')
 plt.show()
 plt.close()
@@ -357,14 +367,14 @@ plt.close()
 
 Next, let's visualize how well our simple SIR model fits the data. To this end, we'll simulate the model a number of times, and we'll update the value of `beta` with a sample from its posterior probability distribution obtained using the MCMC. Then, we'll add the noise introduced by observing the epidemiological process to each simulated model trajectory using `add_negative_binomial()`. Finally, we'll visualize the individual model trajectories and the data to asses the goodness-of-fit.
 
-To repeatedly simulate a model and update a parameter value in each consecutive run, you can use pySODM's *draw function*. These functions **always** take the model `parameters` as its first input argument, and the `initial_states` as the second argument, followed by an arbitrary number of user-defined parameters to aid in the draw function. A draw function must always return the dictionary of model `parameters` and the dictionary of `initial_states`, without alterations to the dictionaries keys. The draw function defines how parameters and initial conditions can change during consecutive simulations of the model, i.e. it updates parameter values in the model parameters dictionary. This feature is useful to perform sensitivty analysis.
+To repeatedly simulate a model and update a parameter value in each consecutive run, you can use pySODM's *draw function*. These functions **always** take the model `parameters` as its first input argument, followed by an arbitrary number of user-defined parameters to aid in the draw function. A draw function must always return the dictionary of model `parameters`, without alterations to the dictionaries keys. The draw function defines how parameters and initial conditions can change during consecutive simulations of the model, i.e. it updates parameter values in the model parameters dictionary. This feature is useful to perform sensitivty analysis.
 
-In this example, we'll use a draw function to replace `beta` with a random value obtained from its posterior probability distribution obtained during calibration. We accomplish this by defining a draw function with one additional argument, `samples`, which is a list containing the samples of the posterior probability distribution of `beta`. `np.random.choice()` is used to sample a random value of `beta` and assign it to the model parameteres dictionary,
+In this example, we'll use a draw function to replace `beta` with a random value obtained from its posterior probability distribution obtained during sampling. We accomplish this by defining a draw function with one additional argument, `samples`, which is a list containing the samples of the posterior probability distribution of `beta`. `np.random.choice()` is used to sample a random value of `beta` and assign it to the model parameteres dictionary,
 
 ```python
 # Define draw function
 def draw_fcn(parameters, samples):
-    parameters['beta'] = np.random.choice(np.array(samples))
+    parameters['beta'] = np.random.choice(samples)
     return parameters
 ```
 
@@ -374,11 +384,11 @@ To use this draw function, you provide four additional arguments to the `sim()` 
 2. `draw_function_kwargs`: a dictionary containing all parameters of the draw function not equal to `parameters`.
 4. `processes`: the number of cores to divide the `N` simulations over.
 
-As demonstrated in the quickstart example, the `xarray` containing the model output will now contain an additional dimension to accomodate the repeated simulations: `draws`.
+As demonstrated in the quickstart example, the `xarray.Dataset` containing the model output will now contain an additional dimension to accomodate the repeated simulations: `draws`.
 
 ```python
 # Simulate model
-out = model.sim([d.index.min(), d.index.max()+pd.Timedelta(days=28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict['beta']}, processes=processes)
+out = model.sim([d.index.min(), d.index.max()+pd.Timedelta(days=28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_xr['beta'].values.flatten()}, processes=processes)
 # Add negative binomial observation noise
 out = add_negative_binomial_noise(out, dispersion)
 # Visualize result
@@ -427,7 +437,7 @@ Next, we compare the simulations with and without the use of our time-dependent 
 
 ```python
 # Simulate the model
-out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict['beta']} processes=processes)
+out_with = model_with.sim([d.index.min(), d.index.max()+pd.Timedelta(days=2*28)], N=50, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_xr['beta'].values.flatten()} processes=processes)
 
 # Add negative binomial observation noise
 out_with = add_negative_binomial_noise(out_with, alpha)
@@ -470,7 +480,7 @@ Don't forget to add the new parameter `ramp_length` to the dictionary of `draw_f
 
 ### Conclusion
 
-I hope this tutorial has demonstrated the workflow pySODM can speedup. However, both our model and dataset had no labeled dimensions (0-dimensional) so this example was very rudimentary. However, pySODM allows to tackle higher-dimensional problems using the same basic syntax. This allows to tackle complex problems in different scientific disciplines, I illustrate this with the following tutorials,
+I hope this tutorial has demonstrated a simple yet common workflow pySODM can speedup for you. However, both our model and dataset had no labeled dimensions (0-dimensional) so this example was very rudimentary. However, pySODM allows to tackle higher-dimensional problems using the same basic syntax. This allows to tackle complex problems in different scientific disciplines, I illustrate this with the following tutorials,
 
 | Case study                                     | Features                                                                                          |
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
