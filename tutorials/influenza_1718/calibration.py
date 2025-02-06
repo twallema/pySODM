@@ -201,8 +201,8 @@ if __name__ == '__main__':
               'starting_estimate': list(theta), 'tau': tau}
     # Sample n_mcmc iterations
     sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'tau':tau}},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                    settings_dict=settings)                                                                               
+                                    discard=discard, thin=thin, fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes,
+                                    progress=True, settings_dict=settings)                                                                               
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
     fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=expanded_labels, **CORNER_KWARGS)
