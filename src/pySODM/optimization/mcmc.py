@@ -36,7 +36,7 @@ def run_EnsembleSampler(
     processes: int = 1,  
     progress: bool = True,  
     settings_dict: Dict[str, Any] = {}  
-) -> emcee.EnsembleSampler:
+) -> Tuple[emcee.EnsembleSampler, xr.Dataset]:
 
     """
     Wrapper function to setup an `emcee.EnsembleSampler` and handle all backend-related tasks.
@@ -83,7 +83,16 @@ def run_EnsembleSampler(
     --------
 
     - sampler: emcee.EnsembleSampler
-        - Emcee sampler object ([see](https://emcee.readthedocs.io/en/stable/user/sampler/)). To extract a dictionary of samples + settings, use `emcee_sampler_to_dictionary`.
+        - Emcee sampler object ([see](https://emcee.readthedocs.io/en/stable/user/sampler/)).
+    
+    - samples_xr: xarray.Dataset
+        - samples formatted in an xarray.Dataset
+        - scalar parameters:
+            - dimensions: ['iteration', 'chain']
+            - coordinates: [samples_np.shape[0], samples_np.shape[1]]
+        - n-D  parameters:
+            - dimensions: ['iteration', 'chain', '{parname}_dim_0', ..., '{parname}_dim_n']
+            - coordinates: [samples_np.shape[0], samples_np.shape[1], parameter_shapes[parname][0], ..., parameter_shapes[parname][n]]
     """
 
     # Set default fig_path/samples_path as same directory as calibration script
@@ -111,13 +120,10 @@ def run_EnsembleSampler(
             os.makedirs(directory)
     # Determine current date
     run_date = str(datetime.date.today())
-    # By default, put the calibrated model parameters shapes in the settings dictionary so we can retrieve their sizes later
-    settings_dict.update({'calibrated_parameters_shapes': objective_function.parameter_shapes})
-    # Save setings dictionary to samples_path
-    with open(samples_path+str(identifier)+'_SETTINGS_'+run_date+'.json', 'w') as file:
-        json.dump(settings_dict, file)
     # Derive nwalkers, ndim from shape of pos
     nwalkers, ndim = pos.shape
+    # Append thin and discard to settings dictionary
+    settings_dict.update({'discard': discard, 'thin': thin})
     # Start printout for user
     print(f'\nMarkov-Chain Monte-Carlo sampling')
     print(f'=================================\n')   
@@ -129,13 +135,15 @@ def run_EnsembleSampler(
 
         print(f"Created new backend: '{samples_path+fn_backend}'\n")
         print(f"Starting new run")
-        print(f"----------------")
-        print(f"Iterations: {max_n}")
+        print(f"----------------\n")
         print(f"Parameters: {ndim}")
         print(f"Markov chains: {nwalkers}")
         print(f"Cores: {processes}")
+        print(f"Iterations: {max_n}")
         print(f"Automatically checking convergence every {print_n} iterations")
+        print(f"Saving samples in an xarray.Dataset every {print_n} iterations")
         print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
+        print(f"Samples: {samples_path+identifier+'_SAMPLES_'+run_date+'.nc'}")
         print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
         print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
 
@@ -144,19 +152,21 @@ def run_EnsembleSampler(
         backend_path=os.path.join(os.getcwd(), samples_path+backend)
         try:
             backend = emcee.backends.HDFBackend(backend)
-            pos = backend.get_chain(discard=discard, thin=thin, flat=False)[-1, ...]
+            pos = backend.get_chain(discard=0, thin=1, flat=False)[-1, ...]
         except:
             raise FileNotFoundError("backend not found.")    
         
         print(f"Found existing backend:'{backend_path}'\n")
         print(f"Continuing run")
-        print(f"--------------")
-        print(f"Iterations: {max_n} (found {backend.get_chain(discard=0, thin=1, flat=False).shape[0]} previous iterations)")
+        print(f"--------------\n")
         print(f"Parameters: {ndim}")
         print(f"Markov chains: {nwalkers}")
         print(f"Cores: {processes}")
+        print(f"Iterations: {max_n} (found {backend.get_chain(discard=0, thin=1, flat=False).shape[0]} previous iterations)")
         print(f"Automatically checking convergence every {print_n} iterations")
+        print(f"Saving samples in an xarray.Dataset every {print_n} iterations")
         print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
+        print(f"Samples: {samples_path+identifier+'_SAMPLES_'+run_date+'.nc'}")
         print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
         print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
     sys.stdout.flush()
@@ -165,17 +175,24 @@ def run_EnsembleSampler(
     old_tau = np.inf
 
     with get_context("spawn").Pool(processes=processes) as pool:
+
+        # setup sampler
         sampler = emcee.EnsembleSampler(nwalkers, ndim, objective_function, backend=backend, pool=pool,
                         args=objective_function_args, kwargs=objective_function_kwargs, moves=moves)
+        
+        # deduce starting iteration
+        sampler_iteration_0 = sampler.iteration 
+
+        # run sampler
         for _ in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
-            
-            # Only check convergence every print_n steps
-            if sampler.iteration % print_n:
+
+            # Only automatically check convergence + printouts every `print_n` steps
+            if ((sampler.iteration % print_n) | (sampler_iteration_0 + sampler.iteration == max_n)):
                 continue
 
-            ##############################
+            ###############################
             ## UPDATE DIAGNOSTIC FIGURES ##
-            ##############################
+            ###############################
             
             # Update autocorrelation plot
             _, tau = autocorrelation_plot(sampler.get_chain(discard=discard, thin=thin), labels=objective_function.expanded_labels,
@@ -193,8 +210,8 @@ def run_EnsembleSampler(
             ## SAVE SAMPLES IN XARRAY FORMAT ##
             ###################################
 
-            _ = dump_sampler_to_xarray(sampler.get_chain(discard=discard, thin=thin), objective_function.parameter_shapes,
-                                        filename=samples_path+identifier+'_SAMPLES_'+run_date+'.nc', settings_dict=settings_dict)
+            samples_xr = _dump_sampler_to_xarray(sampler.get_chain(discard=discard, thin=thin), objective_function.parameter_shapes,
+                                                    filename=samples_path+identifier+'_SAMPLES_'+run_date+'.nc', settings_dict=settings_dict)
 
             #######################
             ## CHECK CONVERGENCE ##
@@ -207,14 +224,20 @@ def run_EnsembleSampler(
             converged = np.all(np.max(tau) * thres_multi < sampler.iteration)
             # Check if average tau varied more than three percent
             converged &= np.all(np.abs(np.mean(old_tau) - np.mean(tau)) / np.mean(tau) < thres_frac)
-            if converged:
-                break
+            # Update tau
             old_tau = tau
+            if converged:
+                print(f'Convergence: The chain is longer than 50 times the intergrated autocorrelation time.\n')
+                sys.stdout.flush()
+                break 
+            else:
+                print(f'Non-convergence: The chain is shorter than 50 times the integrated autocorrelation time.\n')
+                sys.stdout.flush()
 
-    return sampler
+    return sampler, samples_xr
 
 
-def dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, Tuple], filename: str=None, settings_dict: Dict=None) -> xr.Dataset:
+def _dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, Tuple], filename: str=None, settings_dict: Dict=None) -> xr.Dataset:
     """
     A function converting the raw samples from `emcee` (numpy matrix) to an xarray dataset for convenience
 
@@ -233,6 +256,7 @@ def dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, T
 
     - settings_dict: dict
         - contains calibration settings retained for long-term storage. appended as metadata to the xarray output.
+        - valid datatypes for values: str, Number, ndarray, number, list, tuple, bytes
     
     Returns
     -------
