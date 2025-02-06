@@ -238,77 +238,6 @@ def run_EnsembleSampler(
     return sampler, samples_xr
 
 
-def _dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, Tuple], filename: str=None, settings_dict: Dict=None) -> xr.Dataset:
-    """
-    A function converting the raw samples from `emcee` (numpy matrix) to an xarray dataset for convenience
-
-    Parameters
-    ----------
-
-    - samples_np: np.ndarray
-        - 3D numpy array, indexed: iteration, markov chain, parameter. 
-        - obtained using `sampler.get_chain()`
-
-    - parameter_shapes: dict
-        - keys: parameter name, value: parameter shape (type: tuple)
-
-    - filename: str (optional)
-        - path and filename to store samples in (default: None -- samples not saved)
-
-    - settings_dict: dict
-        - contains calibration settings retained for long-term storage. appended as metadata to the xarray output.
-        - valid datatypes for values: str, Number, ndarray, number, list, tuple, bytes
-    
-    Returns
-    -------
-
-    - samples_xr: xarray.Dataset
-        - samples formatted in an xarray.Dataset
-        - scalar parameters:
-            - dimensions: ['iteration', 'chain']
-            - coordinates: [samples_np.shape[0], samples_np.shape[1]]
-        - n-D  parameters:
-            - dimensions: ['iteration', 'chain', '{parname}_dim_0', ..., '{parname}_dim_n']
-            - coordinates: [samples_np.shape[0], samples_np.shape[1], parameter_shapes[parname][0], ..., parameter_shapes[parname][n]]
-    """
-
-    data = {}
-    count=0
-    for name,shape in parameter_shapes.items():
-        # pre-allocate dims and coords
-        dims = ['iteration', 'chain']
-        coords = {'iteration': range(samples_np.shape[0]), 'chain': range(samples_np.shape[1])}
-        # multi-dimensional parameter
-        if shape != (1,):
-            # samples
-            param_samples = samples_np[:, :, count : count + np.prod(shape)]                            # extract relevant slice
-            reshaped_samples = param_samples.reshape(samples_np.shape[0], samples_np.shape[1], *shape)  # reshape into nD array
-            arr = reshaped_samples
-            count += np.prod(shape)
-            # dimensions and coordinates
-            for i, len_dim in enumerate(shape):
-                dims.append(f'{name}_dim_{i}')
-                coords[f'{name}_dim_{i}'] = range(len_dim)
-        # scalar parameter
-        else:  # Scalar parameter case
-            arr = samples_np[:, :, count]  # Keep as 2D array
-            count += 1
-        # wrap in an xarray
-        data[name] = xr.DataArray(arr, dims=dims, coords=coords)
-
-    # combine it all
-    samples_xr = xr.Dataset(data)
-
-    # append settings as attributes
-    samples_xr.attrs.update(settings_dict)
-
-    # save it
-    if filename:
-        samples_xr.to_netcdf(filename)
-
-    return samples_xr
-        
-
 def perturbate_theta(theta: Union[List[float], np.ndarray],
                      pert: Union[List[float], np.ndarray],
                      multiplier: int=2,
@@ -380,71 +309,73 @@ def perturbate_theta(theta: Union[List[float], np.ndarray],
         sys.stdout.flush()
     return ndim, nwalkers, pos
 
-def emcee_sampler_to_dictionary(samples_path: str, identifier: str, run_date: str=str(datetime.date.today()), discard: int=0, thin: int=1) -> dict:
+
+def _dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, Tuple], filename: str=None, settings_dict: Dict=None) -> xr.Dataset:
     """
-    A function to discard and thin the samples available in the `emcee` sampler object and subsequently convert them to a dictionary of format: {parameter_name: [sample_0, ..., sample_n]}.
-    Automatically appends a dictionary of settings (f.i. starting estimate of MCMC sampler, start- and enddate of calibration).
+    A function converting the raw samples from `emcee` (numpy matrix) to an xarray dataset for convenience
+
+    Parameters
+    ----------
+
+    - samples_np: np.ndarray
+        - 3D numpy array, indexed: iteration, markov chain, parameter. 
+        - obtained using `sampler.get_chain()`
+
+    - parameter_shapes: dict
+        - keys: parameter name, value: parameter shape (type: tuple)
+
+    - filename: str (optional)
+        - path and filename to store samples in (default: None -- samples not saved)
+
+    - settings_dict: dict
+        - contains calibration settings retained for long-term storage. appended as metadata to the xarray output.
+        - valid datatypes for values: str, Number, ndarray, number, list, tuple, bytes
+    
+    Returns
+    -------
+
+    - samples_xr: xarray.Dataset
+        - samples formatted in an xarray.Dataset
+        - scalar parameters:
+            - dimensions: ['iteration', 'chain']
+            - coordinates: [samples_np.shape[0], samples_np.shape[1]]
+        - n-D  parameters:
+            - dimensions: ['iteration', 'chain', '{parname}_dim_0', ..., '{parname}_dim_n']
+            - coordinates: [samples_np.shape[0], samples_np.shape[1], parameter_shapes[parname][0], ..., parameter_shapes[parname][n]]
     """
 
-    ###############################
-    ## Load sampler and settings ##
-    ###############################
-
-    import json
-
-    # Load settings
-    with open(os.path.join(os.getcwd(), samples_path+str(identifier)+'_SETTINGS_'+run_date+'.json'), 'r') as f:
-        settings = json.load(f)
-
-    # Load sampler 
-    filename =  samples_path+'/'+str(identifier)+'_BACKEND_'+run_date+'.hdf5'
-    sampler = emcee.backends.HDFBackend(os.path.join(os.getcwd(), filename))
-
-    ####################
-    # Discard and thin #
-    ####################
-
-    try:
-        autocorr = sampler.get_autocorr_time()
-        thin = max(1, round(0.5 * np.max(autocorr)))
-        print(f'Convergence: the chain is longer than 50 times the intergrated autocorrelation time.\nPreparing to save samples with thinning value {thin}.')
-        sys.stdout.flush()
-    except:
-        thin=1
-        print('Warning: The chain is shorter than 50 times the integrated autocorrelation time.\nUse this estimate with caution and run a longer chain! Setting thinning to 1.\n')
-        sys.stdout.flush()
-
-    #####################################
-    # Construct a dictionary of samples #
-    #####################################
-
-    flat_samples = sampler.get_chain(discard=discard,thin=thin,flat=True)
-    samples_dict = {}
+    data = {}
     count=0
-    for name,value in settings['calibrated_parameters_shapes'].items():
-        if value != [1]:
-            vals=[]
-            for j in range(np.prod(value)):
-                vals.append(list(flat_samples[:, count+j]))
-            count += np.prod(value)
-            samples_dict[name] = vals
-        else:
-            samples_dict[name] = list(flat_samples[:, count])
+    for name,shape in parameter_shapes.items():
+        # pre-allocate dims and coords
+        dims = ['iteration', 'chain']
+        coords = {'iteration': range(samples_np.shape[0]), 'chain': range(samples_np.shape[1])}
+        # multi-dimensional parameter
+        if shape != (1,):
+            # samples
+            param_samples = samples_np[:, :, count : count + np.prod(shape)]                            # extract relevant slice
+            reshaped_samples = param_samples.reshape(samples_np.shape[0], samples_np.shape[1], *shape)  # reshape into nD array
+            arr = reshaped_samples
+            count += np.prod(shape)
+            # dimensions and coordinates
+            for i, len_dim in enumerate(shape):
+                dims.append(f'{name}_dim_{i}')
+                coords[f'{name}_dim_{i}'] = range(len_dim)
+        # scalar parameter
+        else:  # Scalar parameter case
+            arr = samples_np[:, :, count]  # Keep as 2D array
             count += 1
+        # wrap in an xarray
+        data[name] = xr.DataArray(arr, dims=dims, coords=coords)
 
-    # Remove calibrated parameters from the settings
-    del settings['calibrated_parameters_shapes']
-    # Append settings to samples dictionary
-    samples_dict.update(settings)
-    # Remove settings .json
-    os.remove(os.path.join(os.getcwd(), samples_path+str(identifier)+'_SETTINGS_'+run_date+'.json'))
+    # combine it all
+    samples_xr = xr.Dataset(data)
 
-    ###############
-    # Save result #
-    ###############
+    # append settings as attributes
+    samples_xr.attrs.update(settings_dict)
 
-    # Save setings dictionary to samples_path
-    with open(os.path.join(os.getcwd(),samples_path+str(identifier)+'_SAMPLES_'+run_date+'.json'), 'w') as file:
-        json.dump(samples_dict, file)
+    # save it
+    if filename:
+        samples_xr.to_netcdf(filename)
 
-    return samples_dict
+    return samples_xr
