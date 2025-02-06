@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta
-from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 # pySODM dependecies
 import corner

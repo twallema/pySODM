@@ -305,8 +305,7 @@ The first output of `run_EnsembleSampler()` is an `emcee.EnsembleSampler` object
 ```python
 if __name__ == '__main__':
 
-    from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
-
+    from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
     # Settings
     n_mcmc = 100
     multiplier_mcmc = 9

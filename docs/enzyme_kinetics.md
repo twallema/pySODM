@@ -228,7 +228,6 @@ The output of the above procedure yields an `emcee.EnsembleSampler` object conta
 if __name__ == '__main__':
 
     import corner
-    from pySODM.optimization.mcmc import emcee_sampler_to_dictionary
 
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")

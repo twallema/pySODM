@@ -7,7 +7,7 @@ from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial, \
                                                     log_prior_uniform, log_prior_triangle, log_prior_normal, log_prior_gamma, log_prior_beta
 
-from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 
 # Only tested for ODE but the model output is identical so this shouldn't matter
 # TODO: no test for different initial conditions for different datasets
@@ -201,15 +201,12 @@ def test_correct_approach_wo_dimension():
         # Perturbate previously obtained estimate
         ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), bounds=objective_function.expanded_bounds, multiplier=multiplier_mcmc)
         # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
-        settings={'start_calibration': 0, 'end_calibration': 50, 'n_chains': nwalkers,
-                    'start_sim': 0, 'labels': labels, 'parameters': pars, 'starting_estimate': list(theta)}
+        settings={'start_calibration': 0, 'end_calibration': 50, 'start_sim': 0, 'starting_estimate': list(theta)}
         # Sample 100 iterations
-        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True, settings_dict=settings)
+        sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True, settings_dict=settings)
         # Restart and sample 100 more
-        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n,backend=samples_path+f'{identifier}_BACKEND_{str(datetime.date.today())}.hdf5',
+        sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n,backend=samples_path+f'{identifier}_BACKEND_{str(datetime.date.today())}.hdf5',
                                       processes=1, progress=True, settings_dict=settings)
-        # Generate samples dict
-        samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
 def break_stuff_wo_dimension():
 
