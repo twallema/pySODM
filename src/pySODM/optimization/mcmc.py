@@ -187,7 +187,7 @@ def run_EnsembleSampler(
         for _ in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
 
             # Only automatically check convergence + printouts every `print_n` steps
-            if (sampler.iteration > 0 and sampler.iteration % print_n) or (sampler_iteration_0 + sampler.iteration != max_n):
+            if (sampler.iteration > 0 and sampler.iteration % print_n == 0) or (sampler_iteration_0 + sampler.iteration != max_n):
                 continue
 
             ###############################
