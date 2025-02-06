@@ -69,7 +69,7 @@ def run_EnsembleSampler(
             - Number of cores to use.
         - settings_dict: dict
             - Dictionary containing calibration settings or other usefull settings for long-term storage. Appended to output `samples_xr` as attributes. Valid datatypes for values: str, Number, ndarray, number, list, tuple, bytes. 
-    
+
     Hyperparameters:
     ----------------
         - moves: list
@@ -187,7 +187,7 @@ def run_EnsembleSampler(
         for _ in sampler.sample(pos, iterations=max_n, progress=progress, store=True, tune=False):
 
             # Only automatically check convergence + printouts every `print_n` steps
-            if ((sampler.iteration % print_n) | (sampler_iteration_0 + sampler.iteration == max_n)):
+            if (sampler.iteration > 0 and sampler.iteration % print_n) or (sampler_iteration_0 + sampler.iteration != max_n):
                 continue
 
             ###############################
@@ -195,11 +195,12 @@ def run_EnsembleSampler(
             ###############################
             
             # Update autocorrelation plot
-            _, tau = autocorrelation_plot(sampler.get_chain(discard=discard, thin=thin), labels=objective_function.expanded_labels,
+            _, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
                                             filename=fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={})
             # Update traceplot
-            traceplot(sampler.get_chain(discard=discard, thin=thin),labels=objective_function.expanded_labels,
+            print('printing', sampler.iteration)
+            traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
                         filename=fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth': 1,'color': 'black','alpha': 0.2})
             # Garbage collection
