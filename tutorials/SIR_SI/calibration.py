@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta, variance_analysis
-from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial, ll_poisson
 
 ##################
@@ -120,14 +120,12 @@ if __name__ == '__main__':
     identifier = 'username'
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=objective_function.expanded_bounds)
-    # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': start_date, 'end_calibration': end_date, 'n_chains': nwalkers, 'starting_estimate': list(theta)}
+    # Attach some usefull settings to the samples xr.Dataset
+    settings={'start_calibration': start_date, 'end_calibration': end_date, 'starting_estimate': list(theta)}
     # Sample
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, 
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n,
-                                    processes=processes, progress=True,settings_dict=settings)
-    # Generate a sample dictionary and save it as .json for long-term storage
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
+    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, 
+                                                fig_path=fig_path, samples_path=samples_path, print_n=print_n,
+                                                processes=processes, progress=True,settings_dict=settings)
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
     fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=objective_function.expanded_labels, **CORNER_KWARGS)
@@ -142,15 +140,21 @@ if __name__ == '__main__':
 
     # Define draw function
     import random
-    def draw_fcn(parameters, samples):
-        idx, parameters['beta'] = random.choice(list(enumerate(samples['beta'])))
-        parameters['alpha'] = np.array([slice[idx] for slice in samples['alpha']])
+    def draw_fcn(parameters, samples_xr):
+        # get a random iteration and markov chain
+        i = random.randint(0, len(samples_xr.coords['iteration'])-1)
+        j = random.randint(0, len(samples_xr.coords['chain'])-1)
+        # assign parameters
+        parameters['beta'] = samples_xr['beta'].sel({'iteration': i, 'chain': j}).values
+        parameters['alpha'] = samples_xr['alpha'].sel({'iteration': i, 'chain': j}).values
         return parameters
+    
     # Simulate model
     N = 100
-    out = model.sim([start_date, end_date+60], N=N, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
+    out = model.sim([start_date, end_date+60], N=N, draw_function=draw_fcn, draw_function_kwargs={'samples_xr': samples_xr}, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
+
     # Visualize result
     fig,ax=plt.subplots(nrows=2, ncols=1, figsize=(8,6), sharex=True)
     for i in range(N):
@@ -158,7 +162,7 @@ if __name__ == '__main__':
     ax[0].plot(data_mosquitos.index.get_level_values('time').unique(), data_mosquitos/init_states['S_v']*100, color='black', label='data')
     ax[0].set_ylabel('Health state vectors (%)')
     ax[0].legend()
-    beta = np.mean(samples_dict['beta'])
+    beta = np.mean(samples_xr['beta'].values)
     ax[0].set_title(f'Vector lifespan: {beta:.1f} days')
     colors=['black', 'red', 'green', 'blue']
     labels=['0-5','5-15','15-65','65-120']
@@ -167,8 +171,8 @@ if __name__ == '__main__':
         for j in range(N):
             ax[1].plot(out['time'], out['I'].sel(age_group=age_group).isel(draws=j)/init_states['S'][i]*100000, color=colors[i], linewidth=2, alpha=0.03)
     ax[1].set_ylabel('Infectious humans per 100K')
-    alpha = [np.mean(samples_dict['alpha'][0]), np.mean(samples_dict['alpha'][1]), np.mean(samples_dict['alpha'][2]), np.mean(samples_dict['alpha'][3])]
-    alpha = [round(i, 2) for i in alpha]
+    alpha = samples_xr['alpha'].mean(dim=['chain','iteration']).values
+    alpha = [float(round(i, 2)) for i in alpha]
     ax[1].set_title(f'Vector-to-human transfer rate: {alpha}')
     ax[1].legend()
     ax[1].set_xlabel('time (days)')

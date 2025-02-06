@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta
-from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 # pySODM dependecies
 import corner
@@ -198,14 +198,11 @@ if __name__ == '__main__':
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.30*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_calibration, 'end_calibration': end_calibration,
-              'n_chains': nwalkers, 'starting_estimate': list(theta), 'labels': expanded_labels, 'tau': tau}
+              'starting_estimate': list(theta), 'tau': tau}
     # Sample n_mcmc iterations
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'tau':tau}},
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                    settings_dict=settings)                                                                               
-    # Generate a sample dictionary and save it as .json for long-term storage
-    # Have a look at the script `emcee_sampler_to_dictionary.py`, which does the same thing as the function below but can be used while your MCMC is running.
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard, thin=thin)
+    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'tau':tau}},
+                                    discard=discard, thin=thin, fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes,
+                                    progress=True, settings_dict=settings)                                                                               
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
     fig = corner.corner(sampler.get_chain(discard=discard, thin=2, flat=True), labels=expanded_labels, **CORNER_KWARGS)
@@ -219,14 +216,17 @@ if __name__ == '__main__':
     ######################
  
     # Define draw function
-    def draw_fcn(parameters, samples):
-        # Sample model parameters
-        idx, parameters['beta'] = random.choice(list(enumerate(samples['beta'])))
-        parameters['f_ud'] = np.array([slice[idx] for slice in samples['f_ud']])
+    def draw_fcn(parameters, samples_xr):
+        # get a random iteration and markov chain
+        i = random.randint(0, len(samples_xr.coords['iteration'])-1)
+        j = random.randint(0, len(samples_xr.coords['chain'])-1)
+        # assign parameters
+        parameters['beta'] = samples_xr['beta'].sel({'iteration': i, 'chain': j}).values
+        parameters['f_ud'] = samples_xr['f_ud'].sel({'iteration': i, 'chain': j}).values
         return parameters
     # Simulate model
     out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1,
-                    draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
+                    draw_function=draw_fcn, draw_function_kwargs={'samples_xr': samples_xr}, processes=processes)
     # Add negative binomial observation noise
     out_noise = add_negative_binomial_noise(out, alpha)
 
