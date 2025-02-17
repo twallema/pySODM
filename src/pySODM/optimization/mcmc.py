@@ -199,7 +199,6 @@ def run_EnsembleSampler(
                                             filename=fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={})
             # Update traceplot
-            print('printing', sampler.iteration)
             traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
                         filename=fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth': 1,'color': 'black','alpha': 0.2})
