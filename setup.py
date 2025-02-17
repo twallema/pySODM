@@ -4,7 +4,7 @@ setup(
     name='pySODM',
     packages=find_packages("src", exclude=["*.tests"]),
     package_dir={'': 'src'},
-    version='0.2.5',
+    version='0.2.6',
     description='Simulating and Optimising Dynamical Models',
     author='Tijs Alleman (Ghent University, Johns Hopkins Bloomberg School of Public Health)',
     author_email='tijs.alleman@ugent.be, tallema2@jh.edu',
@@ -12,7 +12,7 @@ setup(
     url='https://github.com/twallema/pySODM',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    license='MIT',
+    license='CC-BY-NC-SA',
     install_requires=[
         'scipy',
         'numpy',
