@@ -16,12 +16,13 @@ All the simulation projects I've undertaken over the past six years required me 
 1. Integrate a system dynamical model
 2. Its states may be represented by n-dimensional numpy arrays, labeled using coordinates
 3. Its parameters may have time-dependencies 
-4. Its parameters may have to be sampled from distributions
-5. It may have to be calibrate to a dataset(s) by defining and optimising a cost function
+4. Its intial conditions may vary 
+5. Its parameters may be stochastic
+6. It may have to be calibrate to a dataset(s) by defining and optimising a cost function
 
 all these features required me to wrap code around an ODE solver, typically `scipy.solve_ivp`, and I got tired of recycling the same code over and over again, so I packaged it into pySODM.
 
-Does other simulation software exist in Python? Sure, but most of them hold your hand by having you define symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in a **generically applicable** way so that I'd never hit a software wall mid-project.
+Does other simulation software exist in Python? Sure, but most rely on symbolic transitions, which places a limit on the attainable complexity of a model, making it unfit for academic research. I wanted a piece a software that nicely does all the nasty bookkeeping like keeping track of state sizes, time dependencies on parameters, aligning simulations with datasets etc. and does so in a **generically applicable** way so that I'd never hit a software wall mid-project.
 
 ### Overview of features
 
