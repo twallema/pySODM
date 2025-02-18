@@ -1,3 +1,4 @@
+import sys
 import copy
 import numpy as np
 import multiprocessing as mp
@@ -174,6 +175,8 @@ def optimize(
         if no_improv >= no_improv_break:
             print('Maximum number of iterations without improvement reached. Quitting.\n')
             return res[0][0], res[0][1]
+        # Force printing on clusters
+        sys.stdout.flush()
 
         ################
         ## Reflection ##
