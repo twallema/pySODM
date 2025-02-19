@@ -122,7 +122,6 @@ def optimize(
 
     print(f'\nParticle Swarm minimization')
     print(f'===========================\n')
-
     print(f'Using {processes} cores')
     
     # Check for constraint function(s) #########################################
@@ -146,6 +145,8 @@ def optimize(
     is_feasible = partial(_is_feasible_wrapper, cons)
 
     print(f'Using the following bounds: {bounds}\n')
+    # force printout on clusters
+    sys.stdout.flush()
 
     # Initialize the multiprocessing module if necessary
     if processes > 1:

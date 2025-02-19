@@ -114,7 +114,8 @@ def optimize(
     print(f'For {max_iter} iterations using {processes} cores')
     print(f'Starting point: {x_start}')
     print(f'Bounds: {bounds}\n')
-
+    sys.stdout.flush()
+    
     # Compute score of initial estimate
     dim = len(x_start)
     prev_best = obj(x_start)
