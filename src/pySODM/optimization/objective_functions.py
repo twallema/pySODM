@@ -83,6 +83,10 @@ class log_posterior_probability():
         - custom label for the calibrated parameters.
         - must have the same length as `parameter_names`
         - defaults to the names provided in parameter_names.
+
+    - (optional) simulation_kwargs: dict
+        - must contain valid arguments of pySODM's `sim()` function
+        - but not 'time' as this is passed internally
     """
 
     def __init__(self,
@@ -99,7 +103,9 @@ class log_posterior_probability():
                  log_prior_prob_fnc_args: Optional[List[Dict[str, Any]]] = None,
                  initial_states: Optional[List[Dict[str, Union[int,float,np.ndarray]]]] = None,
                  aggregation_function: Optional[Union[Callable[[xr.DataArray], xr.DataArray], List[Callable[[xr.DataArray], xr.DataArray]]]] = None,
-                 labels: Optional[List[str]]=None):
+                 labels: Optional[List[str]]=None,
+                 simulation_kwargs: Optional[Dict[str, Any]]={}
+                 ):
 
         ############################################################################################################
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
@@ -194,6 +200,12 @@ class log_posterior_probability():
         self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
                                                                                 self.time_index, log_likelihood_fnc_args, log_likelihood_fnc)
 
+        ####################################
+        ## Validate the simulation_kwargs ##
+        ####################################
+
+        self.simulation_kwargs = validate_simulation_kwargs(model, simulation_kwargs, self.time_index)
+
         # Assign attributes to class
         self.model = model
         self.data = data
@@ -269,7 +281,7 @@ class log_posterior_probability():
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata, *[log_likelihood_fnc_args,])
         return total_ll
 
-    def __call__(self, thetas: np.ndarray, simulation_kwargs: Dict={}) -> float:
+    def __call__(self, thetas: np.ndarray) -> float:
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
@@ -296,7 +308,7 @@ class log_posterior_probability():
 
         if not self.initial_states:
             # Perform simulation only once
-            out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+            out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
             # Loop over dataframes
             for idx,df in enumerate(self.data):
                 # Get aggregation function
@@ -314,7 +326,7 @@ class log_posterior_probability():
                 # Replace initial condition
                 self.model.initial_states.update(self.initial_states[idx])
                 # Perform simulation
-                out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+                out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
                 # Get aggregation function
                 if self.aggregation_function:
                     aggfunc = self.aggregation_function[idx]
@@ -1442,3 +1454,38 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             log_likelihood_fnc_args[idx] = val.to_numpy()
     
     return log_likelihood_fnc_args
+
+
+def validate_simulation_kwargs(model, simulation_kwargs, time_index):
+    """
+    A function to check the validity of the input argument `simulation_kwargs` as inputs to the pySODM model's sim() function
+
+    First performs a check based on the names of the arguments, excluding the input argument 'time' which is passed internally and therefore not a valid simulation_kwarg.
+    Then calls the pySODM model's sim() function using the `simulation_kwargs` and throws a error if it fails within the sim() function itself.
+    """
+    # get valid parameters of pySODM's model.sim()
+    sig = inspect.signature(model.sim)
+    param_names = [param.name for param in sig.parameters.values()]
+
+    # if not valid parameters --> error
+    invalid_keys = set(simulation_kwargs.keys()) - set(param_names)
+    if invalid_keys:
+        raise ValueError(f"`simulation_kwargs` contains invalid argument(s): [{', '.join(invalid_keys)}]. valid arguments are arguments of the pySODM model's sim() function.")
+    
+    # cannot be 'time'
+    if 'time' in simulation_kwargs.keys():
+        raise ValueError(f"'time' is an invalid `simulation_kwarg`.")
+    
+    # call function and check
+    if time_index == 'time':
+        try:
+            model.sim([0,1], **simulation_kwargs)
+        except:
+            raise ValueError(f"the use of `simulation_kwargs` in the pySODM model's sim() function returned an error. consult the error stack printed above to find the error.")
+    else:
+        try:
+            model.sim([datetime(2000,1,1), datetime(2000,1,2)], **simulation_kwargs)
+        except:
+            raise ValueError(f"the use of `simulation_kwargs` in the pySODM model's sim() function returned an error. consult the error stack printed above to find the error.")
+
+    return simulation_kwargs
