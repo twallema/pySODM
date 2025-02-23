@@ -137,7 +137,7 @@ if __name__ == '__main__':
     n_mcmc = 400
     multiplier_mcmc = 9
     processes = 9
-    print_n = 50
+    print_n = 100
     discard = 50
     samples_path = 'sampler_output/'
     fig_path = 'sampler_output/'
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10,], multiplier=multiplier_mcmc, bounds=bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
-              'starting_estimate': list(theta)}
+              'starting_estimate': theta}
     # Sample
     sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
                                                 fig_path=fig_path, samples_path=samples_path, print_n=print_n,
