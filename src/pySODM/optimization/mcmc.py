@@ -3,7 +3,6 @@ import gc
 import sys
 import emcee
 import datetime
-import json
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
@@ -115,10 +114,6 @@ def run_EnsembleSampler(
         # If it doesn't exist make it
         if not os.path.exists(samples_path):
             os.makedirs(samples_path)
-    # Check if the fig_path/autocorrelation and fig_path/traceplots exist and if not make them
-    for directory in [fig_path+"autocorrelation/", fig_path+"traceplots/"]:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
     # Determine current date
     run_date = str(datetime.date.today())
     # Derive nwalkers, ndim from shape of pos
@@ -147,8 +142,8 @@ def run_EnsembleSampler(
         print(f"Saving samples in an xarray.Dataset every {print_n} iterations")
         print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
         print(f"Samples: {samples_path+identifier+'_SAMPLES_'+run_date+'.nc'}")
-        print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
-        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
+        print(f"Traceplot: {fig_path+identifier+'_TRACE_'+run_date+'.pdf'}")
+        print(f"Autocorrelation plot: {fig_path+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
 
     # If user provides an existing backend: continue sampling 
     else:
@@ -170,8 +165,8 @@ def run_EnsembleSampler(
         print(f"Saving samples in an xarray.Dataset every {print_n} iterations")
         print(f"Printing traceplot and autocorrelation plot every {print_n} iterations")
         print(f"Samples: {samples_path+identifier+'_SAMPLES_'+run_date+'.nc'}")
-        print(f"Traceplot: {fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf'}")
-        print(f"Autocorrelation plot: {fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
+        print(f"Traceplot: {fig_path+identifier+'_TRACE_'+run_date+'.pdf'}")
+        print(f"Autocorrelation plot: {fig_path+identifier+'_AUTOCORR_'+run_date+'.pdf'}\n")
     sys.stdout.flush()
 
     # This will be useful to testing convergence
@@ -199,11 +194,11 @@ def run_EnsembleSampler(
             
             # Update autocorrelation plot
             _, tau = autocorrelation_plot(sampler.get_chain(), labels=objective_function.expanded_labels,
-                                            filename=fig_path+'autocorrelation/'+identifier+'_AUTOCORR_'+run_date+'.pdf',
+                                            filename=fig_path+identifier+'_AUTOCORR_'+run_date+'.pdf',
                                             plt_kwargs={})
             # Update traceplot
             traceplot(sampler.get_chain(),labels=objective_function.expanded_labels,
-                        filename=fig_path+'traceplots/'+identifier+'_TRACE_'+run_date+'.pdf',
+                        filename=fig_path+identifier+'_TRACE_'+run_date+'.pdf',
                         plt_kwargs={'linewidth': 1,'color': 'black','alpha': 0.2})
             # Garbage collection
             plt.close('all')
