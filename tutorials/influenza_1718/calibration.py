@@ -142,18 +142,18 @@ if __name__ == '__main__':
     labels = ['$\\beta$', '$f_{ud}$']
     bounds = [(1e-6,0.08), (1e-3,1-1e-3)]
     # Setup objective function (no priors --> uniform priors based on bounds)
-    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,labels=labels)
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,labels=labels,
+                                                   simulation_kwargs={'tau': tau})
     # Extract expanded bounds and labels
     expanded_labels = objective_function.expanded_labels 
     expanded_bounds = objective_function.expanded_bounds                                   
     # PSO
     theta, _ = pso.optimize(objective_function,
-                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes,
-                        debug=True, kwargs={'simulation_kwargs':{'tau': tau}})
+                        swarmsize=multiplier_pso*processes, max_iter=n_pso, processes=processes, debug=True)
     # Nelder-mead
     #step = len(expanded_bounds)*[0.10,]
     #theta, _ = nelder_mead.optimize(objective_function, np.array(theta), step, processes=processes,
-    # max_iter=n_pso, kwargs={'simulation_kwargs':{'tau': tau}})
+    # max_iter=n_pso)
 
     ######################
     ## Visualize result ##
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     settings={'start_calibration': start_calibration, 'end_calibration': end_calibration,
               'starting_estimate': list(theta), 'tau': tau}
     # Sample n_mcmc iterations
-    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,  objective_function_kwargs={'simulation_kwargs': {'tau':tau}},
+    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
                                     discard=discard, thin=thin, fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes,
                                     progress=True, settings_dict=settings)                                                                               
     # Look at the resulting distributions in a cornerplot
