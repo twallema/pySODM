@@ -1,3 +1,4 @@
+import sys
 import copy
 import numpy as np
 import multiprocessing as mp
@@ -113,7 +114,8 @@ def optimize(
     print(f'For {max_iter} iterations using {processes} cores')
     print(f'Starting point: {x_start}')
     print(f'Bounds: {bounds}\n')
-
+    sys.stdout.flush()
+    
     # Compute score of initial estimate
     dim = len(x_start)
     prev_best = obj(x_start)
@@ -174,6 +176,8 @@ def optimize(
         if no_improv >= no_improv_break:
             print('Maximum number of iterations without improvement reached. Quitting.\n')
             return res[0][0], res[0][1]
+        # Force printing on clusters
+        sys.stdout.flush()
 
         ################
         ## Reflection ##
