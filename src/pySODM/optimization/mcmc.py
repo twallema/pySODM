@@ -68,7 +68,8 @@ def run_EnsembleSampler(
         - processes: int
             - Number of cores to use.
         - settings_dict: dict
-            - Dictionary containing calibration settings or other usefull settings for long-term storage. Appended to output `samples_xr` as attributes. Valid datatypes for values: str, Number, ndarray, number, list, tuple, bytes. 
+            - Dictionary containing calibration settings or other usefull settings for long-term storage. Appended to output `samples_xr` as attributes.
+            - Valid datatypes for values: (single values) int, float, str, bool. (arrays) homogeneous list of int, float, str, bool. 1D numpy array containing int, float.
 
     Hyperparameters:
     ----------------
@@ -124,6 +125,8 @@ def run_EnsembleSampler(
     nwalkers, ndim = pos.shape
     # Append thin and discard to settings dictionary
     settings_dict.update({'discard': discard, 'thin': thin})
+    # Validate the types in the settings dictionary --> otherwise error dumping to xarray
+    _validate_settings_dict(settings_dict)
     # Start printout for user
     print(f'\nMarkov-Chain Monte-Carlo sampling')
     print(f'=================================\n')   
@@ -378,3 +381,35 @@ def _dump_sampler_to_xarray(samples_np: np.ndarray, parameter_shapes: Dict[str, 
         samples_xr.to_netcdf(filename)
 
     return samples_xr
+
+def _validate_settings_dict(settings_dict: Dict) -> None:
+    """
+    Checks if the entries in `settings_dict` are compatible for export to netCDF.
+    
+    Valid types are:
+        - Scalar values: int, float, bool, str
+        - Arrays: homogeneous lists of int, float, bool, str; 1D NumPy arrays containing int, float
+    """
+
+    def is_homogeneous_list(lst):
+        """Check if list is homogeneous and contains only allowed types."""
+        if not isinstance(lst, list) or not lst:
+            return False
+        first_type = type(lst[0])
+        return all(isinstance(item, first_type) for item in lst) and first_type in {int, float, str, bool}
+
+    def is_valid_numpy_array(arr):
+        """Check if NumPy array is 1D and contains only int or float values."""
+        return isinstance(arr, np.ndarray) and arr.ndim == 1 and arr.dtype.kind in {'i', 'f'}
+
+    for key, value in settings_dict.items():
+        if isinstance(value, (int, float, bool, str, list, np.ndarray)):
+            if isinstance(value, list):
+                if not is_homogeneous_list(value):
+                    raise TypeError(f"Invalid datatype in `settings_dict` for key: '{key}' (type: {type(value)}). lists must be homogeneous and contain only int, float, bool or str.")
+            elif isinstance(value, np.ndarray):
+                if not is_valid_numpy_array(value):
+                    raise TypeError(f"Invalid datatype in `settings_dict` for key: '{key}' (type: {type(value)}). numpy arrays must be 1D and contain only int or float.")
+        else:
+            raise TypeError(f"Invalid datatype in `settings_dict` for key: '{key}' (type: {type(value)}).\nvalid types are: (scalar values) int, float, bool, str. (arrays) homogeneous lists containing int, float, str, bool. 1D numpy arrays containing int or float.")
+    pass
