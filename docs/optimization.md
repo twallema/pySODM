@@ -184,7 +184,7 @@
 >    * **step** (list or 1D np.ndarray) - (Relative) size of the initial search simplex. 
 >    * **bounds** (list) - optional - The bounds of the design variable(s). In form `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. If class `log_posterior_probability` is used as `func`, it already contains bounds. If bounds are provided these will overwrite the bounds available in the 'log_posterior_probability' object.
 >    * **args** (tuple) - optional - Additional arguments passed to objective function.
->    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function. Example use: To compute our log posterior probability (class `log_posterior_probability`) with the 'RK45' method, we must change the `method` argument of the `sim` function, which is called in `log_posterior_probability`. To achieve this, we can supply the keyworded argument `simulation_kwargs` of `log_posterior_probability`, which passes its arguments on to the `sim` function. To this end, use `kwargs={'simulation_kwargs':{'method': 'RK45'}}`.
+>    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function.
 >    * **processes** (int) - optional - Number of cores to use.
 
 >   **Hyperparameters:**
@@ -210,7 +210,7 @@
 >    * **func** (function) - Callable function or class representing the objective function to be minimized. Recommended using `log_posterior_probability`.
 >    * **bounds** (list) - optional - The bounds of the design variable(s). In form `[(lb_1, ub_1), ..., (lb_n, ub_n)]`. If class `log_posterior_probability` is used as `func`, it already contains bounds. If bounds are provided these will overwrite the bounds available in the 'log_posterior_probability' object.
 >    * **args** (tuple) - optional - Additional arguments passed to objective function.
->    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function. Example use: To compute our log posterior probability (class `log_posterior_probability`) with the 'RK45' method, we must change the `method` argument of the `sim` function, which is called in `log_posterior_probability`. To achieve this, we can supply the keyworded argument `simulation_kwargs` of `log_posterior_probability`, which passes its arguments on to the `sim` function. To this end, use `kwargs={'simulation_kwargs':{'method': 'RK45'}}`.
+>    * **kwargs** (dict) - optional - Additional keyworded arguments passed to objective function.
 >    * **ieqcons** (list) - A list of functions of length n such that ```ieqcons[j](x,*args) >= 0.0``` in a successfully optimized problem
 >    * **f_ieqcons** (function) - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored
 >    * **processes** (int) - optional - Number of cores to use.
