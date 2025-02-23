@@ -294,10 +294,8 @@ Then, we'll setup and run the sampler using `run_EnsembleSampler()` until the ch
 ├── sampler_output 
 |   |── username_BACKEND_YYYY-MM-DD.hdf5
 |   |── username_SAMPLES_YYYY-MM-DD.nc
-│   ├── autocorrelation
-│       └── username_AUTOCORR_YYYY-MM-DD.pdf
-│   └── traceplots
-│       └── username_TRACE_YYYY-MM-DD.pdf
+|   |── username_AUTOCORR_YYYY-MM-DD.pdf
+│   └── username_TRACE_YYYY-MM-DD.pdf
 ```
 
 The first output of `run_EnsembleSampler()` is an `emcee.EnsembleSampler` object containing our 100 iterations for 9 chains. We can extract the samples manually by using its `get_chain()` method, along with many more `emcee` related operations (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, we're interested in the second output of `run_EnsembleSampler()`, which contains the samples in an `xarray.Dataset`, indexed on the chain and iteration numbers. This interfaces nicely to pySODM's *draw functions* (introduced below). Finally, we'll use the third-party `corner` package to visualize the distributions of the five calibrated parameters.
@@ -338,7 +336,7 @@ Data variables:
 Attributes:
     start_calibration:  2022-12-01
     end_calibration:    2023-01-20
-    starting_estimate:  [np.float64(0.2764298804104327)]
+    starting_estimate:  [0.2764298804104327]
 ```
 
 ### Results
