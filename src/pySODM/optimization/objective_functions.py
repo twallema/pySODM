@@ -85,8 +85,8 @@ class log_posterior_probability():
         - defaults to the names provided in parameter_names.
 
     - (optional) simulation_kwargs: dict
-        - must contain valid arguments of pySODM's `sim()` function
-        - but not 'time' as this is passed internally
+        - arguments to be passed to the model's sim() function when evaluating the posterior probability.
+        - must contain valid arguments of pySODM's `sim()` function but not 'time' as this is passed internally
     """
 
     def __init__(self,
