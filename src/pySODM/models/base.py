@@ -746,18 +746,23 @@ class ODE:
 
             states = list_to_dict(y, self.state_shapes)
 
+            # --------------------------------------------
+            # Reconstruct datetime simtime (if applicable)
+            # --------------------------------------------
+
+            if actual_start_date is not None:
+                # datetime simtime
+                date = int_to_date(actual_start_date, t)
+            else:
+                # integer simtime
+                date = t
+
             # --------------------------------------
             # update time-dependent parameter values
             # --------------------------------------
 
             params = pars.copy()
-
             if self.time_dependent_parameters:
-                if actual_start_date is not None:
-                    date = int_to_date(actual_start_date, t)
-                    t = datetime.timestamp(date)
-                else:
-                    date = t
                 for i, (param, param_func) in enumerate(self.time_dependent_parameters.items()):
                     func_params = {key: params[key] for key in self._function_parameters[i]}
                     params[param] = param_func(date, states, pars[param], **func_params)
@@ -772,7 +777,7 @@ class ODE:
             # perform integration
             # -------------------
 
-            dstates = self.integrate(t, **states, **params)
+            dstates = self.integrate(date, **states, **params)
 
             # -------
             # Flatten

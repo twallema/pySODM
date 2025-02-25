@@ -56,6 +56,8 @@ class ODE_SIR(ODE):
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
+
+        print(t)
         
         # Calculate total population
         N = S+I+R
@@ -70,7 +72,11 @@ class ODE_SIR(ODE):
 model = ODE_SIR(initial_states={'S': 1000, 'I': 1}, parameters={'beta':0.35, 'gamma':5})
 
 # Simulate from t=0 until t=121
-out = model.sim([0, 121])
+#out = model.sim([0, 121])
+from datetime import datetime
+out = model.sim([datetime(2020,1,1), datetime(2020,2,1)])
+import sys
+sys.exit()
 
 # Is equivalent to:
 out = model.sim(121)
