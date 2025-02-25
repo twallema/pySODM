@@ -59,14 +59,14 @@ def date_to_diff(start_date, end_date, time_unit):
     """
 
     # count number of days
-    delta_ns = (end_date - start_date).days * 24*60*60*1000*1000
+    delta_us = (end_date - start_date).total_seconds() * 1e6
     
     # check time_unit
     if time_unit not in time_unit_map:
         raise ValueError(f"Invalid time unit '{time_unit}'. Choose from {list(time_unit_map.keys())}")
     
     # compute number of time units
-    num_units = math.ceil(delta_ns / time_unit_map[time_unit])
+    num_units = math.ceil(delta_us / time_unit_map[time_unit])
 
     # generate the datetime range for the output
     date_range = [start_date + timedelta(microseconds=i*time_unit_map[time_unit]) for i in range(num_units+1)]
