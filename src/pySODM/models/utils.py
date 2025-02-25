@@ -1,9 +1,21 @@
 import numpy as np
 from datetime import timedelta
 
-def int_to_date(actual_start_date, t):
-    date = actual_start_date + timedelta(days=t)
-    return date
+# time map used in `utils/time_to_date` and `validation/date_to_diff`
+time_unit_map = {
+    'us': 1,                       
+    'ms': 1000,                    # us per ms
+    's': 1000*1000,                # us per s
+    'min': 60*1000*1000,           # ...
+    'h': 60*60*1000*1000,        
+    'D': 24*60*60*1000*1000,     
+    'W': 7*24*60*60*1000*1000,   
+}
+
+def time_to_date(t, start_date, time_unit):
+    """ Convert timestep to datetime
+    """
+    return start_date + timedelta(microseconds=t*time_unit_map[time_unit])
 
 def list_to_dict(y, shape_dictionary, retain_floats=False):
     """
