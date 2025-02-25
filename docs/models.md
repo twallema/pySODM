@@ -96,7 +96,7 @@ The parameters of the initial condition function become a part of the model's pa
 
     * **tau** - (int/float) - optional - If `tau != None`, the model is simulated using a simple discrete timestepper with fixed timestep `tau`. Overrides the `method` and `rtol` arguments. 
 
-    * **time_unit** - (str) - optional - If using datetime simulation time, defines the time unit. Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'.
+    * **time_unit** - (str) - optional - Defines the unit of time. Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'. Only relevant when using dates to index simulations.
 
     **Returns**
 
@@ -202,7 +202,7 @@ The parameters of the initial condition function become a part of the model's pa
     * **method** - (str) - optional - 'SSA': Stochastic Simulation Algorithm. 'tau-leap': Tau-leaping algorithm. Consult the [following blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
     * **tau** - (int/float) - optional - Leap value of the tau-leaping method. Consult the following [blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
 
-    * **time_unit** - (str) - optional - If using datetime simulation time, defines the time unit. Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'.
+    * **time_unit** - (str) - optional - Defines the unit of time. Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'. Only relevant when using dates to index simulations.
 
     **Returns**
 
