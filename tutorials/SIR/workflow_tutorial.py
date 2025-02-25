@@ -56,7 +56,7 @@ class ODE_SIR(ODE):
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
-        
+
         # Calculate total population
         N = S+I+R
         # Calculate differentials
