@@ -58,18 +58,20 @@ def initial_condition_function(S0):
 model = SIR(initial_states=initial_condition_function, parameters={'beta': 0.35, 'gamma': 5, 'S0': 1000})
 ```
 
-Simulate the model using its `sim()` method. pySODM supports the use of dates to index simulations, string representations of dates with the format `'yyyy-mm-dd'` as well as `datetime.datetime()` can be used. 
+Simulate the model using its `sim()` method. pySODM supports the use of dates to index simulations, string representations of dates with the format `'yyyy-mm-dd'` as well as `datetime.datetime()` can be used to define the start- and enddate of a simulation. By default, pySODM assumes the unit of time is days, but you can change this using the `time_unit` input.
 
 ```python
 # Timesteps
 out = model.sim(121)
 
-# String representation of dates: 'yyyy-mm-dd' only
+# String representation of dates:
+# 'yyyy-mm-dd' only (no hours, min, seconds -> use datetime)
 out = model.sim(['2022-12-01', '2023-05-01'])
 
 # Datetime representation of time + date
+# A timestep of length 1 represents one week
 from datetime import datetime as datetime
-out = model.sim([datetime(2022, 12, 1), datetime(2023, 5, 1)])
+out = model.sim([datetime(2022, 12, 1), datetime(2023, 5, 1)], time_unit='W')
 
 # Tailor method and tolerance of integrator
 out = model.sim(121, method='RK45', rtol='1e-4')

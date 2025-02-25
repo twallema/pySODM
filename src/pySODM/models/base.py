@@ -8,7 +8,7 @@ from functools import partial
 from datetime import datetime, timedelta
 from scipy.integrate import solve_ivp
 from typing import List, Callable, Dict, Optional, Any, Union, Tuple
-from pySODM.models.utils import int_to_date, list_to_dict, cut_ICF_parameters_from_parameters
+from pySODM.models.utils import time_to_date, list_to_dict, cut_ICF_parameters_from_parameters, time_unit_map
 from pySODM.models.validation import merge_parameter_names_parameter_stratified_names, validate_draw_function, validate_simulation_time, validate_dimensions, \
                                         validate_time_dependent_parameters, validate_integrate, check_duplicates, build_state_sizes_dimensions, validate_dimensions_per_state, \
                                             validate_initial_states, validate_integrate_or_compute_rates_signature, validate_provided_parameters, validate_parameter_stratified_sizes, \
@@ -347,7 +347,7 @@ class JumpProcess:
 
         return transitionings, tau
  
-    def _create_fun(self, actual_start_date, method='SSA', tau_input=0.5):
+    def _create_fun(self, start_date, time_unit, method='SSA', tau_input=0.5):
         
         def func(t, y, pars={}):
                 """As used by scipy -> flattend in, flattend out"""
@@ -362,9 +362,9 @@ class JumpProcess:
                 # Reconstruct datetime simtime (if applicable)
                 # --------------------------------------------
 
-                if actual_start_date is not None:
+                if start_date is not None:
                     # datetime simtime
-                    date = int_to_date(actual_start_date, t)
+                    date = time_to_date(float(t), start_date, time_unit)
                 else:
                     # integer simtime
                     date = t
@@ -439,14 +439,14 @@ class JumpProcess:
 
         return {'y': y_eval, 't': t_eval}
 
-    def _sim_single(self, time, actual_start_date=None, method='tau_leap', tau=0.5, output_timestep=1):
+    def _sim_single(self, time, start_date=None, time_unit=None, method='tau_leap', tau=0.5):
 
         # Initialize wrapper
-        fun = self._create_fun(actual_start_date, method, tau)
+        fun = self._create_fun(start_date, time_unit, method, tau)
 
         # Prepare time
         t0, t1 = time
-        t_eval = np.arange(start=t0, stop=t1 + 1, step=output_timestep)
+        t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
 
         # Update initial condition if a function was provided by user
         if self.initial_states_function:
@@ -469,9 +469,9 @@ class JumpProcess:
         # Run the time loop
         output = self._solve_discrete(fun, t_eval, np.asarray(y0), params)
 
-        return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
+        return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, start_date, time_unit)
 
-    def _mp_sim_single(self, drawn_parameters, seed, time, actual_start_date, method, tau, output_timestep):
+    def _mp_sim_single(self, drawn_parameters, seed, time, start_date, time_unit, method, tau):
         """
         A Multiprocessing-compatible wrapper for _sim_single, assigns the drawn dictionary and runs _sim_single
         """
@@ -480,7 +480,7 @@ class JumpProcess:
         # set seed
         np.random.seed(seed)
         # simulate model
-        return self._sim_single(time, actual_start_date, method, tau, output_timestep)
+        return self._sim_single(time, start_date, time_unit, method, tau)
 
     def sim(self,
             time: Union[int, float, List[Union[int, float]], List[Union[str, datetime]]],
@@ -490,7 +490,8 @@ class JumpProcess:
             processes: Optional[int]=None,
             method: str='tau_leap',
             tau: Union[int, float] = 1,
-            output_timestep: Union[int, float]=1) -> xarray.Dataset:
+            time_unit: str='D',
+            ) -> xarray.Dataset:
 
         """
         Interate a JumpProcess model over a specified time interval.
@@ -523,9 +524,9 @@ class JumpProcess:
         - tau: int/float
             - Timestep used by the tau-leaping algorithm (default: 0.5)
 
-        - output_timestep: int/flat
-            - Interpolate model output to every `output_timestep` time (default: 1)
-            - For datetimes: expressed in days
+        - time_unit: str
+            - If using datetime simulation time, defines the time unit (default: days)
+            - Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'
 
         output
         ------
@@ -537,7 +538,7 @@ class JumpProcess:
         # Input checks on solution settings
         validate_solution_methods_JumpProcess(method, tau)
         # Input checks on supplied simulation time
-        time, actual_start_date = validate_simulation_time(time)
+        time, date_range = validate_simulation_time(time, time_unit)
         # Input checks related to draw functions
         if draw_function:
             # validate function
@@ -558,11 +559,11 @@ class JumpProcess:
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:      # 'fork' instead of 'spawn' to run on Apple Silicon
                 seeds = np.random.randint(0, 2**32, size=N)     # requires manual reseeding of the random number generators used in the stochastic algorithms in every child process
-                output = p.starmap(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, tau=tau, output_timestep=output_timestep), zip(drawn_parameters, seeds))
+                output = p.starmap(partial(self._mp_sim_single, time=time, start_date=date_range[0], time_unit=time_unit, method=method, tau=tau), zip(drawn_parameters, seeds))
         else:
             output=[]
             for pars in drawn_parameters:
-                output.append(self._mp_sim_single(pars, np.random.randint(0, 2**32, size=1), time, actual_start_date, method=method, tau=tau, output_timestep=output_timestep))
+                output.append(self._mp_sim_single(pars, np.random.randint(0, 2**32, size=1), time, start_date=date_range[0], time_unit=time_unit, method=method, tau=tau))
 
         # Append results
         out = output[0]
@@ -739,7 +740,7 @@ class ODE:
         """to overwrite in subclasses"""
         raise NotImplementedError
 
-    def _create_fun(self, actual_start_date):
+    def _create_fun(self, start_date, time_unit):
         """Convert integrate statement to scipy-compatible function"""
   
         def func(t, y, pars={}):
@@ -755,9 +756,9 @@ class ODE:
             # Reconstruct datetime simtime (if applicable)
             # --------------------------------------------
 
-            if actual_start_date is not None:
+            if start_date is not None:
                 # datetime simtime
-                date = int_to_date(actual_start_date, t)
+                date = time_to_date(float(t), start_date, time_unit)
             else:
                 # integer simtime
                 date = t
@@ -817,17 +818,17 @@ class ODE:
             
         return {'y': y_eval, 't': t_eval}
 
-    def _sim_single(self, time, actual_start_date=None, method='RK23', rtol=5e-3, output_timestep=1, tau=None):
+    def _sim_single(self, time, start_date=None, time_unit=None, method='RK23', rtol=5e-3, tau=None):
         """
         Integrates the model over the interval time = [t0, t1] and builds the xarray output. Integration is either continuous (default) or discrete (tau != None).
         """
 
         # Create scipy-compatible wrapper
-        fun = self._create_fun(actual_start_date)
+        fun = self._create_fun(start_date, time_unit)
 
         # Construct vector of timesteps
         t0, t1 = time
-        t_eval = np.arange(start=t0, stop=t1 + output_timestep, step=output_timestep)
+        t_eval = np.arange(start=t0, stop=t1 + 1, step=1)
 
         # Update initial condition if a function was provided by user
         if self.initial_states_function:
@@ -854,16 +855,16 @@ class ODE:
             output = solve_ivp(fun, time, y0, args=[params], t_eval=t_eval, method=method, rtol=rtol)
 
         # Map to variable names
-        return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, actual_start_date)
+        return _output_to_xarray_dataset(output, self.state_shapes, self.dimensions_per_state, self.state_coordinates, start_date, time_unit)
 
-    def _mp_sim_single(self, drawn_parameters, time, actual_start_date, method, rtol, output_timestep, tau):
+    def _mp_sim_single(self, drawn_parameters, time, start_date, time_unit, method, rtol, tau):
         """
         A `multiprocessing`-compatible wrapper for `_sim_single`, assigns the drawn dictionaries and runs `_sim_single`
         """
         # set sampled parameters
         self.parameters.update(drawn_parameters)
         # simulate model
-        out = self._sim_single(time, actual_start_date, method, rtol, output_timestep, tau)
+        out = self._sim_single(time, start_date, time_unit, method, rtol, tau)
         return out
     
     def sim(self,
@@ -875,7 +876,8 @@ class ODE:
             method: str='RK45',
             rtol: float=1e-4,
             tau: Optional[Union[int,float]]=None,
-            output_timestep: Union[int, float]=1) -> xarray.Dataset:
+            time_unit: str='D',
+            ) -> xarray.Dataset:
 
         """
         Integrate an ODE model over a specified time interval.
@@ -911,9 +913,9 @@ class ODE:
         - tau: int/float
             - If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
 
-        - output_timestep: int/flat
-            - Interpolate model output to every `output_timestep` time (default: 1)
-            - For datetimes: expressed in days
+        - time_unit: str
+            - If using datetime simulation time, defines the time unit (default: days)
+            - Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'
 
         output
         ------
@@ -925,7 +927,7 @@ class ODE:
         # Input checks on solution settings
         validate_solution_methods_ODE(rtol, method, tau)
         # Input checks on supplied simulation time
-        time, actual_start_date = validate_simulation_time(time)
+        time, date_range = validate_simulation_time(time, time_unit)
         # Input checks on draw functions
         if draw_function:
             # validate function
@@ -948,11 +950,11 @@ class ODE:
         # Run simulations
         if processes: # Needed 
             with get_context("fork").Pool(processes) as p:
-                output = p.map(partial(self._mp_sim_single, time=time, actual_start_date=actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau), drawn_parameters)
+                output = p.map(partial(self._mp_sim_single, time=time, start_date=date_range[0], time_unit=time_unit, method=method, rtol=rtol, tau=tau), drawn_parameters)
         else:
             output=[]
             for pars in drawn_parameters:
-                output.append(self._mp_sim_single(pars, time, actual_start_date, method=method, rtol=rtol, output_timestep=output_timestep, tau=tau))
+                output.append(self._mp_sim_single(pars, time, date_range[0], time_unit, method=method, rtol=rtol, tau=tau))
 
         # Append results
         out = output[0]
@@ -964,7 +966,7 @@ class ODE:
 
         return out
 
-def _output_to_xarray_dataset(output, state_shapes, dimensions_per_state, state_coordinates, actual_start_date=None):
+def _output_to_xarray_dataset(output, state_shapes, dimensions_per_state, state_coordinates, start_date=None, time_unit=None):
     """
     Convert array (returned by scipy) to an xarray Dataset with the right coordinates and variable names
 
@@ -1011,7 +1013,7 @@ def _output_to_xarray_dataset(output, state_shapes, dimensions_per_state, state_
     new_dimensions_per_state={}
     for k,v in dimensions_per_state.items():
         v_acc = v.copy()
-        if actual_start_date is not None:
+        if start_date is not None:
             v_acc = ['date',] + v_acc
             new_dimensions_per_state.update({k: v_acc})
         else:
@@ -1022,8 +1024,8 @@ def _output_to_xarray_dataset(output, state_shapes, dimensions_per_state, state_
     new_state_coordinates={}
     for k,v in state_coordinates.items():
         v_acc=v.copy()
-        if actual_start_date is not None:
-            v_acc = [[actual_start_date + timedelta(days=x) for x in output["t"]],] + v_acc
+        if start_date is not None:
+            v_acc = [[start_date + timedelta(microseconds=float(i*time_unit_map[time_unit])) for i in output["t"]],] + v_acc
             new_state_coordinates.update({k: v_acc})
         else:
             v_acc = [output["t"],] + v_acc
