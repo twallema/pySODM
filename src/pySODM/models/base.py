@@ -524,9 +524,9 @@ class JumpProcess:
         - tau: int/float
             - Timestep used by the tau-leaping algorithm (default: 0.5)
 
-        - output_timestep: int/flat
-            - Interpolate model output to every `output_timestep` time (default: 1)
-            - For datetimes: expressed in days
+        - time_unit: str
+            - If using datetime simulation time, defines the time unit (default: days)
+            - Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'
 
         output
         ------
@@ -914,7 +914,7 @@ class ODE:
             - If `tau != None`, the integrator (`scipy.solve_ivp()`) is overwritten and a discrete timestepper with timestep `tau` is used (default: None)
 
         - time_unit: str
-            - If using datetime simulation time, you must define the time unit (default: days)
+            - If using datetime simulation time, defines the time unit (default: days)
             - Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'
 
         output
