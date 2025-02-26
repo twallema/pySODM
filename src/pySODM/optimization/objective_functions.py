@@ -205,7 +205,7 @@ class log_posterior_probability():
         ##########################################
 
         # validate names of `simulation_kwargs` are valid inputs to the `sim()` function
-        self.simulation_kwargs = validate_simulation_kwargs(model, simulation_kwargs, self.time_index)
+        self.simulation_kwargs = validate_simulation_kwargs(model, simulation_kwargs)
 
         # attempt to simulate the model between `start_sim` and `end_sim` using `simulation_kwargs`
         validate_simulation(model, simulation_kwargs, self.start_sim, self.end_sim)
