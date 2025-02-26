@@ -200,11 +200,15 @@ class log_posterior_probability():
         self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
                                                                                 self.time_index, log_likelihood_fnc_args, log_likelihood_fnc)
 
-        ####################################
-        ## Validate the simulation_kwargs ##
-        ####################################
+        ##########################################
+        ## Validate the simulation of the model ##
+        ##########################################
 
+        # validate names of `simulation_kwargs` are valid inputs to the `sim()` function
         self.simulation_kwargs = validate_simulation_kwargs(model, simulation_kwargs, self.time_index)
+
+        # attempt to simulate the model between `start_sim` and `end_sim` using `simulation_kwargs`
+        validate_simulation(model, simulation_kwargs, self.start_sim, self.end_sim)
 
         # Assign attributes to class
         self.model = model
@@ -1456,7 +1460,7 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
     return log_likelihood_fnc_args
 
 
-def validate_simulation_kwargs(model, simulation_kwargs, time_index):
+def validate_simulation_kwargs(model, simulation_kwargs):
     """
     A function to check the validity of the input argument `simulation_kwargs` as inputs to the pySODM model's sim() function
 
@@ -1470,22 +1474,22 @@ def validate_simulation_kwargs(model, simulation_kwargs, time_index):
     # if not valid parameters --> error
     invalid_keys = set(simulation_kwargs.keys()) - set(param_names)
     if invalid_keys:
-        raise ValueError(f"`simulation_kwargs` contains invalid argument(s): [{', '.join(invalid_keys)}]. valid arguments are arguments of the pySODM model's sim() function.")
+        raise ValueError(f"`simulation_kwargs` contains invalid argument(s): [{', '.join(invalid_keys)}]. valid `simulation_kwargs` are arguments of the pySODM model's sim() function.")
     
     # cannot be 'time'
     if 'time' in simulation_kwargs.keys():
         raise ValueError(f"'time' is an invalid `simulation_kwarg`.")
     
-    # call function and check
-    if time_index == 'time':
-        try:
-            model.sim([0,1], **simulation_kwargs)
-        except:
-            raise ValueError(f"the use of `simulation_kwargs` in the pySODM model's sim() function returned an error. consult the error stack printed above to find the error.")
-    else:
-        try:
-            model.sim([datetime(2000,1,1), datetime(2000,1,2)], **simulation_kwargs)
-        except:
-            raise ValueError(f"the use of `simulation_kwargs` in the pySODM model's sim() function returned an error. consult the error stack printed above to find the error.")
-
     return simulation_kwargs
+
+def validate_simulation(model, simulation_kwargs, start_sim, end_sim):
+    """
+    A function attempting to simulate the model from `start_sim` to `end_sim` with `simulation_kwargs`, as will be performed during the computation of the log posterior probability
+    """
+
+    try:
+        model.sim([start_sim, end_sim], **simulation_kwargs)
+    except:
+        raise ValueError(f"the attempt to simulate your pySODM model between '{start_sim}' and '{end_sim}' with simulation_kwargs: '{simulation_kwargs}' failed. consult the error stack to find and resolve the simulation error.")
+
+    pass
