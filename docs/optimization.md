@@ -329,15 +329,16 @@
 >    **Returns:**
 >    * **param_dict** (dict) - Model parameters dictionary with values of parameters `parameter_names` set to the values listed in `thetas`
 
-***function* variance_analysis(data, resample_frequency)**
+***function* variance_analysis(data, window_length, half_life)**
 
 >    A function to analyze the relationship between the variance and the mean in a timeseries of data, usefull when no measure of error is available.
 
->    The timeseries is binned into sets of length `resample_frequency`. The mean and variance of the datapoints within each bin are estimated. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: Gaussian ({math}`\sigma^2 = c`), Poisson ({math}`\sigma^2 = \mu`), Quasi-poisson ({math}`\sigma^2 = \alpha \mu`), Negative Binomial ({math}`\sigma^2 = \mu + \alpha \mu^2`)
+>    The timeseries is binned into sets of length `window_length`. The mean and variance of the datapoints within each bin are estimated. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: Gaussian ({math}`\sigma^2 = c`), Poisson ({math}`\sigma^2 = \mu`), Quasi-poisson ({math}`\sigma^2 = \alpha \mu`), Negative Binomial ({math}`\sigma^2 = \mu + \alpha \mu^2`)
 
 >    **Parameters:**
 >    * **data** (pd.Series or pd.DataFrame) - Timeseries of data to be analyzed. The series must have a pd.Timestamp index labeled 'date' for the time dimension. Additionally, this function supports the addition of one more dimension (f.i. space) using a pd.Multiindex.
->    * **resample_frequency** (str) - The resample frequency determines the number of days in each bin. We recommend varying this parameter before drawing conclusions. Valid options are: 'W': weekly, '2W': biweekly, 'M': monthly, etc. [Consult the pandas docs](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+>    * **window_length** (str) - The length of each bin. Examples of valid arguments are: 'W': weekly, '2W': biweekly, 'M': monthly, etc. [Consult the pandas docs for all valid options.](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+>    * **half_life** (str) - Halflife of the exponential moving average.
 
 >    **Returns:**
 >    * **result** (pd.Dataframe) - Contains the estimated parameter(s) and the Akaike Information Criterion (AIC) of the fitted statistical model. If two index levels are present (thus 'date' and 'other index level'), the result pd.Dataframe contains the result stratified per 'other index level'.
