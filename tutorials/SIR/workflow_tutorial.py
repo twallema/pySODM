@@ -85,7 +85,7 @@ if __name__ == '__main__':
     ## Variance analysis ##
     #######################
 
-    results, ax = variance_analysis(d, resample_frequency='W')
+    results, ax = variance_analysis(d, window_length='W', half_life=3.5)
     alpha = results.loc['negative binomial', 'theta']
     print(results)
     plt.show()
