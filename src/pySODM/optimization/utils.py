@@ -222,16 +222,16 @@ def variance_analysis(data: pd.Series, window_length: str, half_life: float) -> 
     if not secundary_index:
         rolling_mean = data.ewm(half_life=7, adjust=False).mean()
         mu_data = (data.groupby(
-            [pd.Grouper(freq=resample_frequency, level='date')]).mean())
+            [pd.Grouper(freq=window_length, level='date')]).mean())
         var_data = (((data-rolling_mean) **
-                    2).groupby([pd.Grouper(freq=resample_frequency, level='date')]).mean())
+                    2).groupby([pd.Grouper(freq=window_length, level='date')]).mean())
     else:
         rolling_mean = data.groupby(level=secundary_index_name, group_keys=False).apply(
             lambda x: x.ewm(half_life=7, adjust=False).mean())
         mu_data = (data.groupby([pd.Grouper(
-            freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
+            freq=window_length, level='date')] + [secundary_index_values]).mean())
         var_data = (((data-rolling_mean)**2).groupby([pd.Grouper(
-            freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
+            freq=window_length, level='date')] + [secundary_index_values]).mean())
 
     # Protect calibration against nan values
     merge = pd.merge(mu_data, var_data, right_index=True,
