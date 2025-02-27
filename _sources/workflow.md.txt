@@ -159,11 +159,11 @@ The next step is to choose an appropriate log likelihood function. The log likel
 ```{math}
 SSE = \sum_i (y_{data,i} - y_{model,i})^2,
 ```
-which is actually a simplified case of the following Guassian log likelihood function,
+which is a simplified case of a normal log likelihood function,
 ```{math}
 \log \big[ p(y_{data} | y_{model}, \sigma) \big] = - \frac{1}{2} \sum_i \Bigg[ \frac{(y_{data,i} - y_{model,i})^2}{\sigma_i^2} + \log (2 \pi \sigma_i^2) \Bigg].
 ```
-from the above equations we can deduce that the SSEs's use is only appropriate when the error on all datapoints are the same (i.e. {math}`\sigma_i^2 = 1`). If the errors ({math}`\sigma_i`) of all datapoints ({math}`y_{data,i}`) are known, then the Gaussian log likelihood function is the most appropriate objective function. When the error of the datapoints are unknown, we can analyze the mean-variance relationship in our dataset to choose the appropriate likelihood function or make an assumption. For epidemiological case data, dispersion tends to grow with the magnitude of the data and only one datapoint is available per day (so no error is readily available). In that case, pySODM's [`variance_analysis()` function](optimization.md) includes the necessary tools to approximate the mean-variance relationship in a dataset of counts. By dividing the dataset in discrete windows and comparing an exponential moving average to the data, mean-variance couples can be approximated. Then, the appropriate likelihood function can be found by fitting the following candidate models,
+The normal log likelihood reduces to the SSE when the error on all datapoints are the same (i.e. {math}`\sigma_i^2 = 1`), in technical terms, the SSE assumes the data are homoskedastic which is rarely the case in practice. If the errors ({math}`\sigma_i`) of all datapoints ({math}`y_{data,i}`) are known, then the normal log likelihood function is the maximum likelihood estimator. When the error of the datapoints are unknown, we can analyze the relationship between the magnitude of the data and its variance to help us choose the most appropriate likelihood function. For epidemiological case data, only one datapoint is available per day implying no error is readily available. However, in count data dispersion tends to increase linearily with the magnitude of the data. In that case, pySODM's [`variance_analysis()` function](optimization.md) includes a functionality to approximate the mean-variance relationship in a dataset of counts. To do so, we assume a moving exponential average of the data accurately represents the underlying undispersed truth, we then dividing the data in discrete windows, and then compute the dispersion of the data around the exponential moving average's mean within every window to obtain mean-variance couples. Then, the appropriate likelihood function can be found by fitting the following candidate mean-variance relationships,
 
 | Mean-Variance model          | Relationship                               |
 |------------------------------|--------------------------------------------|
@@ -172,11 +172,11 @@ from the above equations we can deduce that the SSEs's use is only appropriate w
 | Quasi-Poisson                | {math}`\sigma^2 = \alpha * \mu`            |
 | Negative Binomial            | {math}`\sigma^2 = \mu + \alpha * \mu^2`    |
 
-The following snippet performs the above procedure on our synthetic dataset. 
+For a more rigorous explanation of the procedure, we highly recommend reading section E.1 in the Supplementary Materials of [this article](https://www.sciencedirect.com/science/article/pii/S0307904X23002810). The following code snippet performs the estimation for our synthetic dataset. 
 ```
 from pySODM.optimization.utils import variance_analysis
 
-results, ax = variance_analysis(d, resample_frequency='W')
+results, ax = variance_analysis(d, window_length='W', half_life=3.5)
 alpha = results.loc['negative binomial', 'theta']
 print(results)
 plt.show()
@@ -190,7 +190,7 @@ poisson             0.000000  44.165044
 quasi-poisson       1.925682  38.796586
 negative binomial   0.042804  32.045864
 ```
-The negative binomial model with dispersion coefficient {math}`\alpha = 0.043` is the most appropriate statistical model (lowest AIC). This estimate is quite good considering we're using a very limited amount of data generated from a negative binomial model with a dispersion coefficient {math}`\alpha = 0.03`.
+The negative binomial model with dispersion coefficient {math}`\alpha = 0.043` is the most appropriate statistical model (lowest AIC). This estimate is quite good considering we're using a very limited amount of data generated from a negative binomial model with a dispersion coefficient {math}`\alpha = 0.03`. We highly recommend varying both the window size and the length of the exponential filter before committing to any likelihood function.
 
 ![variance_analysis](/_static/figs/workflow/variance_analysis.png)
 

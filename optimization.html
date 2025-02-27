@@ -570,18 +570,19 @@
 <li><p><strong>param_dict</strong> (dict) - Model parameters dictionary with values of parameters <code class="docutils literal notranslate"><span class="pre">parameter_names</span></code> set to the values listed in <code class="docutils literal notranslate"><span class="pre">thetas</span></code></p></li>
 </ul>
 </div></blockquote>
-<p><strong><em>function</em> variance_analysis(data, resample_frequency)</strong></p>
+<p><strong><em>function</em> variance_analysis(data, window_length, half_life)</strong></p>
 <blockquote>
 <div><p>A function to analyze the relationship between the variance and the mean in a timeseries of data, usefull when no measure of error is available.</p>
 </div></blockquote>
 <blockquote>
-<div><p>The timeseries is binned into sets of length <code class="docutils literal notranslate"><span class="pre">resample_frequency</span></code>. The mean and variance of the datapoints within each bin are estimated. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: Gaussian (<span class="math notranslate nohighlight">\(\sigma^2 = c\)</span>), Poisson (<span class="math notranslate nohighlight">\(\sigma^2 = \mu\)</span>), Quasi-poisson (<span class="math notranslate nohighlight">\(\sigma^2 = \alpha \mu\)</span>), Negative Binomial (<span class="math notranslate nohighlight">\(\sigma^2 = \mu + \alpha \mu^2\)</span>)</p>
+<div><p>The timeseries is binned into sets of length <code class="docutils literal notranslate"><span class="pre">window_length</span></code>. The mean and variance of the datapoints within each bin are estimated. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: Gaussian (<span class="math notranslate nohighlight">\(\sigma^2 = c\)</span>), Poisson (<span class="math notranslate nohighlight">\(\sigma^2 = \mu\)</span>), Quasi-poisson (<span class="math notranslate nohighlight">\(\sigma^2 = \alpha \mu\)</span>), Negative Binomial (<span class="math notranslate nohighlight">\(\sigma^2 = \mu + \alpha \mu^2\)</span>)</p>
 </div></blockquote>
 <blockquote>
 <div><p><strong>Parameters:</strong></p>
 <ul class="simple">
 <li><p><strong>data</strong> (pd.Series or pd.DataFrame) - Timeseries of data to be analyzed. The series must have a pd.Timestamp index labeled ‘date’ for the time dimension. Additionally, this function supports the addition of one more dimension (f.i. space) using a pd.Multiindex.</p></li>
-<li><p><strong>resample_frequency</strong> (str) - The resample frequency determines the number of days in each bin. We recommend varying this parameter before drawing conclusions. Valid options are: ‘W’: weekly, ‘2W’: biweekly, ‘M’: monthly, etc. <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases">Consult the pandas docs</a>.</p></li>
+<li><p><strong>window_length</strong> (str) - The length of each bin. Examples of valid arguments are: ‘W’: weekly, ‘2W’: biweekly, ‘M’: monthly, etc. <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases">Consult the pandas docs for all valid options.</a>.</p></li>
+<li><p><strong>half_life</strong> (str) - Halflife of the exponential moving average.</p></li>
 </ul>
 </div></blockquote>
 <blockquote>
