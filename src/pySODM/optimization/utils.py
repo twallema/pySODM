@@ -124,14 +124,24 @@ def assign_theta(param_dict: Dict[str, Any], parameter_names: List[str], thetas:
     return param_dict
 
 
-def variance_analysis(data: pd.Series, resample_frequency: str) -> Tuple[pd.DataFrame, plt.Axes]:
+def variance_analysis(data: pd.Series, window_length: str, half_life: float) -> Tuple[pd.DataFrame, plt.Axes]:
 
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
         ================================================================================================
 
-        The timeseries is binned and the mean and variance of the datapoints within this bin are estimated.
-        Several statistical models are then fitted to the relationship between the mean and variance.
-        The statistical models are: gaussian (var = c), poisson (var = mu), quasi-poisson (var = theta*mu), negative binomial (var = mu + alpha*mu**2)
+        1. An exponential moving average (EMA) of the data is computed.
+        2. Data and EMA are binned in windows of length `window_length`.
+        3. The mean of the EMA is computed in each bin.
+        4. The variance of the data in relation to the mean of the EMA is computed in each bin.
+        5. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: gaussian (var = c), poisson (var = mu), quasi-poisson (var = theta*mu), negative binomial (var = mu + alpha*mu**2).
+
+        To assure quality of the output, user must,
+
+        1. Make sure the EMA of the data follows the data sufficiently closely.
+        2. Make sure each window contains multiple datapoints (3 is a minimum).
+        3. Assess how their results change when `window_length` and `halflife` are adjusted.
+
+        Please consult section 3.1 of the Supplementary Materials in Alleman et al. 2023 Applied Mathematical Modeling for a rigorous description of the procedure.
 
         Parameters
         ----------
@@ -141,9 +151,12 @@ def variance_analysis(data: pd.Series, resample_frequency: str) -> Tuple[pd.Data
                 Additionally, this function supports the addition of one more dimension (f.i. space) using a multiindex.
                 This function is not intended to study the variance of datasets containing multiple datapoints on the same date. 
 
-            resample_frequency: str
-                This function approximates the average and variance in the timeseries data by binning the timeseries. The resample frequency denotes the number of days in each bin.
-                Valid options are: 'W': weekly, '2W': biweekly, 'M': monthly, etc.
+            window_length: str
+                Length of each window, given as a valid pd.Timedelta frequency.
+                Valid options are: 'W': weekly, 'M': monthly, etc. Or multiples thereof: '2W': biweekly, etc.
+
+            halflife: float
+                Halflife of the exponential moving average.
 
         Output
         ------
@@ -154,7 +167,6 @@ def variance_analysis(data: pd.Series, resample_frequency: str) -> Tuple[pd.Data
 
             ax: axes object
                 Contains a plot of the estimated mean versus variance, togheter with the fitted statistical models. The best-fitting model is less transparent than the other models.
-
        """
 
     #################
@@ -208,14 +220,14 @@ def variance_analysis(data: pd.Series, resample_frequency: str) -> Tuple[pd.Data
 
     # needed to generate data to calibrate our variance model to
     if not secundary_index:
-        rolling_mean = data.ewm(span=7, adjust=False).mean()
+        rolling_mean = data.ewm(half_life=7, adjust=False).mean()
         mu_data = (data.groupby(
             [pd.Grouper(freq=resample_frequency, level='date')]).mean())
         var_data = (((data-rolling_mean) **
                     2).groupby([pd.Grouper(freq=resample_frequency, level='date')]).mean())
     else:
         rolling_mean = data.groupby(level=secundary_index_name, group_keys=False).apply(
-            lambda x: x.ewm(span=7, adjust=False).mean())
+            lambda x: x.ewm(half_life=7, adjust=False).mean())
         mu_data = (data.groupby([pd.Grouper(
             freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
         var_data = (((data-rolling_mean)**2).groupby([pd.Grouper(
