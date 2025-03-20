@@ -880,12 +880,12 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
                     )
                 else:
                     parameters_shapes.append(np.array(parameters_model[param_name]).shape)
-                    parameters_shapes.append(np.array(parameters_model[param_name]).size)
+                    parameters_sizes.append(np.array(parameters_model[param_name]).size)
             else:
                 raise TypeError(
                         f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(parameters_model[param_name])}'"
                         )
-
+        #print(param_name, parameters_shapes)
     return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
 
 
