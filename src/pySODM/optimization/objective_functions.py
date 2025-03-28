@@ -183,6 +183,8 @@ class log_posterior_probability():
 
         if aggregation_function:
             aggregation_function = validate_aggregation_function(aggregation_function, len(data))
+        else:
+            aggregation_function = len(data) * [None,]
         self.aggregation_function = aggregation_function
 
         #######################################
@@ -315,15 +317,10 @@ class log_posterior_probability():
             out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
             # Loop over dataframes
             for idx,df in enumerate(self.data):
-                # Get aggregation function
-                if self.aggregation_function:
-                    aggfunc = self.aggregation_function[idx]
-                else:
-                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx], aggfunc)
+                                                  self.coordinates_data_also_in_model[idx], self.aggregation_function[idx])
         else:
             # Loop over dataframes
             for idx,df in enumerate(self.data):
@@ -331,15 +328,10 @@ class log_posterior_probability():
                 self.model.initial_states.update(self.initial_states[idx])
                 # Perform simulation
                 out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
-                # Get aggregation function
-                if self.aggregation_function:
-                    aggfunc = self.aggregation_function[idx]
-                else:
-                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx], aggfunc)
+                                                  self.coordinates_data_also_in_model[idx], self.aggregation_function[idx])
         return lp
 
 
@@ -1290,7 +1282,7 @@ def compare_data_model_coordinates(output, data, calibration_state_names, aggreg
     # Loop over states/datasets we'd like to match
     for i, (state_name, df) in enumerate(zip(calibration_state_names, data)):
         # Call the aggregation function
-        if aggregation_function:
+        if aggregation_function[i]:
             new_output = aggregation_function[i](output[state_name])
         else:
             new_output = output[state_name]
