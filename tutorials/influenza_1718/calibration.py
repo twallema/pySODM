@@ -198,7 +198,7 @@ if __name__ == '__main__':
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.30*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=expanded_bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_calibration, 'end_calibration': end_calibration,
-              'starting_estimate': list(theta), 'tau': tau}
+              'starting_estimate': theta.tolist(), 'tau': tau}
     # Sample n_mcmc iterations
     sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
                                     discard=discard, thin=thin, fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes,

@@ -121,7 +121,7 @@ if __name__ == '__main__':
     # Perturbate previously obtained estimate
     ndim, nwalkers, pos = perturbate_theta(theta, pert=0.10*np.ones(len(theta)), multiplier=multiplier_mcmc, bounds=objective_function.expanded_bounds)
     # Attach some usefull settings to the samples xr.Dataset
-    settings={'start_calibration': start_date, 'end_calibration': end_date, 'starting_estimate': list(theta)}
+    settings={'start_calibration': start_date, 'end_calibration': end_date, 'starting_estimate': theta.tolist()}
     # Sample
     sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, 
                                                 fig_path=fig_path, samples_path=samples_path, print_n=print_n,
