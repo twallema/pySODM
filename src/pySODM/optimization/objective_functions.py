@@ -76,8 +76,8 @@ class log_posterior_probability():
         - a user-defined function to manipulate the model output before matching it to data.
         - takes as input an xarray.DataArray, resulting from selecting the simulation output at the state we wish to match to the dataset (model_output_xarray_Dataset['state_name']), as its input. The output of the function must also be an xarray.DataArray.
         - no checks are performed on the input or output of the aggregation function, use at your own risk.
-        - example use: a spatially-explicit epidemiological model is simulated a fine spatial resolution. however, data is only available on a coarser level.
-        - valid inputs are: 1) one callable function –> applied to every dataset. 2) A list containing one callable function –> applied to every dataset. 3) A list containing a callable function for every dataset –> every dataset has its own aggregation function.
+        - example use: a spatially-explicit epidemiological model is simulated a fine spatial resolution. however, data is only available on a coarser level so a spatial aggregation must be performed.
+        - valid inputs are: 1) one callable function –> applied to every dataset. 2) A list containing one callable function –> applied to every dataset. 3) A list containing a callable function for every dataset –> every dataset has its own aggregation function. If a dataset should not have an aggregation function provide `None`.
 
     - (optional) labels: list 
         - custom label for the calibrated parameters.
@@ -1178,13 +1178,19 @@ def validate_aggregation_function(aggregation_function, n_datasets):
                 f"number of aggregation functions must be equal to one or the number of datasets"
             )
         if len(aggregation_function) == 1:
-            for i in range(n_datasets-1):
-                aggregation_function.append(aggregation_function[0])
+            if inspect.isfunction(aggregation_function[0]):
+                aggregation_function = [aggregation_function[0] for i in range(n_datasets)]
+            else:
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
+        else:
+            if not all([inspect.isfunction(aggfunc) for aggfunc in aggregation_function]):
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
     elif inspect.isfunction(aggregation_function):
-        aggfunc=[]
-        for i in range(n_datasets):
-            aggfunc.append(aggregation_function)
-        aggregation_function = aggfunc
+        aggregation_function = [aggregation_function for i in range(n_datasets)]
     else:
         raise ValueError(
             f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."

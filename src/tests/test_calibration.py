@@ -647,7 +647,15 @@ def test_aggregation_function():
     # Correct use
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function,])
-    # Misuse
+    # Misuse: wrong input type
+    with pytest.raises(ValueError, match="Valid formats of aggregation functions are:"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function='hello')                                                    
+    # Misuse: wrong input type in list
+    with pytest.raises(ValueError, match="Valid formats of aggregation functions are:"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=['hello',])                                                    
+    # Misuse: list of wrong length
     with pytest.raises(ValueError, match="number of aggregation functions must be equal to one or"):
         log_posterior_probability(model,pars,bounds,data,states,
                                     log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
