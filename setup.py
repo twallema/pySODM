@@ -13,6 +13,7 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     license='CC-BY-NC-SA',
+    python_requires='>3.10.0',
     install_requires=[
         'scipy',
         'numpy',
