@@ -627,30 +627,44 @@ def test_aggregation_function():
     initial_states = {"S": [[500_000 - 1, 500_000 - 1, 500_000 - 1],[500_000 - 1, 500_000 - 1, 500_000 - 1]], "I": [[1,1,1],[1,1,1]]}
     coordinates = {'age_groups': ['0-20','20-120'], 'spatial_units': [0,1,2]}
     model = SIRdoublestratified(initial_states, parameters, coordinates=coordinates)
-    # Variables that don't really change
-    states = ["I",]
-    weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha*np.ones([2]),]
+    # Two dataset calibration
+    states = ["I", "I"]
+    weights = np.array([1, 1])
+    log_likelihood_fnc = [ll_negative_binomial,ll_negative_binomial]
+    log_likelihood_fnc_args = [alpha*np.ones([2]), alpha*np.ones([2])]
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Define dataset with a coordinate not in the model
-    data=[df.groupby(by=['time','age_groups']).sum(),]
+    data=[df.groupby(by=['time','age_groups']).sum(), df.groupby(by=['time','age_groups']).sum()]
     # Define an aggregation function
     def aggregation_function(output):
         return output.sum(dim='spatial_units')
-    # Correct use
+    # Correct use: no aggregation function
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=None)
+    # Correct use: one aggregation function provided and used for every dataset
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=aggregation_function)
-    # Correct use
+    # Correct use: one aggregation function per dataset provided
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function,])
-    # Misuse
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function, aggregation_function])
+    # Correct use: one aggregation function and one None provided 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function, None])
+    # Misuse: wrong input type
+    with pytest.raises(ValueError, match="Valid formats of aggregation functions are:"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function='hello')                                                    
+    # Misuse: wrong input type in list
+    with pytest.raises(ValueError, match="Valid formats of aggregation functions are:"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=['hello', aggregation_function])                                                    
+    # Misuse: list of wrong length
     with pytest.raises(ValueError, match="number of aggregation functions must be equal to one or"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=5*[aggregation_function,])                                                    
 
 def break_log_likelihood_functions_with_two_dimensions():
 

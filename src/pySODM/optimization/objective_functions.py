@@ -76,8 +76,8 @@ class log_posterior_probability():
         - a user-defined function to manipulate the model output before matching it to data.
         - takes as input an xarray.DataArray, resulting from selecting the simulation output at the state we wish to match to the dataset (model_output_xarray_Dataset['state_name']), as its input. The output of the function must also be an xarray.DataArray.
         - no checks are performed on the input or output of the aggregation function, use at your own risk.
-        - example use: a spatially-explicit epidemiological model is simulated a fine spatial resolution. however, data is only available on a coarser level.
-        - valid inputs are: 1) one callable function –> applied to every dataset. 2) A list containing one callable function –> applied to every dataset. 3) A list containing a callable function for every dataset –> every dataset has its own aggregation function.
+        - example use: a spatially-explicit epidemiological model is simulated a fine spatial resolution. however, data is only available on a coarser level so a spatial aggregation must be performed.
+        - valid inputs are: 1) one callable function –> applied to every dataset. 2) A list containing one callable function –> applied to every dataset. 3) A list containing a callable function for every dataset –> every dataset has its own aggregation function. If a dataset should not have an aggregation function provide `None`.
 
     - (optional) labels: list 
         - custom label for the calibrated parameters.
@@ -183,6 +183,8 @@ class log_posterior_probability():
 
         if aggregation_function:
             aggregation_function = validate_aggregation_function(aggregation_function, len(data))
+        else:
+            aggregation_function = len(data) * [None,]
         self.aggregation_function = aggregation_function
 
         #######################################
@@ -315,15 +317,10 @@ class log_posterior_probability():
             out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
             # Loop over dataframes
             for idx,df in enumerate(self.data):
-                # Get aggregation function
-                if self.aggregation_function:
-                    aggfunc = self.aggregation_function[idx]
-                else:
-                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx], aggfunc)
+                                                  self.coordinates_data_also_in_model[idx], self.aggregation_function[idx])
         else:
             # Loop over dataframes
             for idx,df in enumerate(self.data):
@@ -331,15 +328,10 @@ class log_posterior_probability():
                 self.model.initial_states.update(self.initial_states[idx])
                 # Perform simulation
                 out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
-                # Get aggregation function
-                if self.aggregation_function:
-                    aggfunc = self.aggregation_function[idx]
-                else:
-                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx], aggfunc)
+                                                  self.coordinates_data_also_in_model[idx], self.aggregation_function[idx])
         return lp
 
 
@@ -1186,13 +1178,19 @@ def validate_aggregation_function(aggregation_function, n_datasets):
                 f"number of aggregation functions must be equal to one or the number of datasets"
             )
         if len(aggregation_function) == 1:
-            for i in range(n_datasets-1):
-                aggregation_function.append(aggregation_function[0])
+            if inspect.isfunction(aggregation_function[0]):
+                aggregation_function = [aggregation_function[0] for i in range(n_datasets)]
+            else:
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
+        else:
+            if not all([((inspect.isfunction(aggfunc)) | (aggfunc==None)) for aggfunc in aggregation_function]):
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
     elif inspect.isfunction(aggregation_function):
-        aggfunc=[]
-        for i in range(n_datasets):
-            aggfunc.append(aggregation_function)
-        aggregation_function = aggfunc
+        aggregation_function = [aggregation_function for i in range(n_datasets)]
     else:
         raise ValueError(
             f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
@@ -1290,7 +1288,7 @@ def compare_data_model_coordinates(output, data, calibration_state_names, aggreg
     # Loop over states/datasets we'd like to match
     for i, (state_name, df) in enumerate(zip(calibration_state_names, data)):
         # Call the aggregation function
-        if aggregation_function:
+        if aggregation_function[i]:
             new_output = aggregation_function[i](output[state_name])
         else:
             new_output = output[state_name]
