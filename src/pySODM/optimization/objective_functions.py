@@ -1185,7 +1185,7 @@ def validate_aggregation_function(aggregation_function, n_datasets):
                     f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
                 )
         else:
-            if not all([inspect.isfunction(aggfunc) for aggfunc in aggregation_function]):
+            if not all([((inspect.isfunction(aggfunc)) | (aggfunc==None)) for aggfunc in aggregation_function]):
                 raise ValueError(
                     f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
                 )
