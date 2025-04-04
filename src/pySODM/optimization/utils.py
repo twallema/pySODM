@@ -1,9 +1,14 @@
-from scipy.optimize import minimize
 import numpy as np
 import pandas as pd
+import xarray as xr
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+from typing import List, Tuple, Union, Dict, Any
+from pySODM.models.utils import list_to_dict
+from pySODM.optimization.objective_functions import validate_calibrated_parameters
 
-def add_poisson_noise(output):
+
+def add_poisson_noise(output: xr.Dataset) -> xr.Dataset:
     """A function to add poisson noise to a simulation result
 
     Parameters
@@ -26,7 +31,8 @@ def add_poisson_noise(output):
         new_output[varname].values = values
     return new_output
 
-def add_gaussian_noise(output, sigma, relative=True):
+
+def add_gaussian_noise(output: xr.Dataset, sigma: float, relative: bool=True) -> xr.Dataset:
     """A function to add absolute gaussian noise to a simulation result
 
     Parameters
@@ -59,7 +65,8 @@ def add_gaussian_noise(output, sigma, relative=True):
         new_output[varname].values = values
     return new_output
 
-def add_negative_binomial_noise(output, alpha):
+
+def add_negative_binomial_noise(output: xr.Dataset, alpha: float) -> xr.Dataset:
     """A function to add negative binomial noise to a simulation result
 
     Parameters
@@ -87,7 +94,8 @@ def add_negative_binomial_noise(output, alpha):
         new_output[varname].values = values
     return new_output
 
-def assign_theta(param_dict, parameter_names, thetas):
+
+def assign_theta(param_dict: Dict[str, Any], parameter_names: List[str], thetas: Union[List[float], np.ndarray]) -> Dict[str, Any]:
     """ A generic function to assign the output of a PSO/Nelder-Mead calibration to the model parameters dictionary
 
     Parameters
@@ -109,41 +117,31 @@ def assign_theta(param_dict, parameter_names, thetas):
 
     """
 
-    thetas_dict, n = _thetas_to_thetas_dict(thetas, parameter_names, param_dict)
-    for i, (param, value) in enumerate(thetas_dict.items()):
+    _, parameter_shapes = validate_calibrated_parameters(parameter_names, param_dict)
+    thetas_dict = list_to_dict(np.array(thetas), parameter_shapes, retain_floats=True)
+    for _, (param, value) in enumerate(thetas_dict.items()):
         param_dict.update({param: value})
     return param_dict
 
-def _thetas_to_thetas_dict(thetas, parameter_names, model_parameter_dictionary):
-    """
-    Add a docstring
-    """
-    dict = {}
-    idx = 0
-    total_n_values = 0
-    for param in parameter_names:
-        try:
-            dict[param] = np.array(
-                thetas[idx:idx+len(model_parameter_dictionary[param])], np.float64)
-            total_n_values += len(dict[param])
-            idx = idx + len(model_parameter_dictionary[param])
-        except:
-            if ((isinstance(model_parameter_dictionary[param], float)) | (isinstance(model_parameter_dictionary[param], int))):
-                dict[param] = thetas[idx]
-                total_n_values += 1
-                idx = idx + 1
-            else:
-                raise ValueError(
-                    'Calibration parameters must be either of type int, float, list (containing int/float) or 1D np.array')
-    return dict, total_n_values
 
-def variance_analysis(data, resample_frequency):
+def variance_analysis(data: pd.Series, window_length: str, half_life: float) -> Tuple[pd.DataFrame, plt.Axes]:
+
     """ A function to analyze the relationship between the variance and the mean in a timeseries of data
         ================================================================================================
 
-        The timeseries is binned and the mean and variance of the datapoints within this bin are estimated.
-        Several statistical models are then fitted to the relationship between the mean and variance.
-        The statistical models are: gaussian (var = c), poisson (var = mu), quasi-poisson (var = theta*mu), negative binomial (var = mu + alpha*mu**2)
+        1. An exponential moving average (EMA) of the data is computed.
+        2. Data and EMA are binned in windows of length `window_length`.
+        3. The mean of the EMA is computed in each bin.
+        4. The variance of the data in relation to the mean of the EMA is computed in each bin.
+        5. Several statistical models are then fitted to the relationship between the mean and variance. The statistical models are: gaussian (var = c), poisson (var = mu), quasi-poisson (var = theta*mu), negative binomial (var = mu + alpha*mu**2).
+
+        To assure quality of the output, user must,
+
+        1. Make sure the EMA of the data follows the data sufficiently closely.
+        2. Make sure each window contains multiple datapoints (3 is a minimum).
+        3. Assess how their results change when `window_length` and `halflife` are adjusted.
+
+        Please consult section 3.1 of the Supplementary Materials in Alleman et al. 2023 Applied Mathematical Modeling for a rigorous description of the procedure.
 
         Parameters
         ----------
@@ -153,9 +151,12 @@ def variance_analysis(data, resample_frequency):
                 Additionally, this function supports the addition of one more dimension (f.i. space) using a multiindex.
                 This function is not intended to study the variance of datasets containing multiple datapoints on the same date. 
 
-            resample_frequency: str
-                This function approximates the average and variance in the timeseries data by binning the timeseries. The resample frequency denotes the number of days in each bin.
-                Valid options are: 'W': weekly, '2W': biweekly, 'M': monthly, etc.
+            window_length: str
+                Length of each window, given as a valid pd.Timedelta frequency.
+                Valid options are: 'W': weekly, 'M': monthly, etc. Or multiples thereof: '2W': biweekly, etc.
+
+            halflife: float
+                Halflife of the exponential moving average.
 
         Output
         ------
@@ -166,7 +167,6 @@ def variance_analysis(data, resample_frequency):
 
             ax: axes object
                 Contains a plot of the estimated mean versus variance, togheter with the fitted statistical models. The best-fitting model is less transparent than the other models.
-
        """
 
     #################
@@ -220,18 +220,18 @@ def variance_analysis(data, resample_frequency):
 
     # needed to generate data to calibrate our variance model to
     if not secundary_index:
-        rolling_mean = data.ewm(span=7, adjust=False).mean()
+        rolling_mean = data.ewm(halflife=half_life, adjust=False).mean()
         mu_data = (data.groupby(
-            [pd.Grouper(freq=resample_frequency, level='date')]).mean())
+            [pd.Grouper(freq=window_length, level='date')]).mean())
         var_data = (((data-rolling_mean) **
-                    2).groupby([pd.Grouper(freq=resample_frequency, level='date')]).mean())
+                    2).groupby([pd.Grouper(freq=window_length, level='date')]).mean())
     else:
         rolling_mean = data.groupby(level=secundary_index_name, group_keys=False).apply(
-            lambda x: x.ewm(span=7, adjust=False).mean())
+            lambda x: x.ewm(halflife=half_life, adjust=False).mean())
         mu_data = (data.groupby([pd.Grouper(
-            freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
+            freq=window_length, level='date')] + [secundary_index_values]).mean())
         var_data = (((data-rolling_mean)**2).groupby([pd.Grouper(
-            freq=resample_frequency, level='date')] + [secundary_index_values]).mean())
+            freq=window_length, level='date')] + [secundary_index_values]).mean())
 
     # Protect calibration against nan values
     merge = pd.merge(mu_data, var_data, right_index=True,

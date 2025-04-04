@@ -4,276 +4,114 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 from datetime import datetime
-from scipy.stats import norm, triang, gamma
 from scipy.special import gammaln
+from scipy.stats import norm, triang, gamma, beta
+from typing import List, Tuple, Union, Callable, Optional, Dict, Any
 from pySODM.models.utils import list_to_dict
 from pySODM.models.validation import validate_initial_states
-
-##############################
-## Log-likelihood functions ##
-##############################
-
-def ll_lognormal(ymodel, ydata, sigma):
-    """
-    Loglikelihood of a lognormal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
-
-    Parameters
-    ----------
-    ymodel: np.ndarray
-        mean values of the lognormal distribution (i.e. "mu" values), as predicted by the model
-    ydata: np.ndarray
-        time series to be matched with the model predictions
-    sigma: float/list of floats/np.ndarray
-        Standard deviation of the lognormal distribution around the mean value 'ymodel'
-
-    Returns
-    -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
-    """
-
-    # expand first dimensions on 'sigma' to match the axes
-    sigma = np.array(sigma)
-    if not sigma.shape == ymodel.shape:
-        sigma = sigma[np.newaxis, ...]  
-    # check for zeros
-    if len(sigma[sigma<=0]) != 0:
-        raise ValueError(
-            'the standard deviation used in `ll_lognormal` contains values smaller than or equal to zero'
-        )
-    
-    return - 1/2 * np.sum((np.log(ydata+1)-np.log(ymodel+1))**2/sigma**2 + np.log(2*np.pi*sigma**2) + np.log(ydata+1))
-
-def ll_normal(ymodel, ydata, sigma):
-    """
-    Loglikelihood of a normal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
-
-    Parameters
-    ----------
-    ymodel: np.ndarray
-        mean values of the normal distribution (i.e. "mu" values), as predicted by the model
-    ydata: np.ndarray
-        time series to be matched with the model predictions
-    sigma: float/list of floats/np.ndarray
-        Standard deviation of the normal distribution around the mean value 'ymodel'
-
-    Returns
-    -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
-    """
-
-    # expand first dimensions on 'sigma' to match the axes
-    sigma = np.array(sigma)
-    if not sigma.shape == ymodel.shape:
-        sigma = sigma[np.newaxis, ...]  
-    # check for zeros
-    if len(sigma[sigma<=0]) != 0:
-        raise ValueError(
-            'the standard deviation used in `ll_normal` contains values smaller than or equal to zero'
-        )
-    return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
-
-def ll_poisson(ymodel, ydata):
-    """Loglikelihood of Poisson distribution
-    
-    Parameters
-    ----------
-    ymodel: np.ndarray
-        mean values of the Poisson distribution (i.e. "lambda" values), as predicted by the model
-    ydata: np.ndarray
-        data time series values to be matched with the model predictions
-
-    Returns
-    -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction.
-    """
-
-    # Convert datatype to float and add one
-    ymodel = ymodel.astype('float64') + 1
-    ydata = ydata.astype('float64') + 1
-
-    return - np.sum(ymodel) + np.sum(ydata*np.log(ymodel)) - np.sum(gammaln(ydata))
-
-def ll_negative_binomial(ymodel, ydata, alpha):
-    """Loglikelihood of negative binomial distribution
-
-    https://ncss-wpengine.netdna-ssl.com/wp-content/themes/ncss/pdf/Procedures/NCSS/Negative_Binomial_Regression.pdf
-    https://content.wolfram.com/uploads/sites/19/2013/04/Zwilling.pdf
-    https://www2.karlin.mff.cuni.cz/~pesta/NMFM404/NB.html
-    https://www.jstor.org/stable/pdf/2532104.pdf
-
-    Parameters
-    ----------
-    ymodel: np.ndarray
-        mean values of the negative binomial distribution, as predicted by the model
-    ydata: np.ndarray
-        data time series values to be matched with the model predictions
-    alpha: float/list
-        Dispersion. The variance in the dataseries is equal to 1/dispersion and hence dispersion is bounded [0,1].
- 
-    Returns
-    -------
-    ll: float
-        Loglikelihood belonging to the comparison of the data points and the model prediction.
-    """
-    
-    # Expand first dimensions on 'alpha' to match the axes
-    alpha = np.array(alpha)[np.newaxis, ...]
-
-    # Convert datatype to float and add one
-    ymodel = ymodel.astype('float64') + 1 
-    ydata = ydata.astype('float64') + 1
-
-    return np.sum(ydata*np.log(ymodel)) - np.sum((ydata + 1/alpha)*np.log(1+alpha*ymodel)) + np.sum(ydata*np.log(alpha)) + np.sum(gammaln(ydata+1/alpha)) - np.sum(gammaln(ydata+1))- np.sum(ydata.shape[0]*gammaln(1/alpha))
-
-#####################################
-## Log prior probability functions ##
-#####################################
-
-def log_prior_uniform(x, bounds):
-    """ Uniform log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    bounds: tuple
-        Tuple containg the upper and lower bounds of the parameter value.
-
-    Returns
-    -------
-    Log probability of sample x in light of a uniform prior distribution.
-
-    """
-    prob = 1/(bounds[1]-bounds[0])
-    condition = bounds[0] <= x <= bounds[1]
-    if condition == True:
-        # should be set to zero to accomodate bounds = np.inf --> prob is inf!!!
-        return 0
-    else:
-        return -np.inf
-
-def log_prior_custom(x, args):
-    """ Custom log prior distribution: computes the probability of a sample in light of a list containing samples from a previous MCMC run
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    args: tuple
-        Tuple containg the density of each bin in the first position and the bounds of the bins in the second position.
-        Contains a weight given to the custom prior in the third position of the tuple.
-
-    Returns
-    -------
-    Log probability of sample x in light of a list with previously sampled parameter values.
-
-    Example use:
-    ------------
-    # Posterior of 'my_par' in samples['my_par']
-    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=20, density=True)
-    density_my_par_norm = density_my_par/np.sum(density_my_par)
-    prior_fcn = prior_custom
-    prior_fcn_args = (density_my_par_norm, bins_my_par, weight)
-    # Prior_fcn and prior_fcn_args must then be passed on to the function log_probability
-    """
-    density, bins, weight = args
-    if x <= bins.min() or x >= bins.max():
-        return -np.inf
-    else:
-        idx = np.digitize(x, bins)
-        return weight*np.log(density[idx-1])
-
-def log_prior_normal(x,norm_params):
-    """ Normal log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    norm_params: tuple
-        Tuple containg mu and stdev.
-
-    Returns
-    -------
-    Log probability of sample x in light of a normal prior distribution.
-
-    """
-    mu,stdev=norm_params
-    return np.sum(norm.logpdf(x, loc = mu, scale = stdev))
-
-def log_prior_triangle(x,triangle_params):
-    """ Triangle log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    triangle_params: tuple
-        Tuple containg lower bound, upper bound and mode of the triangle distribution.
-
-    Returns
-    -------
-    Log probability of sample x in light of a triangle prior distribution.
-
-    """
-    low,high,mode = triangle_params
-    return triang.logpdf(x, loc=low, scale=high, c=mode)
-
-def log_prior_gamma(x,gamma_params):
-    """ Gamma log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    gamma_params: tuple
-        Tuple containg gamma parameters alpha and beta.
-
-    Returns
-    -------
-    Log probability of sample x in light of a gamma prior distribution.
-
-    """
-    a,b = gamma_params
-    return gamma.logpdf(x, a=a, scale=1/b)
-
-def log_prior_weibull(x,weibull_params):
-    """ Weibull log prior distribution
-
-    Parameters
-    ----------
-    x: float
-        Parameter value whos probability we want to test.
-    weibull_params: tuple
-        Tuple containg weibull parameters k and lambda.
-
-    Returns
-    -------
-    Log probability of sample x in light of a weibull prior distribution.
-
-    """
-    k,lam = weibull_params
-    return gamma.logpdf(x, k, shape=lam, loc=0 )    
 
 #############################################
 ## Computing the log posterior probability ##
 #############################################
 
 class log_posterior_probability():
-    """ Computation of log posterior probability
-
-    A generic implementation to compute the log posterior probability of a model given some data, computed as the sum of the log prior probabilities and the log likelihoods.
-    # TODO: fully document docstring
     """
-    def __init__(self, model, parameter_names, bounds, data, states, log_likelihood_fnc, log_likelihood_fnc_args,
-                 start_sim=None, weights=None, log_prior_prob_fnc=None, log_prior_prob_fnc_args=None, initial_states=None, aggregation_function=None, labels=None):
+    Compute the log posterior probability of a model given data, computed as the sum of the log prior probabilities and the log likelihoods.
+
+    Parameters
+    ----------
+
+    - model: object
+        - a pySODM ODE or JumpProcess model.
+
+    - parameter_names: list
+        - names of model parameters (str) to calibrate.
+        - valid parameters must be of type float (0D), list containing float (1D), or np.ndarray (nD).
+
+    - bounds: list
+        - lower and upper bounds of calibrated parameters.
+        - format: list containing a list or tuple with the lower and upper bound for every parameter in `parameter_names`.
+        - example: `bounds = [(lb_1, ub_1), ..., (lb_n, ub_n)]`, where `n = len(parameter_names)`.
+    
+    - data: list
+        - contains the datasets (type: pd.Series/pd.DataFrame). 
+        - if there is only one dataset use `data = [df,]`.
+        - DataFrame must contain an index named 'time' or 'date'.
+        - stratified data can be incorporated using a pd.Multiindex, whose index level's names must be a valid model dimension, and whose indices must be valid dimension coordinates.
+
+    - states: list
+        - names of the model states (str) the datasets should be matched to.
+        - must have the same length as `data`
+
+    - log_likelihood_fnc: list
+        - log likelihood function for every dataset.
+        - must have the same length as `data`.
+
+    - log_likelihood_fnc_args: list
+        - arguments of the log likelihood functions.
+        - if the log likelihood function has no arguments (such as `ll_poisson`), provide an empty list.
+        - must have the same length as data.
+
+    - (optional) start_sim: int/float or str/datetime
+        - can be used to alter the start of the simulation.
+        - by default, the start of the simulation is chosen as the earliest time/date found in the datasets.
+    
+    - (optional) weights: list
+        -  weight of every dataset's log likelihood in the final log posterior probability.
+        - defaults to one.
+    
+    - (optional) log_prior_prob_fnc: list
+        - a log prior probability function for every calibrated parameter.
+        - must have the same length as `parameter_names`.
+        - defaults the log prior probability function to a uniform distribution over `bounds`.
+
+    - (optional) log_prior_prob_fnc_args: list
+        - Contains the arguments of the prior probability functions, as a dictionary. Must have the same length as parameter_names. For example, if log_prior_prob_fnc = [log_prior_normal,] then log_prior_prob_fnc_args = [{'avg': 0, 'stdev': 1},] or [{'avg': 0, 'stdev': 1, 'weight': 1},].
+
+    - (optional) initial_states: list
+        - a dictionary of initial states for every dataset.
+        - must have the same length as `data`.
+
+    - (optional) aggregation_function: callable or list
+        - a user-defined function to manipulate the model output before matching it to data.
+        - takes as input an xarray.DataArray, resulting from selecting the simulation output at the state we wish to match to the dataset (model_output_xarray_Dataset['state_name']), as its input. The output of the function must also be an xarray.DataArray.
+        - no checks are performed on the input or output of the aggregation function, use at your own risk.
+        - example use: a spatially-explicit epidemiological model is simulated a fine spatial resolution. however, data is only available on a coarser level so a spatial aggregation must be performed.
+        - valid inputs are: 1) one callable function –> applied to every dataset. 2) A list containing one callable function –> applied to every dataset. 3) A list containing a callable function for every dataset –> every dataset has its own aggregation function. If a dataset should not have an aggregation function provide `None`.
+
+    - (optional) labels: list 
+        - custom label for the calibrated parameters.
+        - must have the same length as `parameter_names`
+        - defaults to the names provided in parameter_names.
+
+    - (optional) simulation_kwargs: dict
+        - arguments to be passed to the model's sim() function when evaluating the posterior probability.
+        - must contain valid arguments of pySODM's `sim()` function but not 'time' as this is passed internally
+    """
+
+    def __init__(self,
+                 model: object,
+                 parameter_names: List[str],
+                 bounds: List[Union[Tuple[float, float], List[float]]],
+                 data: List[Union[pd.Series, pd.DataFrame, xr.DataArray, xr.Dataset]],
+                 states: List[str],
+                 log_likelihood_fnc: List[Callable[[np.ndarray, np.ndarray, ...], float]],
+                 log_likelihood_fnc_args: List[Any],
+                 start_sim: Optional[Union[int, float, str, datetime]] = None,
+                 weights: Optional[List[float]] = None,
+                 log_prior_prob_fnc: Optional[List[Callable[[float, ...], float]]] = None,
+                 log_prior_prob_fnc_args: Optional[List[Dict[str, Any]]] = None,
+                 initial_states: Optional[List[Dict[str, Union[int,float,np.ndarray]]]] = None,
+                 aggregation_function: Optional[Union[Callable[[xr.DataArray], xr.DataArray], List[Callable[[xr.DataArray], xr.DataArray]]]] = None,
+                 labels: Optional[List[str]]=None,
+                 simulation_kwargs: Optional[Dict[str, Any]]={}
+                 ):
 
         ############################################################################################################
         ## Validate lengths of data, states, log_likelihood_fnc, log_likelihood_fnc_args, weights, initial states ##
         ############################################################################################################
+
+        # TODO: checks on all input types;
 
         # Check type of `weights`
         if isinstance(weights, (list,np.ndarray)):
@@ -327,39 +165,15 @@ class log_posterior_probability():
 
         parameter_sizes, self.parameter_shapes = validate_calibrated_parameters(parameter_names, model.parameters)
 
-        ################################################
-        ## Construct expanded bounds, pars and labels ##
-        ################################################
+        #####################################################################
+        ## Expand parameter names, bounds, and labels for n-dim parameters ##
+        #####################################################################
 
-        # Expand parameter names 
-        self.parameters_names_postprocessing = expand_parameter_names(self.parameter_shapes)
-        # Expand bounds
-        if len(bounds) == len(parameter_names):
-            check_bounds(bounds)
-            self.expanded_bounds = expand_bounds(parameter_sizes, bounds)
-        elif len(bounds) == sum(parameter_sizes.values()):
-            check_bounds(bounds)
-            self.expanded_bounds = bounds
-        else:
-            raise Exception(
-                f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameters_names_postprocessing}'  ({len(self.parameters_names_postprocessing)})"
-            )
-        # Expand labels
-        if labels:
-            if len(labels) == len(parameter_names):
-                self.expanded_labels = expand_labels(self.parameter_shapes, labels)
-            elif len(labels) == sum(parameter_sizes.values()):
-                self.expanded_labels = labels
-            else:
-                raise Exception(
-                    f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_names}' ({len(parameter_names)}) or,\n\t2) equal the element-expanded number of calibrated parameters '{self.parameters_names_postprocessing}'  ({len(self.parameters_names_postprocessing)})"
-                )
-        else:
-            self.expanded_labels = self.parameters_names_postprocessing
+        self.parameters_names_postprocessing, self.expanded_bounds, self.expanded_labels = expand_pars_bounds_labels(self.parameter_shapes, parameter_sizes, bounds, labels)
 
-        ####################################################################
-        ## Input check on number of prior functions + potential expansion ##
-        ####################################################################
+        #################################################
+        ## Input checks on prior functions + expansion ##
+        #################################################
 
         self.log_prior_prob_fnc, self.log_prior_prob_fnc_args = validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, self.expanded_bounds)
 
@@ -369,11 +183,13 @@ class log_posterior_probability():
 
         if aggregation_function:
             aggregation_function = validate_aggregation_function(aggregation_function, len(data))
+        else:
+            aggregation_function = len(data) * [None,]
         self.aggregation_function = aggregation_function
 
-        ############################################
+        #######################################
         ## Compare data and model dimensions ##
-        ############################################
+        #######################################
 
         out = create_fake_xarray_output(model.dimensions_per_state, model.state_coordinates, model.initial_states, self.time_index)
         self.coordinates_data_also_in_model, self.aggregate_over = compare_data_model_coordinates(out, data, states, aggregation_function, self.additional_axes_data)
@@ -386,6 +202,16 @@ class log_posterior_probability():
         self.log_likelihood_fnc_args = validate_log_likelihood_function_extra_args(data, self.n_log_likelihood_extra_args, self.additional_axes_data, self.coordinates_data_also_in_model,
                                                                                 self.time_index, log_likelihood_fnc_args, log_likelihood_fnc)
 
+        ##########################################
+        ## Validate the simulation of the model ##
+        ##########################################
+
+        # validate names of `simulation_kwargs` are valid inputs to the `sim()` function
+        self.simulation_kwargs = validate_simulation_kwargs(model, simulation_kwargs)
+
+        # attempt to simulate the model between `start_sim` and `end_sim` using `simulation_kwargs`
+        validate_simulation(model, simulation_kwargs, self.start_sim, self.end_sim)
+
         # Assign attributes to class
         self.model = model
         self.data = data
@@ -397,13 +223,13 @@ class log_posterior_probability():
     @staticmethod
     def compute_log_prior_probability(thetas, log_prior_prob_fnc, log_prior_prob_fnc_args):
         """
-        Loops over the log_prior_probability functions and their respective arguments to compute the prior probability of every model parameter in theta.
+        Loops over the log_prior_probability functions and their respective arguments to compute the prior probability of every suggested model parameter value.
         """
         lp=[]
         for idx,fnc in enumerate(log_prior_prob_fnc):
             theta = thetas[idx]
-            args = log_prior_prob_fnc_args[idx]
-            lp.append(fnc(theta,args))
+            kwargs = log_prior_prob_fnc_args[idx]
+            lp.append(fnc(theta, **kwargs))
         return sum(lp)
 
     def compute_log_likelihood(self, out, states, df, weights, log_likelihood_fnc, log_likelihood_fnc_args,
@@ -433,7 +259,10 @@ class log_posterior_probability():
             ydata = np.expand_dims(df.squeeze().values,axis=1)
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
-                raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+                raise Exception(f"shape of model prediction {ymodel.shape} and data {ydata.shape} do not correspond.")
+            # Check if model prediction contains nan --> solution can become unstable if user provides BS bounds
+            if np.isnan(ymodel).any():
+                raise ValueError(f"simulation output contains nan, likely due to numerical unstability. try using more conservative bounds.")
             if n_log_likelihood_extra_args == 0:
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata)
             else:
@@ -449,28 +278,33 @@ class log_posterior_probability():
             ydata = df.to_numpy()
             # Check if shapes are consistent
             if ymodel.shape != ydata.shape:
-                raise Exception(f"Shapes of model prediction {ymodel.shape} and data {ydata.shape} do not correspond; np.arrays 'ymodel' and 'ydata' must be of the same size")
+                raise Exception(f"shape of model prediction {ymodel.shape} and data {ydata.shape} do not correspond.")
+            if np.isnan(ymodel).any():
+                raise ValueError(f"simulation output contains nan, most likely due to numerical unstability. try using more conservative bounds.")
             if n_log_likelihood_extra_args == 0:
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata)
             else:
                 total_ll += weights*log_likelihood_fnc(ymodel, ydata, *[log_likelihood_fnc_args,])
-    
         return total_ll
 
-    def __call__(self, thetas, simulation_kwargs={}):
+    def __call__(self, thetas: np.ndarray) -> float:
         """
         This function manages the internal bookkeeping (assignment of model parameters, model simulation) and then computes and sums the log prior probabilities and log likelihoods to compute the log posterior probability.
         """
 
         # Compute log prior probability 
         lp = self.compute_log_prior_probability(thetas, self.log_prior_prob_fnc, self.log_prior_prob_fnc_args)
-
+        
         # Restrict thetas to user-provided bounds
+        # --> going outside can crash a model!
+        # this enforces a uniform prior within bounds
         for i,theta in enumerate(thetas):
             if theta > self.expanded_bounds[i][1]:
                 thetas[i] = self.expanded_bounds[i][1]
+                lp += - np.inf
             elif theta < self.expanded_bounds[i][0]:
                 thetas[i] = self.expanded_bounds[i][0]
+                lp += - np.inf
 
         # Unflatten thetas
         thetas_dict = list_to_dict(thetas, self.parameter_shapes, retain_floats=True)
@@ -480,39 +314,335 @@ class log_posterior_probability():
 
         if not self.initial_states:
             # Perform simulation only once
-            out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
+            out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
             # Loop over dataframes
             for idx,df in enumerate(self.data):
-                # Get aggregation function
-                if self.aggregation_function:
-                    aggfunc = self.aggregation_function[idx]
-                else:
-                    aggfunc = None
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx], aggfunc)
+                                                  self.coordinates_data_also_in_model[idx], self.aggregation_function[idx])
         else:
             # Loop over dataframes
             for idx,df in enumerate(self.data):
                 # Replace initial condition
                 self.model.initial_states.update(self.initial_states[idx])
                 # Perform simulation
-                out = self.model.sim([self.start_sim,self.end_sim], **simulation_kwargs)
-                # Get aggregation function
-                if self.aggregation_function:
-                    aggfunc = self.aggregation_function[idx]
-                else:
-                    aggfunc = None
+                out = self.model.sim([self.start_sim,self.end_sim], **self.simulation_kwargs)
                 # Compute log likelihood
                 lp += self.compute_log_likelihood(out, self.states[idx], df, self.weights[idx], self.log_likelihood_fnc[idx], self.log_likelihood_fnc_args[idx], 
                                                   self.time_index, self.n_log_likelihood_extra_args[idx], self.aggregate_over[idx], self.additional_axes_data[idx],
-                                                  self.coordinates_data_also_in_model[idx], aggfunc)
+                                                  self.coordinates_data_also_in_model[idx], self.aggregation_function[idx])
         return lp
+
+
+#####################################
+## Log prior probability functions ##
+#####################################
+
+
+def log_prior_uniform(x: float, bounds: tuple=None, weight: float=1) -> float:
+    """ A uniform log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - bounds: tuple
+        - Tuple containing the lower and upper bounds of the uniform probability distribution.
+    - weight: float
+        - Regularisation weight (default: 1) -- does nothing.
+
+    Returns
+    -------
+    Log probability of x in light of a uniform prior distribution.
+    """
+    if bounds[0] <= x <= bounds[1]:
+        return 0*weight # technically prob = 1/(upper - lower)
+    else:
+        return -np.inf
+
+
+def log_prior_triangle(x: float, low: float=None, high: float=None, mode: float=None, weight: float=1) -> float:
+    """ A triangular log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - low: float
+        - Lower bound of the triangle distribution.
+    - high: float
+        - Upper bound of the triangle distribution.
+    - mode: float
+        - Mode of the triangle distribution.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of a triangular prior distribution.
+    """
+    return weight*triang.logpdf(x, loc=low, scale=high, c=mode)
+
+
+def log_prior_normal(x: float, avg: float=None, stdev: float=None, weight: float=1) -> float:
+    """ A normal log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - avg: float
+        - Average of the normal distribution.
+    - stdev: float
+        - Standard deviation of the normal distribution.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of a normal prior distribution.
+    """
+    return weight*np.sum(norm.logpdf(x, loc=avg, scale=stdev))
+
+
+def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
+    """ A gamma distributed log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - a: float
+        - Parameter 'a' of `scipy.stats.gamma.logpdf`.
+    - loc: float
+        - Location parameter of `scipy.stats.gamma.logpdf`.
+    - scale: float
+        - Scale parameter of `scipy.stats.gamma.logpdf`.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of a gamma prior distribution.
+    """
+    return weight*gamma.logpdf(x, a=a, loc=loc, scale=scale)
+
+
+def log_prior_beta(x: float, a: float=None, b: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
+    """ A beta distributed log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - a: float
+        - Parameter 'a' of `scipy.stats.beta.logpdf`.
+    - b: float
+        - Parameter 'b' of `scipy.stats.beta.logpdf`.
+    - loc: float
+        - Location parameter of `scipy.stats.beta.logpdf`.
+    - scale: float
+        - Scale parameter of `scipy.stats.beta.logpdf`.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of a beta prior distribution.
+    """
+    return weight*beta.logpdf(x, a, b, loc=loc, scale=scale)
+
+
+def log_prior_custom(x: float, density: np.ndarray=None, bins: np.ndarray=None, weight: float=1) -> float:
+    """ A custom log prior distribution: compute the probability of a sample in light of a list containing samples from a distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - density: array
+        - The values of the histogram (generated by `np.histogram()`).
+    - bins: array
+        - The histogram's bin edges (generated by `np.histogram()`).
+
+    Returns
+    -------
+    Log probability of x in light of a custom distribution of data.
+
+    Example use:
+    ------------
+    density_my_par, bins_my_par = np.histogram(samples['my_par'], bins=50, density=True) # a list of samples is converted to a binned PDF
+    
+    prior_fcn = log_prior_custom # this function
+    
+    prior_fcn_args = (density_my_par_norm, bins_my_par) # `Prior_fcn` and `prior_fcn_args` must then be passed on to the pySODM `log_probability` class
+    """
+    if x <= bins.min() or x >= bins.max():
+        return -np.inf
+    else:
+        idx = np.digitize(x, bins)
+        return weight*np.log(density[idx-1])
+
+
+##############################
+## Log-likelihood functions ##
+##############################
+
+
+def ll_lognormal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[float], np.ndarray]) -> float:
+    """
+    Loglikelihood of a lognormal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
+
+    Parameters
+    ----------
+    - ymodel: np.ndarray
+        - mean values of the lognormal distribution (i.e. "mu" values), as predicted by the model
+    - ydata: np.ndarray
+        - time series to be matched with the model predictions
+    - sigma: float/list of floats/np.ndarray
+        - standard deviation of the lognormal distribution around the mean value 'ymodel'
+
+    Returns
+    -------
+    - ll: float
+        - loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
+    """
+
+    # expand first dimensions on 'sigma' to match the axes
+    sigma = np.array(sigma)
+    if not sigma.shape == ymodel.shape:
+        sigma = sigma[np.newaxis, ...]  
+    # check for zeros
+    if len(sigma[sigma<=0]) != 0:
+        raise ValueError(
+            'the standard deviation used in `ll_lognormal` contains values smaller than or equal to zero'
+        )
+    
+    return - 1/2 * np.sum((np.log(ydata+1)-np.log(ymodel+1))**2/sigma**2 + np.log(2*np.pi*sigma**2) + np.log(ydata+1))
+
+
+def ll_normal(ymodel: np.ndarray, ydata: np.ndarray, sigma: Union[float, List[float], np.ndarray]) -> float:
+    """
+    Loglikelihood of a normal distribution, can be used homoskedastically (one sigma for the entire timeseries) or heteroskedastically (one sigma per datapoint in the timeseries).
+
+    Parameters
+    ----------
+    - ymodel: np.ndarray
+        - mean values of the normal distribution (i.e. "mu" values), as predicted by the model
+    - ydata: np.ndarray
+        - time series to be matched with the model predictions
+    - sigma: float/list of floats/np.ndarray
+        - Standard deviation of the normal distribution around the mean value 'ymodel'
+
+    Returns
+    -------
+    - ll: float
+        - Loglikelihood belonging to the comparison of the data points and the model prediction for its particular parameter values
+    """
+
+    # expand first dimensions on 'sigma' to match the axes
+    sigma = np.array(sigma)
+    if not sigma.shape == ymodel.shape:
+        sigma = sigma[np.newaxis, ...]  
+    # check for zeros
+    if len(sigma[sigma<=0]) != 0:
+        raise ValueError(
+            'the standard deviation used in `ll_normal` contains values smaller than or equal to zero'
+        )
+    return - 1/2 * np.sum((ydata - ymodel) ** 2 / sigma**2 + np.log(2*np.pi*sigma**2))
+
+
+def ll_poisson(ymodel: np.ndarray, ydata: np.ndarray):
+    """Loglikelihood of Poisson distribution
+    
+    Parameters
+    ----------
+    - ymodel: np.ndarray
+        - mean values of the Poisson distribution (i.e. "lambda" values), as predicted by the model
+    - ydata: np.ndarray
+        - data time series values to be matched with the model predictions
+
+    Returns
+    -------
+    - ll: float
+        - Loglikelihood belonging to the comparison of the data points and the model prediction.
+    """
+
+    # Convert datatype to float and add one
+    ymodel = ymodel.astype('float64') + 1
+    ydata = ydata.astype('float64') + 1
+
+    return - np.sum(ymodel) + np.sum(ydata*np.log(ymodel)) - np.sum(gammaln(ydata))
+
+
+def ll_negative_binomial(ymodel: np.ndarray, ydata: np.ndarray, alpha: Union[float, List[float]]):
+    """Loglikelihood of negative binomial distribution
+
+    https://ncss-wpengine.netdna-ssl.com/wp-content/themes/ncss/pdf/Procedures/NCSS/Negative_Binomial_Regression.pdf
+    https://content.wolfram.com/uploads/sites/19/2013/04/Zwilling.pdf
+    https://www2.karlin.mff.cuni.cz/~pesta/NMFM404/NB.html
+    https://www.jstor.org/stable/pdf/2532104.pdf
+
+    Parameters
+    ----------
+    - ymodel: np.ndarray
+        - mean values of the negative binomial distribution, as predicted by the model
+    - ydata: np.ndarray
+        - data time series values to be matched with the model predictions
+    - alpha: float/list
+        - Dispersion. The variance in the dataseries is equal to 1/dispersion and hence dispersion is bounded [0,1].
+ 
+    Returns
+    -------
+    - ll: float
+        - Loglikelihood belonging to the comparison of the data points and the model prediction.
+    """
+    
+    # Expand first dimensions on 'alpha' to match the axes
+    alpha = np.array(alpha)[np.newaxis, ...]
+
+    # Convert datatype to float and add one
+    ymodel = ymodel.astype('float64') + 1 
+    ydata = ydata.astype('float64') + 1
+
+    return np.sum(ydata*np.log(ymodel)) - np.sum((ydata + 1/alpha)*np.log(1+alpha*ymodel)) + np.sum(ydata*np.log(alpha)) + np.sum(gammaln(ydata+1/alpha)) - np.sum(gammaln(ydata+1))- np.sum(ydata.shape[0]*gammaln(1/alpha))
+
 
 #############################################
 ## Validation of log posterior probability ##
 #############################################
+
 
 def validate_dataset(data):
     """
@@ -690,6 +820,7 @@ def validate_simulation_time_lpp(start_sim, time_index, data):
 
     return start_sim, end_sim
 
+
 def validate_calibrated_parameters(parameters_function, parameters_model):
     """
     Validates the parameters the user wants to calibrate. Parameters must: 1) Be valid model parameters, 2) Have one value, or, have multiple values (list or np.ndarray).
@@ -713,7 +844,7 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
     parameters_shapes: dict
         Dictionary containing the shape of every model parameter.    
     """
-
+    
     parameters_sizes = []
     parameters_shapes = []
     for param_name in parameters_function:
@@ -726,9 +857,9 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
             # Check the datatype: only int, float, list of int/float, np.array
             if isinstance(parameters_model[param_name], bool):
                 raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(parameters_model[param_name])}'"
                     )
-            elif isinstance(parameters_model[param_name], (int,float)):
+            elif isinstance(parameters_model[param_name], (int,float,np.int32,np.int64,np.float32,np.float64)):
                 parameters_shapes.append((1,))
                 parameters_sizes.append(1)
             elif isinstance(parameters_model[param_name], np.ndarray):
@@ -741,19 +872,70 @@ def validate_calibrated_parameters(parameters_function, parameters_model):
                     )
                 else:
                     parameters_shapes.append(np.array(parameters_model[param_name]).shape)
-                    parameters_shapes.append(np.array(parameters_model[param_name]).size)
+                    parameters_sizes.append(np.array(parameters_model[param_name]).size)
             else:
                 raise TypeError(
-                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(model.parameters[param_name])}'"
+                        f"pySODM supports the calibration of model parameters of type int, float, list (containing int/float) or 1D np.ndarray. Model parameter '{param_name}' is of type '{type(parameters_model[param_name])}'"
                         )
-
+        #print(param_name, parameters_shapes)
     return dict(zip(parameters_function, parameters_sizes)), dict(zip(parameters_function, parameters_shapes))
 
-def expand_parameter_names(parameter_shapes):
-    """A function to expand the names of parameters with multiple entries
+
+def expand_pars_bounds_labels(parameter_shapes, parameter_sizes, bounds, labels):
     """
+    A wrapper function to expand the parameter names, bounds and labels
+    Wraps around `expand_parameter_names`, `expand_bounds` and `expand_labels`
+    """
+    # Expand parameter names 
+    parameters_names_postprocessing = expand_parameter_names(parameter_shapes)
+    # Expand bounds
+    if len(bounds) == len(parameter_shapes.keys()):
+        check_bounds(bounds)
+        expanded_bounds = expand_bounds(parameter_sizes, bounds)
+    elif len(bounds) == sum(parameter_sizes.values()):
+        check_bounds(bounds)
+        expanded_bounds = bounds
+    else:
+        raise Exception(
+            f"The number of provided bounds ({len(bounds)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_shapes.keys()}' ({len(parameter_shapes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameters_names_postprocessing}' ({len(parameters_names_postprocessing)})"
+        )
+    # Expand labels
+    if labels:
+        if len(labels) == len(parameter_shapes.keys()):
+            expanded_labels = expand_labels(parameter_shapes, labels)
+        elif len(labels) == sum(parameter_sizes.values()):
+            expanded_labels = labels
+        else:
+            raise Exception(
+                f"The number of provided labels ({len(labels)}) must either:\n\t1) equal the number of calibrated parameters '{parameter_shapes.keys()}' ({len(parameter_shapes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters '{parameters_names_postprocessing}' ({len(parameters_names_postprocessing)})"
+            )
+    else:
+        expanded_labels = parameters_names_postprocessing
+    
+    return parameters_names_postprocessing, expanded_bounds, expanded_labels
+
+
+def expand_parameter_names(parameter_shapes):
+    """
+    A function to expand the names of parameters with multiple entries
+
+    input
+    -----
+
+    parameter_shapes: dict
+        Key: parameter name, value: (tuple) shape
+        f.i. {'beta': (2,)}
+
+    returns
+    -------
+
+    expanded_names: list
+        Expanded name of parameter containing more than one value (1D or nD numpy array)
+        f.i. beta_{0}, beta_{1}
+    """
+
     expanded_names = []
-    for i, name in enumerate(parameter_shapes.keys()):
+    for _, name in enumerate(parameter_shapes.keys()):
         if parameter_shapes[name] == (1,):
             expanded_names.append(name)
         else:
@@ -766,17 +948,6 @@ def expand_parameter_names(parameter_shapes):
                 expanded_names.append(n)
     return expanded_names
 
-def check_bounds(bounds):
-    """
-    A function to check the elements in 'bounds': type(list/tuple), length (2), ub > lb
-    """
-    for i,bound in enumerate(bounds):
-        # Check type
-        assert isinstance(bound, (list,tuple)), f'parameter bound (position {i}) is not a list or tuple'
-        # Check length
-        assert len(bound)==2, f'parameter bound (position {i}) contains {len(bound)} entries instead of 2'
-        # Check ub > lb
-        assert bound[0] < bound[1], f'upper-bound value must be greater than lower-bound value (position {i})'
 
 def expand_bounds(parameter_sizes, bounds):
     """"
@@ -790,6 +961,7 @@ def expand_bounds(parameter_sizes, bounds):
             for _ in range(parameter_sizes[name]):
                 expanded_bounds.append(bounds[i])
     return expanded_bounds
+
 
 def expand_labels(parameter_shapes, labels):
     """A function to expand the labels of parameters with multiple entries
@@ -808,35 +980,83 @@ def expand_labels(parameter_shapes, labels):
                 expanded_labels.append(n)
     return expanded_labels
 
+
+def check_bounds(bounds):
+    """
+    A function to check the elements in 'bounds': type(list/tuple), length (2), ub > lb
+    """
+    for i,bound in enumerate(bounds):
+        # Check type
+        assert isinstance(bound, (list,tuple)), f'parameter bound (position {i}) is not a list or tuple'
+        # Check length
+        assert len(bound)==2, f'parameter bound (position {i}) contains {len(bound)} entries instead of 2'
+        # Check ub > lb
+        assert bound[0] < bound[1], f'upper-bound value must be greater than lower-bound value (position {i})'
+
+
 def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, parameter_sizes, expanded_bounds):
     """ 
     Validation of the log prior probability function and its arguments.
     Expansion for parameters with multiple entries.
     """
-
-    if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):
-        # Setup uniform priors
+    # VALIDATION
+    # ----------
+    # check combinations of user inputted functions/args
+    ## nothing: uniform priors based on bounds
+    if ((not log_prior_prob_fnc) & (not log_prior_prob_fnc_args)):                  
         expanded_log_prior_prob_fnc = len(expanded_bounds)*[log_prior_uniform,]
-        expanded_log_prior_prob_fnc_args = expanded_bounds
-    elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):
+        expanded_log_prior_prob_fnc_args = [{'bounds': expanded_bound} for expanded_bound in expanded_bounds]
+    ## functions without arguments: invalid
+    elif ((log_prior_prob_fnc != None) & (not log_prior_prob_fnc_args)):            
         raise Exception(
-            f"Invalid input. Prior probability functions provided but no prior probability function arguments."
+            f"invalid input. `log_prior_prob_fnc` provided but no `log_prior_prob_fnc_args` provided."
         )
-    elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):
+    ## arguments without functions: invalid
+    elif ((not log_prior_prob_fnc) & (log_prior_prob_fnc_args != None)):            
         raise Exception(
-            f"Invalid input. Prior probability function arguments provided but no prior probability functions."
+            f"invalid input. `log_prior_prob_fnc_args` provided but no `log_prior_prob_fnc` provided."
         )
     else:
-        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
-            raise ValueError(
-                f"The number of prior functions ({len(log_prior_prob_fnc)}) and the number of sets of prior function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
-            ) 
+    ## functions and arguments provided: check further
+        # check types are lists
+        if not isinstance(log_prior_prob_fnc, list):
+            raise TypeError(
+                f"`log_prior_prob_fnc` must be a list containing a log prior probability function for every parameter in `parameter_names`. found type: {type(log_prior_prob_fnc)}."
+            )
+        if not isinstance(log_prior_prob_fnc_args, list):
+            raise TypeError(
+                f"`log_prior_prob_fnc_args` must be a list containing the arguments of the log prior probability functions in `log_prior_prob_fnc`. found type: {type(log_prior_prob_fnc_args)}."
+            )
+        # check if they have the right length
         if ((len(log_prior_prob_fnc) != len(parameter_sizes.keys()))&(len(log_prior_prob_fnc) != len(expanded_bounds))):
             raise Exception(
-                f"The number of provided log prior probability functions ({len(log_prior_prob_fnc)}) must either:\n\t1) equal the number of calibrated parameters ({len(parameter_sizes.keys())}) or,\n\t2) equal the element-expanded number of calibrated parameters  ({sum(parameter_sizes.values())})"
+                f"The provided number of log prior probability functions ({len(log_prior_prob_fnc)}) must either equal:\n\t1) the number of calibrated parameters ({len(parameter_sizes.keys())}) or,\n\t2) the element-expanded number of calibrated parameters ({sum(parameter_sizes.values())})"
                 )
+        if any(len(lst) != len(log_prior_prob_fnc) for lst in [log_prior_prob_fnc_args]):
+            raise ValueError(
+                f"The provided number of log prior probability functions ({len(log_prior_prob_fnc)}) and the number of log prior probability function arguments ({len(log_prior_prob_fnc_args)}) must be of equal length"
+            ) 
+        # check `log_prior_prob_fnc` only contains callables
+        non_callable_indices = [i for i, item in enumerate(log_prior_prob_fnc) if not callable(item)]
+        if non_callable_indices:
+            raise TypeError(f"`log_prior_prob_fnc` can only contain functions. found non-callable elements in positions: {non_callable_indices}")
+        # check `log_prior_prob_fnc_args` only contains dicts
+        non_dict_indices = [i for i, item in enumerate(log_prior_prob_fnc_args) if not isinstance(item, dict)]
+        if non_dict_indices:
+            raise TypeError(f"`log_prior_prob_fnc_args` can only contain dictionaries. found non-dict elements in positions: {non_dict_indices}")
+        # check that the correct input arguments to the prior functions are provided
+        for i, (func, kwargs) in enumerate(zip(log_prior_prob_fnc, log_prior_prob_fnc_args)):
+            params = list(inspect.signature(func).parameters.keys())
+            required_args = [param for param in params if ((param != 'x') & (param != 'weight'))]
+            provided_args = [param for param in kwargs.keys() if param != 'weight']
+            if set(required_args) != set(provided_args):
+                redundant_args = [param for param in set(provided_args).difference(set(required_args)) if param != 'weight']
+                missing_args = list(set(required_args).difference(set(provided_args)))
+                raise ValueError(f"the arguments of the {i}th `log_prior_prob_fnc` are invalid. redundant: {redundant_args}, missing: {missing_args}.")
+
+        # EXPANSION
+        # ---------
         if len(log_prior_prob_fnc) != len(expanded_bounds):
-            # Expand
             expanded_log_prior_prob_fnc = []
             expanded_log_prior_prob_fnc_args = []
             for i, name in enumerate(parameter_sizes.keys()):
@@ -847,6 +1067,10 @@ def validate_expand_log_prior_prob(log_prior_prob_fnc, log_prior_prob_fnc_args, 
                     for _ in range(parameter_sizes[name]):
                         expanded_log_prior_prob_fnc.append(log_prior_prob_fnc[i])
                         expanded_log_prior_prob_fnc_args.append(log_prior_prob_fnc_args[i])
+        else:
+            # no expansion needed
+            expanded_log_prior_prob_fnc = log_prior_prob_fnc
+            expanded_log_prior_prob_fnc_args = log_prior_prob_fnc_args
 
     return expanded_log_prior_prob_fnc, expanded_log_prior_prob_fnc_args
 
@@ -954,13 +1178,19 @@ def validate_aggregation_function(aggregation_function, n_datasets):
                 f"number of aggregation functions must be equal to one or the number of datasets"
             )
         if len(aggregation_function) == 1:
-            for i in range(n_datasets-1):
-                aggregation_function.append(aggregation_function[0])
+            if inspect.isfunction(aggregation_function[0]):
+                aggregation_function = [aggregation_function[0] for i in range(n_datasets)]
+            else:
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
+        else:
+            if not all([((inspect.isfunction(aggfunc)) | (aggfunc==None)) for aggfunc in aggregation_function]):
+                raise ValueError(
+                    f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
+                )
     elif inspect.isfunction(aggregation_function):
-        aggfunc=[]
-        for i in range(n_datasets):
-            aggfunc.append(aggregation_function)
-        aggregation_function = aggfunc
+        aggregation_function = [aggregation_function for i in range(n_datasets)]
     else:
         raise ValueError(
             f"Valid formats of aggregation functions are: 1) a list containing one function, 2) a list containing a number of functions equal to the number of datasets, 3) a callable function."
@@ -1058,7 +1288,7 @@ def compare_data_model_coordinates(output, data, calibration_state_names, aggreg
     # Loop over states/datasets we'd like to match
     for i, (state_name, df) in enumerate(zip(calibration_state_names, data)):
         # Call the aggregation function
-        if aggregation_function:
+        if aggregation_function[i]:
             new_output = aggregation_function[i](output[state_name])
         else:
             new_output = output[state_name]
@@ -1078,6 +1308,7 @@ def compare_data_model_coordinates(output, data, calibration_state_names, aggreg
         aggregate_over.append(get_dimensions_sum_over(additional_axes_data[i], dims_coords))
 
     return coordinates_data_also_in_model, aggregate_over
+
 
 def validate_log_likelihood_funtion(log_likelihood_function):
     """
@@ -1225,3 +1456,38 @@ def validate_log_likelihood_function_extra_args(data, n_log_likelihood_extra_arg
                             log_likelihood_fnc_args[idx] = val.to_numpy()
     
     return log_likelihood_fnc_args
+
+
+def validate_simulation_kwargs(model, simulation_kwargs):
+    """
+    A function to check the validity of the input argument `simulation_kwargs` as inputs to the pySODM model's sim() function
+
+    First performs a check based on the names of the arguments, excluding the input argument 'time' which is passed internally and therefore not a valid simulation_kwarg.
+    Then calls the pySODM model's sim() function using the `simulation_kwargs` and throws a error if it fails within the sim() function itself.
+    """
+    # get valid parameters of pySODM's model.sim()
+    sig = inspect.signature(model.sim)
+    param_names = [param.name for param in sig.parameters.values()]
+
+    # if not valid parameters --> error
+    invalid_keys = set(simulation_kwargs.keys()) - set(param_names)
+    if invalid_keys:
+        raise ValueError(f"`simulation_kwargs` contains invalid argument(s): [{', '.join(invalid_keys)}]. valid `simulation_kwargs` are arguments of the pySODM model's sim() function.")
+    
+    # cannot be 'time'
+    if 'time' in simulation_kwargs.keys():
+        raise ValueError(f"'time' is an invalid `simulation_kwarg`.")
+    
+    return simulation_kwargs
+
+def validate_simulation(model, simulation_kwargs, start_sim, end_sim):
+    """
+    A function attempting to simulate the model from `start_sim` to `end_sim` with `simulation_kwargs`, as will be performed during the computation of the log posterior probability
+    """
+
+    try:
+        model.sim([start_sim, end_sim], **simulation_kwargs)
+    except:
+        raise ValueError(f"the attempt to simulate your pySODM model between '{start_sim}' and '{end_sim}' with simulation_kwargs: '{simulation_kwargs}' failed. consult the error stack to find and resolve the simulation error.")
+
+    pass

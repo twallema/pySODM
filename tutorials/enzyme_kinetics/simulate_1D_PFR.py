@@ -3,7 +3,7 @@ This script contains simulations of the enzymatic esterification reaction of D-G
 """
 
 __author__      = "Tijs Alleman"
-__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2025 by T.W. Alleman, Bionamix, Ghent University. All Rights Reserved."
 
 ############################
 ## Load required packages ##
@@ -15,6 +15,7 @@ import math
 import random
 import pandas as pd
 import numpy as np
+import xarray as xr
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from pySODM.optimization.utils import add_gaussian_noise
@@ -34,16 +35,16 @@ nx = 25 # Number of spatial nodes
 ######################
 
 # Load samples
-f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-07.json'))
-samples_dict = json.load(f)
+samples_xr = xr.open_dataset(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2025-02-05.nc'))
 
 # Define draw function
-def draw_fcn(parameters, samples):
-    idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
-    parameters['R_AS'] = samples['R_AS'][idx]
-    parameters['R_AW'] = samples['R_AW'][idx]
-    parameters['R_Es'] = samples['R_Es'][idx]
-    parameters['K_eq'] = samples['K_eq'][idx]
+def draw_fcn(parameters, samples_xr):
+    # get a random iteration and markov chain
+    i = random.randint(0, len(samples_xr.coords['iteration'])-1)
+    j = random.randint(0, len(samples_xr.coords['chain'])-1)
+    # assign parameters
+    for var in ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']:
+        parameters[var] = samples_xr[var].sel({'iteration': i, 'chain': j}).values
     return parameters
 
 ###################
@@ -122,7 +123,7 @@ model = packed_PFR({'C_F': C_F, 'C_S': C_S}, params, coordinates)
 ## Concentration profile ##
 ###########################
 
-out = model.sim(end_sim, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
+out = model.sim(end_sim, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples_xr': samples_xr}, processes=processes)
 # Add 4% observational noise
 out = add_gaussian_noise(out, 0.04, relative=True)
 # Visualize 
@@ -178,7 +179,7 @@ for q in Q:
     # Update model parameters
     model.parameters.update({'kL_a': kL*a, 'D_ax': D_ax, 'delta_x': l/nx, 'u': u}) 
     # Simulate
-    out_tmp = model.sim(end_sim, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict}, processes=processes)
+    out_tmp = model.sim(end_sim, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples_xr': samples_xr}, processes=processes)
     # Add 4% observational noise and store
     out.append(add_gaussian_noise(out_tmp, 0.04, relative=True))
 

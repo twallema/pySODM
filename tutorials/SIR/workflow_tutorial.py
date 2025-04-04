@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 # pySODM packages
 from pySODM.optimization import nelder_mead
 from pySODM.optimization.utils import add_negative_binomial_noise, assign_theta, variance_analysis
-from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_negative_binomial
 
 ######################################################
@@ -56,7 +56,7 @@ class ODE_SIR(ODE):
 
     @staticmethod
     def integrate(t, S, I, R, beta, gamma):
-        
+
         # Calculate total population
         N = S+I+R
         # Calculate differentials
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     ## Variance analysis ##
     #######################
 
-    results, ax = variance_analysis(d, resample_frequency='W')
+    results, ax = variance_analysis(d, window_length='W', half_life=3.5)
     alpha = results.loc['negative binomial', 'theta']
     print(results)
     plt.show()
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # Initial guess
     theta = [0.50,]
     # Run Nelder-Mead optimisation
-    theta = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, theta, [0.10,], processes=1, max_iter=30)
     # Simulate the model
     model.parameters.update({'beta': theta[0]})
     out = model.sim([start_date, end_date])
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     n_mcmc = 400
     multiplier_mcmc = 9
     processes = 9
-    print_n = 50
+    print_n = 100
     discard = 50
     samples_path = 'sampler_output/'
     fig_path = 'sampler_output/'
@@ -146,21 +146,19 @@ if __name__ == '__main__':
     ndim, nwalkers, pos = perturbate_theta(theta, pert=[0.10,], multiplier=multiplier_mcmc, bounds=bounds)
     # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
     settings={'start_calibration': start_date.strftime("%Y-%m-%d"), 'end_calibration': end_date.strftime("%Y-%m-%d"),
-              'n_chains': nwalkers, 'starting_estimate': list(theta)}
+              'starting_estimate': theta}
     # Sample
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, 
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n,
-                                    processes=processes, progress=True,settings_dict=settings)
-    # Generate a sample dictionary and save it as .json for long-term storage
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
-    
+    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
+                                                fig_path=fig_path, samples_path=samples_path, print_n=print_n,
+                                                processes=processes, progress=True, settings_dict=settings)
+
     ########################################
     ## Results: Basic reproduction number ##
     ########################################
     
     # Visualize the distribution of the basic reproduction number
     fig,ax=plt.subplots(figsize=(6,2.5))
-    ax.hist(np.array(samples_dict['beta'])*model.parameters['gamma'], density=True, color='black', alpha=0.6)
+    ax.hist(samples_xr['beta'].values.flatten()*model.parameters['gamma'], density=True, color='black', alpha=0.6)
     ax.set_xlabel('$R_0$')
     plt.tight_layout()
     plt.show()
@@ -177,7 +175,7 @@ if __name__ == '__main__':
     
     # Simulate model
     out = model.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, draw_function=draw_fcn,
-                    draw_function_kwargs={'samples': samples_dict['beta']}, processes=processes)
+                    draw_function_kwargs={'samples': samples_xr['beta'].values.flatten()}, processes=processes)
     # Add negative binomial observation noise
     out = add_negative_binomial_noise(out, alpha)
     # Visualize result
@@ -220,7 +218,7 @@ if __name__ == '__main__':
 
     # Simulate the model
     out_with = model_with.sim([start_date, end_date+pd.Timedelta(days=2*28)], N=100, draw_function=draw_fcn,
-                              draw_function_kwargs={'samples': samples_dict['beta'], 'ramp_length': 21}, processes=processes)
+                              draw_function_kwargs={'samples': samples_xr['beta'].values.flatten(), 'ramp_length': 21}, processes=processes)
 
     # Add negative binomial observation noise
     out_with = add_negative_binomial_noise(out_with, alpha)

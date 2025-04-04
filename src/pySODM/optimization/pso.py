@@ -1,8 +1,12 @@
 import sys
 import numpy as np
 from functools import partial
+from typing import Callable, List, Tuple, Optional, Union, Dict, Any
 
 def _obj_wrapper(func, args, kwargs, x):
+    """
+    A posterior probability must be maximised; so we switch signs
+    """
     return -func(x, *args, **kwargs)
 
 
@@ -21,70 +25,72 @@ def _cons_ieqcons_wrapper(ieqcons, args, kwargs, x):
 def _cons_f_ieqcons_wrapper(f_ieqcons, args, kwargs, x):
     return np.array(f_ieqcons(x, *args, **kwargs))
 
-
-def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
-        processes=1, swarmsize=100, max_iter=100, minstep=1e-12, minfunc=1e-12, omega=0.8, phip=0.8, phig=0.8, 
-        debug=False, particle_output=False, transform_pars=None):
+def optimize(
+    func: Callable[..., float],  
+    bounds: Optional[List[Tuple[float, float]]] = None,  
+    args: Tuple[Any] = (),  
+    kwargs: Dict[str, Any] = {},  
+    ieqcons: List[Callable[[float, tuple], float]] = [],  
+    f_ieqcons: Optional[Callable[..., List[float]]] = None,  
+    processes: int = 1,  
+    swarmsize: int = 100,  
+    max_iter: int = 100,  
+    minstep: float = 1e-12,  
+    minfunc: float = 1e-12,  
+    omega: float = 0.8,  
+    phip: float = 0.8,  
+    phig: float = 0.8,  
+    debug: bool = False,  
+    transform_pars: Optional[Callable[..., Any]] = None  
+    ) -> Tuple[List[float], float]:
+    
     """
-    Perform a particle swarm optimization (PSO)
+    Perform a particle swarm optimization (PSO) -- minimization of an objective function
 
     Parameters
     ==========
-    func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
-        The objective function to be minimized
-    bounds: tuple array
-        The bounds of the design variable(s). In form [(lower, upper), ..., (lower, upper)]
-        Class 'log_posterior_probability' automatically contains bounds. If bounds are provided these overwrite the bounds available in the 'log_posterior_probability' object.
+
+    - func : callable function or class 'log_posterior_probability' (~/src/optimization/objective_functions.py)
+        - The objective function to be minimized
+    - bounds: list containing tuples
+        - The bounds of the parameter(s). In the form: [(lower, upper), ..., (lower, upper)].
+        - If `func` is pySODM class 'log_posterior_probability', bounds are automatically inferred.
+        - If bounds are provided anyway these overwrite the bounds available in the 'log_posterior_probability' object.
 
     Optional
     ========
-    ieqcons : list
-        A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in 
-        a successfully optimized problem (Default: [])
-    f_ieqcons : function
-        Returns a 1-D array in which each element must be greater or equal 
-        to 0.0 in a successfully optimized problem. If f_ieqcons is specified, 
-        ieqcons is ignored (Default: None)
-    args : tuple
-        Additional arguments passed to objective function
-        (Default: empty tuple)
-    kwargs : dict
-        Additional keyword arguments passed to objective function
-    phig : scalar
-        Scaling factor to search away from the swarm's best known position
-        (Default: 0.5)
-    max_iter : int
-        The maximum number of iterations for the swarm to search (Default: 100)
-    minstep : scalar
-        The minimum stepsize of swarm's best position before the search
-        terminates (Default: 1e-8)
-    minfunc : scalar
-        The minimum change of swarm's best objective value before the search
-        terminates (Default: 1e-8)
-    debug : boolean
-        If True, progress statements will be displayed every iteration
-        (Default: False)
-    processes : int
-        The number of processes to use to evaluate objective function and 
-        constraints (default: 1)
-    particle_output : boolean
-        Whether to include the best per-particle position and the objective
-        values at those.
-    transform_pars : None / function
-        Transform the parameter values. E.g. to integer values or to map to
-        a list of possibilities.
+
+    - args : tuple
+        - Additional arguments passed to objective function. (Default: empty tuple).
+    - kwargs : dict
+        - Additional keyword arguments passed to objective function
+    - ieqcons : list
+        - A list of functions of length n such that ieqcons[j](x,*args) >= 0.0 in a successfully optimized problem (Default: []).
+    - f_ieqcons : function
+        - Returns a 1-D array in which each element must be greater or equal to 0.0 in a successfully optimized problem. If f_ieqcons is specified, ieqcons is ignored (Default: None)
+    - phig : scalar
+        - Scaling factor to search away from the swarm's best known position. (Default: 0.5).
+    - max_iter : int
+        - The maximum number of iterations for the swarm to search. (Default: 100).
+    - minstep : scalar
+        - The minimum stepsize of swarm's best position before the search terminates (Default: 1e-8)
+    - minfunc : scalar
+        - The minimum change of swarm's best objective value before the search terminates. (Default: 1e-8).
+    - debug : boolean
+        - If True, progress statements will be displayed every iteration. (Default: False).
+    - processes : int
+        - The number of processes to use to evaluate objective function and constraints. (default: 1).
+    - transform_pars : None / function
+        - Transform the parameter values. E.g. to integer values or to map to a list of possibilities.
 
     Returns
     =======
-    g : array
-        The swarm's best known position (optimal design)
-    f : scalar
-        The objective value at ``g``
-    p : array
-        The best known position per particle
-    pf: arrray
-        The objective values at each position in p
 
+    - theta: list
+        - optimised parameter values
+    
+    - score: float
+        - corresponding objective function value
     """
 
     if not bounds:
@@ -92,7 +98,7 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
             bounds = func.expanded_bounds
         except:
             raise Exception(
-                "'func' does not appear to be a pySODM model: 'expanded_bounds' not found. Provide bounds directly to `pso.optimize()`"
+                "please provide 'bounds'."
             )
 
     lb, ub = [], []
@@ -116,7 +122,6 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
 
     print(f'\nParticle Swarm minimization')
     print(f'===========================\n')
-
     print(f'Using {processes} cores')
     
     # Check for constraint function(s) #########################################
@@ -140,13 +145,14 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     is_feasible = partial(_is_feasible_wrapper, cons)
 
     print(f'Using the following bounds: {bounds}\n')
+    # force printout on clusters
+    sys.stdout.flush()
 
     # Initialize the multiprocessing module if necessary
     if processes > 1:
         import multiprocessing
         mp_pool = multiprocessing.Pool(processes)
         
-
     # Initialize the particle swarm ############################################
     S = swarmsize
     D = len(lb)  # the number of dimensions each particle has
@@ -241,18 +247,12 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
                 print('Stopping search: Swarm best objective change less than {:}'\
                     .format(minfunc))
                 sys.stdout.flush()
-                if particle_output:
-                    return p_min, fp[i_min], p, fp
-                else:
-                    return p_min, fp[i_min]
+                return p_min, fp[i_min]
             elif stepsize <= minstep:
                 print('Stopping search: Swarm best position change less than {:}'\
                     .format(minstep))
                 sys.stdout.flush()
-                if particle_output:
-                    return p_min, fp[i_min], p, fp
-                else:
-                    return p_min, fp[i_min]
+                return p_min, fp[i_min]
             else:
                 g = p_min.copy()
                 fg = fp[i_min]
@@ -271,7 +271,5 @@ def optimize(func, bounds=None, ieqcons=[], f_ieqcons=None, args=(), kwargs={},
     if not is_feasible(g):
         print("However, the optimization couldn't find a feasible design. Sorry")
         sys.stdout.flush()
-    if particle_output:
-        return g, fg, p, fp
-    else:
-        return g, fg
+
+    return g, fg

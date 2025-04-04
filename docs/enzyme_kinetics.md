@@ -176,11 +176,11 @@ from pySODM.optimization import pso, nelder_mead
 if __name__ == '__main__':
 
     # PSO
-    theta = pso.optimize(objective_function, swarmsize=50, max_iter=30, processes=2)[0]    
+    theta, _ = pso.optimize(objective_function, swarmsize=50, max_iter=30, processes=2)    
 
     # Nelder-mead
     step = len(theta)*[0.05,]
-    theta = nelder_mead.optimize(objective_function, theta, step, processes=2, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, theta, step, processes=2, max_iter=30)
 ```
 
 We find the following estimates for our parameters,
@@ -213,26 +213,21 @@ if __name__ == '__main__':
     fig_path='sampler_output/'
     identifier = 'username'
 
-    # Some usefull settings we'd like to retain (no pd.Timestamps or np.arrays allowed!)
-    settings={'start_calibration': 0, 'end_calibration': 3000, 'n_chains': nwalkers,
-              'starting_estimate': list(theta), 'labels': labels}
+    # Attach some usefull settings to samples
+    settings={'start_calibration': 0, 'end_calibration': 3000, 'n_chains': nwalkers, 'starting_estimate': list(theta)}
 
     # Sample n_mcmc iterations
-    sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function,
-                                    fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
-                                    settings_dict=settings)
+    sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, discard=discard, thin=thin,
+                                                fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=processes, progress=True,
+                                                settings_dict=settings)
 ```
 
-The output of the above procedure yields an `emcee.EnsembleSampler` object containing our 1000 iterations for 25 chains. We can extract the chains quite by using the `get_chain()` method (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, we're interested in building a dictionary of samples because this interfaces nicely to pySODM's draw functions. To that end, we can use the builtin method `emcee_sampler_to_dictionary()`. We'll use the `corner` package to visualize the distributions of the five calibrated parameters.
+The output of the above procedure yields an `emcee.EnsembleSampler` object containing our 1000 iterations for 25 chains. We can extract the chains quite by using the `get_chain()` method (see the [emcee documentation](https://emcee.readthedocs.io/en/stable/user/sampler/)). However, the samples have also been formatted in the easy-to-use `xarray.Dataset` format in `samples_xr`. We'll use the `corner` package to visualize the distributions of the five calibrated parameters.
 
 ```python
 if __name__ == '__main__':
 
     import corner
-    from pySODM.optimization.mcmc import emcee_sampler_to_dictionary
-
-    # Generate a sample dictionary and save it as .json for long-term storage
-    samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=100)
 
     # Look at the resulting distributions in a cornerplot
     CORNER_KWARGS = dict(smooth=0.90,title_fmt=".2E")
@@ -251,13 +246,13 @@ Finally, we can use the *draw functions* to propagate the parameter samples in o
 ```python
 if __name__ == '__main__':
 
-    def draw_fcn(parameters, samples):
-        # Always draw correlated samples at the SAME INDEX! 
-        idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
-        parameters['R_AS'] = samples['R_AS'][idx]
-        parameters['R_AW'] = samples['R_AW'][idx]
-        parameters['R_Es'] = samples['R_Es'][idx]
-        parameters['K_eq'] = samples['K_eq'][idx]
+    def draw_fcn(parameters, samples_xr):
+        # get a random iteration and markov chain
+        i = random.randint(0, len(samples_xr.coords['iteration'])-1)
+        j = random.randint(0, len(samples_xr.coords['chain'])-1)
+        # assign parameters
+        for var in ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']:
+            parameters[var] = samples_xr[var].sel({'iteration': i, 'chain': j}).values
         return parameters
 
     # Loop over datasets
@@ -265,7 +260,7 @@ if __name__ == '__main__':
         # Update initial condition
         model.initial_states.update(initial_states[i])
         # Simulate model
-        out = model.sim(1600, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples': samples_dict})
+        out = model.sim(1600, N=n, draw_function=draw_fcn, draw_function_kwargs={'samples_xr': samples_xr})
         # Add 4% observational noise
         out = add_gaussian_noise(out, 0.04, relative=True)
         # Visualize
@@ -424,16 +419,16 @@ Next, we load our previously obtained samples of the kinetic parameters and defi
 
 ```python
 # Load samples
-f = open(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2023-06-07.json'))
-samples = json.load(f)
+samples_xr = xr.open_dataset(os.path.join(os.path.dirname(__file__),'data/username_SAMPLES_2025-02-05.nc'))
 
 # Define draw function
-def draw_fcn(parameters, samples):
-    idx, parameters['Vf_Ks'] = random.choice(list(enumerate(samples['Vf_Ks'])))
-    parameters['R_AS'] = samples['R_AS'][idx]
-    parameters['R_AW'] = samples['R_AW'][idx]
-    parameters['R_Es'] = samples['R_Es'][idx]
-    parameters['K_eq'] = samples['K_eq'][idx]
+def draw_fcn(parameters, samples_xr):
+    # get a random iteration and markov chain
+    i = random.randint(0, len(samples_xr.coords['iteration'])-1)
+    j = random.randint(0, len(samples_xr.coords['chain'])-1)
+    # assign parameters
+    for var in ['Vf_Ks', 'R_AS', 'R_AW', 'R_Es', 'K_eq']:
+        parameters[var] = samples_xr[var].sel({'iteration': i, 'chain': j}).values
     return parameters
 ```
 

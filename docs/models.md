@@ -2,7 +2,7 @@
 
 pySODM contains a class to build ordinary differential equation models (`ODE`) and a class to build stochastic jump process models (`JumpProcess`), both live in `models/base.py`. To learn more about initialising and simulating these models, see the [quickstart tutorial](quickstart.md).
 
-## base.py
+## pySODM.models.base
 
 ###  *class* ODE
 
@@ -74,7 +74,7 @@ The parameters of the initial condition function become a part of the model's pa
 
 **Class methods:**
 
-* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-3, tau=None, output_timestep=1)**
+* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='RK23', rtol=1e-3, tau=None, time_unit='D')**
 
     Integrate a pySODM model using `scipy.integrate.solve_ivp()`. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every consecutive simulation by manipulating the dictionary of model parameters `parameters` using a `draw_function`.
 
@@ -96,7 +96,7 @@ The parameters of the initial condition function become a part of the model's pa
 
     * **tau** - (int/float) - optional - If `tau != None`, the model is simulated using a simple discrete timestepper with fixed timestep `tau`. Overrides the `method` and `rtol` arguments. 
 
-    * **output_timestep** - (int/float) - optional - Interpolate model output to every `output_timestep` timesteps.
+    * **time_unit** - (str) - optional - Defines the unit of time. Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'. Only relevant when using dates to index simulations.
 
     **Returns**
 
@@ -183,7 +183,7 @@ The parameters of the initial condition function become a part of the model's pa
 
 **Methods:**
 
-* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=0.5, output_timestep=1)**
+* **sim(time, N=1, draw_function=None, draw_function_kwargs={}, processes=None, method='tau_leap', tau=0.5, time_unit='D')**
 
     Integrate a model stochastically using Gillespie's Stochastic Simulation Algorithm (SSA) or the approximate Tau-leaping method. Can optionally perform `N` repeated simulations. Can change the values of model parameters at every consecutive simulation by manipulating the dictionary of model parameters `parameters` using a `draw_function`.
 
@@ -202,7 +202,7 @@ The parameters of the initial condition function become a part of the model's pa
     * **method** - (str) - optional - 'SSA': Stochastic Simulation Algorithm. 'tau-leap': Tau-leaping algorithm. Consult the [following blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
     * **tau** - (int/float) - optional - Leap value of the tau-leaping method. Consult the following [blog](https://lewiscoleblog.com/gillespie-algorithm) for more background information.
 
-    * **output_timestep** - (int/float) - optional - Interpolate model output to every `output_timestep` timesteps. For datetimes: expressed in days.
+    * **time_unit** - (str) - optional - Defines the unit of time. Valid options are: 'us' , 'ms' , 's', 'min', 'h', 'D', 'W'. Only relevant when using dates to index simulations.
 
     **Returns**
 

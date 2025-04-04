@@ -4,9 +4,10 @@ import pandas as pd
 from datetime import datetime
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
-from pySODM.optimization.utils import add_negative_binomial_noise
-from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial
-from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler, emcee_sampler_to_dictionary
+from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial, \
+                                                    log_prior_uniform, log_prior_triangle, log_prior_normal, log_prior_gamma, log_prior_beta
+
+from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 
 # Only tested for ODE but the model output is identical so this shouldn't matter
 # TODO: no test for different initial conditions for different datasets
@@ -57,8 +58,10 @@ class SIR(ODE):
         dR = gamma*I
         return dS, dI, dR
 
-# Do the same for every input argument of the log_posterior_probability
+# TODO: Do the same for every optional input argument of the `log_posterior_probability` class
 def test_weights():
+    """ weights
+    """
     # Define parameters and initial states
     parameters = {"beta": 0.1, "gamma": 0.2}
     initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
@@ -74,18 +77,65 @@ def test_weights():
     bounds = [(1e-6,1),]
 
     # Correct: list
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=[1,])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,])
     # Correct: np.array
-    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=np.array([1,]))
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.array([1,]))
     # Incorrect: list of wrong length
     with pytest.raises(ValueError, match="the extra arguments of the log likelihood function"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=[1,1])
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=[1,1])
     # Incorrect: numpy array with more than one dimension
     with pytest.raises(TypeError, match="Expected a 1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=np.ones([3,3]))
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights=np.ones([3,3]))
     # Incorrect: datatype string
     with pytest.raises(TypeError, match="Expected a list/1D np.array for input argument"):
-        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights='hey')
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,weights='hey')
+
+def test_priors():
+    """ log_prior_prob_fnc and log_prior_prob_fnc_args
+    """
+
+    # Define parameters and initial states
+    parameters = {"beta": 0.1, "gamma": 0.2}
+    initial_states = {"S": [1_000_000 - 1], "I": [1], "R": [0]}
+    # Build model
+    model = SIR(initial_states, parameters)
+    # Define dataset
+    data=[df.groupby(by=['time']).sum(),]
+    states = ["I",]
+    log_likelihood_fnc = [ll_negative_binomial,]
+    log_likelihood_fnc_args = [alpha,]
+    # Calibated parameters and bounds
+    pars = ['beta',]
+    bounds = [(1e-6,1),]
+
+    # Implicitly checked: no priors provided
+    # Correct: uniform without weight
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,], log_prior_prob_fnc_args=[{'bounds': (1e-6,1)}])
+    # Correct: uniform with weight
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,], log_prior_prob_fnc_args=[{'bounds': (1e-6,1), 'weight': 10}])
+    # Correct: triangle, normal, gamma, beta
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_triangle,], log_prior_prob_fnc_args=[{'low': 1e-6, 'high': 1, 'mode': 0.5}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_normal,], log_prior_prob_fnc_args=[{'avg': 0, 'stdev': 1}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_gamma,], log_prior_prob_fnc_args=[{'a': 1, 'loc': 1, 'scale': 1}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_beta,], log_prior_prob_fnc_args=[{'a': 1, 'b': 1, 'loc': 1, 'scale': 1}])
+    # Incorrect: provide only functions
+    with pytest.raises(Exception, match="invalid input. `log_prior_prob_fnc` provided but no"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,])
+    # Incorrect: provide only arguments
+    with pytest.raises(Exception, match="invalid input. `log_prior_prob_fnc_args` provided but no"):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc_args=[{'bounds': (1e-6,1)}])  
+    # Incorrect: wrong arguments
+    with pytest.raises(ValueError, match="the arguments of the 0th `log_prior_prob_fnc` are invalid."):
+        log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_uniform,], log_prior_prob_fnc_args=[{'avg': 1}])
 
 def test_start_sim():
 
@@ -112,7 +162,6 @@ def test_start_sim():
     with pytest.raises(AssertionError, match="make sure 'start_sim' is chronologically before the start of the earliest datapoint."):
         log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=100)  
 
-
 def test_correct_approach_wo_dimension():
 
     # Define parameters and initial states
@@ -134,9 +183,9 @@ def test_correct_approach_wo_dimension():
     objective_function = log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels)
 
     # PSO
-    theta = pso.optimize(objective_function, swarmsize=10, max_iter=10, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function, swarmsize=10, max_iter=10, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], processes=1, max_iter=10)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), [0.05,], processes=1, max_iter=10)
 
     if __name__ == "__main__":
         # Variables
@@ -152,15 +201,12 @@ def test_correct_approach_wo_dimension():
         # Perturbate previously obtained estimate
         ndim, nwalkers, pos = perturbate_theta(theta, pert=0.05*np.ones(len(theta)), bounds=objective_function.expanded_bounds, multiplier=multiplier_mcmc)
         # Write some usefull settings to a pickle file (no pd.Timestamps or np.arrays allowed!)
-        settings={'start_calibration': 0, 'end_calibration': 50, 'n_chains': nwalkers,
-                    'start_sim': 0, 'labels': labels, 'parameters': pars, 'starting_estimate': list(theta)}
+        settings={'start_calibration': 0, 'end_calibration': 50, 'start_sim': 0, 'starting_estimate': list(theta)}
         # Sample 100 iterations
-        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True, settings_dict=settings)
+        sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n, backend=None, processes=1, progress=True, settings_dict=settings)
         # Restart and sample 100 more
-        sampler = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n,backend=samples_path+f'{identifier}_BACKEND_{str(datetime.date.today())}.hdf5',
+        sampler, samples_xr = run_EnsembleSampler(pos, n_mcmc, identifier, objective_function, (), fig_path=fig_path, samples_path=samples_path, print_n=print_n,backend=samples_path+f'{identifier}_BACKEND_{str(datetime.date.today())}.hdf5',
                                       processes=1, progress=True, settings_dict=settings)
-        # Generate samples dict
-        samples_dict = emcee_sampler_to_dictionary(samples_path, identifier, discard=discard)
 
 def break_stuff_wo_dimension():
 
@@ -368,11 +414,11 @@ def test_calibration_nd_parameter():
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels)
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
-                        processes=1, max_iter=20)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), 8*[0.05,],
+                        processes=1, max_iter=20)
 
 ##############################
 ## Model with one dimension ##
@@ -423,11 +469,11 @@ def test_correct_approach_with_one_dimension_0():
     bounds = objective_function.expanded_bounds
 
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=20, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=20, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
-                        processes=1, max_iter=20)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
+                        processes=1, max_iter=20)
 
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
@@ -566,11 +612,11 @@ def test_correct_approach_with_two_dimensions():
     labels = objective_function.expanded_labels 
     bounds = objective_function.expanded_bounds
     # PSO
-    theta = pso.optimize(objective_function,
-                        swarmsize=10, max_iter=30, processes=1, debug=True)[0]
+    theta, _ = pso.optimize(objective_function,
+                        swarmsize=10, max_iter=30, processes=1, debug=True)
     # Nelder-Mead
-    theta = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
-                        processes=1, max_iter=30)[0]
+    theta, _ = nelder_mead.optimize(objective_function, np.array(theta), [0.05, 0.05],
+                        processes=1, max_iter=30)
 
     # Assert equality of betas!
     assert np.isclose(theta[0], theta[1], rtol=1e-01)
@@ -581,30 +627,44 @@ def test_aggregation_function():
     initial_states = {"S": [[500_000 - 1, 500_000 - 1, 500_000 - 1],[500_000 - 1, 500_000 - 1, 500_000 - 1]], "I": [[1,1,1],[1,1,1]]}
     coordinates = {'age_groups': ['0-20','20-120'], 'spatial_units': [0,1,2]}
     model = SIRdoublestratified(initial_states, parameters, coordinates=coordinates)
-    # Variables that don't really change
-    states = ["I",]
-    weights = np.array([1,])
-    log_likelihood_fnc = [ll_negative_binomial,]
-    log_likelihood_fnc_args = [alpha*np.ones([2]),]
+    # Two dataset calibration
+    states = ["I", "I"]
+    weights = np.array([1, 1])
+    log_likelihood_fnc = [ll_negative_binomial,ll_negative_binomial]
+    log_likelihood_fnc_args = [alpha*np.ones([2]), alpha*np.ones([2])]
     # Calibated parameters and bounds
     pars = ['beta',]
     labels = ['$\\beta$',]
     bounds = [(1e-6,1),]
     # Define dataset with a coordinate not in the model
-    data=[df.groupby(by=['time','age_groups']).sum(),]
+    data=[df.groupby(by=['time','age_groups']).sum(), df.groupby(by=['time','age_groups']).sum()]
     # Define an aggregation function
     def aggregation_function(output):
         return output.sum(dim='spatial_units')
-    # Correct use
+    # Correct use: no aggregation function
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=None)
+    # Correct use: one aggregation function provided and used for every dataset
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
                                                     log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=aggregation_function)
-    # Correct use
+    # Correct use: one aggregation function per dataset provided
     objective_function = log_posterior_probability(model,pars,bounds,data,states,
-                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function,])
-    # Misuse
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function, aggregation_function])
+    # Correct use: one aggregation function and one None provided 
+    objective_function = log_posterior_probability(model,pars,bounds,data,states,
+                                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function, None])
+    # Misuse: wrong input type
+    with pytest.raises(ValueError, match="Valid formats of aggregation functions are:"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function='hello')                                                    
+    # Misuse: wrong input type in list
+    with pytest.raises(ValueError, match="Valid formats of aggregation functions are:"):
+        log_posterior_probability(model,pars,bounds,data,states,
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=['hello', aggregation_function])                                                    
+    # Misuse: list of wrong length
     with pytest.raises(ValueError, match="number of aggregation functions must be equal to one or"):
         log_posterior_probability(model,pars,bounds,data,states,
-                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=[aggregation_function,aggregation_function])                                                    
+                                    log_likelihood_fnc,log_likelihood_fnc_args,start_sim=start_sim,weights=weights,labels=labels,aggregation_function=5*[aggregation_function,])                                                    
 
 def break_log_likelihood_functions_with_two_dimensions():
 
@@ -759,6 +819,7 @@ def test_SIR_SI():
 ########################
 
 test_weights()
+test_priors()
 test_start_sim()
 test_correct_approach_wo_dimension()
 break_stuff_wo_dimension()

@@ -1,8 +1,9 @@
 import copy
+import math
 import inspect
 import numpy as np
-from datetime import datetime, timedelta
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
 def check_formatting_names(states_names, parameters_names, parameters_stratified_names, dimensions_names):
     """
@@ -49,16 +50,34 @@ def check_formatting_names(states_names, parameters_names, parameters_stratified
                 if ((not all(isinstance(v, str) for v in sublist)) & (sublist != [])):
                     raise TypeError(f"'stratified_parameters' must be a list containing {n_dims} sublists. each sublist must either be empty or contain only str.")
 
-def date_to_diff(actual_start_date, end_date):
-    """
-    Convert date string to int (i.e. number of days since day 0 of simulation)
-    """
-    return float((end_date-actual_start_date)/timedelta(days=1))
 
-def validate_simulation_time(time):
+from pySODM.models.utils import time_unit_map
+def date_to_diff(start_date, end_date, time_unit):
+    """
+    Computes the amount of `time_unit` steps between `start_date` and `end_date`
+    Rounds upward, f.i. there are approx. 4.5 weeks in a month, but this will be rounded to 5 weeks of simulation if `time_unit` is set to weeks
+    """
+
+    # count number of days
+    delta_us = (end_date - start_date).total_seconds() * 1e6
+    
+    # check time_unit
+    if time_unit not in time_unit_map:
+        raise ValueError(f"Invalid time unit '{time_unit}'. Choose from {list(time_unit_map.keys())}")
+    
+    # compute number of time units
+    num_units = math.ceil(delta_us / time_unit_map[time_unit])
+
+    # generate the datetime range for the output
+    date_range = [start_date + timedelta(microseconds=i*time_unit_map[time_unit]) for i in range(num_units+1)]
+
+    return [0, len(date_range)-1], date_range
+
+
+def validate_simulation_time(time, time_unit):
     """Validates the simulation time of the sim() function. Various input types are converted to: time = [start_float, stop_float]"""
 
-    actual_start_date=None
+    date_range=[None,]
     if isinstance(time, float):
         time = [0, round(time)]
     elif isinstance(time, int):
@@ -67,18 +86,18 @@ def validate_simulation_time(time):
         if not len(time) == 2:
             raise ValueError(f"wrong length of list-like simulation start and stop (length: {len(time)}). correct format: time=[start, stop] (length: 2).")
         else:
-            # If they are all int or flat (or commonly occuring np.int64/np.float64)
+            # If they are all int or flat (or commonly occuring np.int/np.float)
             if all([isinstance(item, (int,float,np.int32,np.float32,np.int64,np.float64)) for item in time]):
                 time = [round(item) for item in time]
             # If they are all datetime
             elif all([isinstance(item, datetime) for item in time]):
-                actual_start_date = time[0]
-                time = [0, date_to_diff(actual_start_date, time[1])]
+                check_chronology(time)
+                time, date_range = date_to_diff(time[0], time[1], time_unit)
             # If they are all strings: assume format is YYYY-MM-DD and convert to a datetime
             elif all([isinstance(item, str) for item in time]):
                 time = [datetime.strptime(item,"%Y-%m-%d") for item in time]
-                actual_start_date = time[0]
-                time = [0, date_to_diff(actual_start_date, time[1])]
+                check_chronology(time)
+                time, date_range = date_to_diff(time[0], time[1], time_unit)
             else:
                 types = [type(t) for t in time]
                 raise ValueError(
@@ -91,6 +110,15 @@ def validate_simulation_time(time):
                 "'time' must be 1) a single int/float representing the end of the simulation, 2) a list of format: time=[start, stop]."
             )
 
+    # check chronology (for all cases we haven't checked yet)
+    check_chronology(time)
+
+    return time, date_range
+
+
+def check_chronology(time):
+    """ Check the simulation start and end chronology. Works on datetimes as well as int/float.
+    """
     if time[1] < time[0]:
         raise ValueError(
             "start of simulation is chronologically after end of simulation"
@@ -99,7 +127,8 @@ def validate_simulation_time(time):
         raise ValueError(
             "start of simulation is the same as the end of simulation"
         )
-    return time, actual_start_date
+    pass
+
 
 def validate_solution_methods_ODE(rtol, method, tau):
     """
@@ -437,7 +466,6 @@ def validate_initial_states(initial_states, state_shapes):
 
     # check if type is right (redundant; already checked in `get_initial_states_fuction_parameters`)
     if not isinstance(initial_states, dict):
-        
         raise TypeError("initial states should be a dictionary by this point. contact Tijs Alleman if this error occurs.")
 
     # validate the states shape; if not present initialise with zeros
