@@ -225,7 +225,7 @@ if __name__ == '__main__':
         parameters['f_ud'] = samples_xr['f_ud'].sel({'iteration': i, 'chain': j}).values
         return parameters
     # Simulate model
-    out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau, output_timestep=1,
+    out = model.sim([start_visualisation, end_visualisation], N=n, tau=tau,
                     draw_function=draw_fcn, draw_function_kwargs={'samples_xr': samples_xr}, processes=processes)
     # Add negative binomial observation noise
     out_noise = add_negative_binomial_noise(out, alpha)
