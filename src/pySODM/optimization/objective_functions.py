@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 from datetime import datetime
 from scipy.special import gammaln
-from scipy.stats import norm, triang, gamma, beta
+from scipy.stats import norm, lognorm, triang, gamma, beta
 from typing import List, Tuple, Union, Callable, Optional, Dict, Any
 from pySODM.models.utils import list_to_dict
 from pySODM.models.validation import validate_initial_states
@@ -420,6 +420,33 @@ def log_prior_normal(x: float, avg: float=None, stdev: float=None, weight: float
     """
     return weight*np.sum(norm.logpdf(x, loc=avg, scale=stdev))
 
+def log_prior_lognormal(x: float, s: float=None, scale: float=None, weight: float=1) -> float:
+    """ A lognormal log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - s: float
+        - Parameter `s` of `scipy.stats.lognorm.logpdf`.
+        - `s = STDEV(Y)` with `Y = log(X)`, where `X` is the modeled variable.
+    - scale: float
+        - Parameter `scale` of `scipy.stats.lognorm.logpdf`.
+        - `scale = EXP(AVERAGE(Y))` with `Y = log(X)`, where `X` is the modeled variable.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of a lognormal prior distribution.
+    """
+    return weight*np.sum(lognorm.logpdf(x, s=s, scale=scale))
+
 
 def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
     """ A gamma distributed log prior distribution
@@ -434,7 +461,7 @@ def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None,
     Provided by user as `log_prior_prob_fnc_args`:
 
     - a: float
-        - Parameter 'a' of `scipy.stats.gamma.logpdf`.
+        - Parameter `a` of `scipy.stats.gamma.logpdf`.
     - loc: float
         - Location parameter of `scipy.stats.gamma.logpdf`.
     - scale: float
@@ -462,9 +489,9 @@ def log_prior_beta(x: float, a: float=None, b: float=None, loc: float=None, scal
     Provided by user as `log_prior_prob_fnc_args`:
 
     - a: float
-        - Parameter 'a' of `scipy.stats.beta.logpdf`.
+        - Parameter `a` of `scipy.stats.beta.logpdf`.
     - b: float
-        - Parameter 'b' of `scipy.stats.beta.logpdf`.
+        - Parameter `b` of `scipy.stats.beta.logpdf`.
     - loc: float
         - Location parameter of `scipy.stats.beta.logpdf`.
     - scale: float
