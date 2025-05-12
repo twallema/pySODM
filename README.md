@@ -67,8 +67,8 @@ Does other simulation software exist in Python? Sure, but most rely on symbolic 
         > Validated the use of Python 3.12. Validated pySODM on macOS Sonoma 14.5. 'draw functions' only have 'parameters' as mandatory input, followed by an arbitrary number of additional parameters (PR #75). Tutorial environment can now be found in `tutorial_env.yml` and was renamed `PYSODM-TUTORIALS` (PR #76). Users can choose when the simulation starts when calibrating a model (PR #92). Initial model states can now be a function returning a dictionary of states. This initial condition function can have arguments, which become part of the model's parameters, and can therefore be optimised (PR #99).  Deprecation of legacy 'warmup' parameter (PR #100). Change 'states' --> 'initial_states' as input needed to initialize a model (PR #102).
     - Version 0.2.6 (2025-04-04, PR #143)
         > Harmonize NM and PSO optimizer output (PR #115). Add regularisation weights and input checks to log prior functions (PR #119). Use of `emcee_to_samples_dictionary` deprecated in favor of `xarray.Dataset` to save samples long-term (PR #124). Deprecated `output_timestep` in pySODM model's `sim()` function, and added functionality to define the unit of time when using dates (PR #133). Validate the use of Python 3.13, and add a minimum required Python version (PR #138).
-    - Version 0.2.7 (2025-05-12, PR #145)
-        > Fixed broken badges for "succesfull completion unit tests" and "compilation documentation website" in the readme (PR #144). Added a lognormal prior distribution (PR #145). Bumped to version 0.2.7 and pubished on pyPI.
+    - Version 0.2.8 (2025-05-12, PR #145)
+        > Fixed broken badges for "succesfull completion unit tests" and "compilation documentation website" in the readme (PR #144). Added a lognormal prior distribution (PR #145). Forgot to merge PR #145 before publishing 0.2.7 to pyPI, so this one is now called 0.2.8.
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODE, JumpProcess and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
