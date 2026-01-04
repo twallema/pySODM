@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 from datetime import datetime
 from scipy.special import gammaln
-from scipy.stats import norm, lognorm, triang, gamma, beta
+from scipy.stats import norm, halfnorm, lognorm, triang, gamma, expon, beta
 from typing import List, Tuple, Union, Callable, Optional, Dict, Any
 from pySODM.models.utils import list_to_dict
 from pySODM.models.validation import validate_initial_states
@@ -420,6 +420,31 @@ def log_prior_normal(x: float, avg: float=None, stdev: float=None, weight: float
     """
     return weight*np.sum(norm.logpdf(x, loc=avg, scale=stdev))
 
+
+def log_prior_halfnormal(x: float, stdev: float=None, weight: float=1) -> float:
+    """ A halfnormal log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - stdev: float
+        - Standard deviation of the lognormal distribution.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of a halfnormal prior distribution.
+    """
+    return weight*np.sum(halfnorm.logpdf(x, scale=stdev))
+
+
 def log_prior_lognormal(x: float, s: float=None, scale: float=None, weight: float=1) -> float:
     """ A lognormal log prior distribution
 
@@ -474,6 +499,31 @@ def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None,
     Log probability of sample x in light of a gamma prior distribution.
     """
     return weight*gamma.logpdf(x, a=a, loc=loc, scale=scale)
+
+
+def log_prior_exponential(x: float, scale: float=None, weight: float=1) -> float:
+    """ An exponentially distributed log prior distribution
+
+    Parameters
+    ----------
+    Provided internally by pySODM:
+
+    - x: float
+        - Parameter value.
+    
+    Provided by user as `log_prior_prob_fnc_args`:
+
+    - scale: float
+        - Scale parameter of `scipy.stats.expon.logpdf`.
+        - `scale = 1/lambda` with `lambda` the rate parameters.
+    - weight: float
+        - Regularisation weight (default: 1).
+
+    Returns
+    -------
+    Log probability of sample x in light of an exponential prior distribution.
+    """
+    return weight*expon.logpdf(x, scale=scale)
 
 
 def log_prior_beta(x: float, a: float=None, b: float=None, loc: float=None, scale: float=None, weight: float=1) -> float:
