@@ -121,6 +121,31 @@
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a normal prior distribution.
 
+***function* log_prior_halfnormal(x, stdev=None, weight=1)**
+
+>   Halfnormal log prior distribution.
+
+>    **Parameters:**
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **stdev** (float) - Standard deviation of the halfnormal distribution.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
+
+>    **Returns:**
+>    * **lp** (float) Log probability of sample x in light of a halfnormal prior distribution.
+
+***function* log_prior_lognormal(x, s=None, scale=None, weight=1)**
+
+>   Lognormal log prior distribution.
+
+>    **Parameters:**
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **s** (float) - Parameter 's' of `scipy.stats.lognorm.logpdf`.
+>    * **scale** (float) - Parameter 'scale' of `scipy.stats.lognorm.logpdf`.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
+
+>    **Returns:**
+>    * **lp** (float) Log probability of sample x in light of a lognormal prior distribution.
+
 ***function* log_prior_gamma(x, a=None, loc=None, scale=None, weight=1)**
 
 >   Gamma log prior distribution.
@@ -134,6 +159,18 @@
 
 >    **Returns:**
 >    * **lp** (float) Log probability of sample x in light of a gamma prior distribution.
+
+***function* log_prior_exponential(x, scale=None, weight=1)**
+
+>   Exponential log prior distribution.
+
+>    **Parameters:**
+>    * **x** (float) - Parameter value. Passed internally by pySODM. 
+>    * **scale** (float) - Scale parameter of `scipy.stats.expon.logpdf`. `scale = 1/lambda` with `lambda` the rate parameter.
+>    * **weight** (float) - optional - Regularisation weight (default: 1).
+
+>    **Returns:**
+>    * **lp** (float) Log probability of sample x in light of an exponential prior distribution.
 
 ***function* log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1)**
 
