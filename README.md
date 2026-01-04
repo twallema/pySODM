@@ -69,6 +69,8 @@ Other simuation software exists in Python, but a lot of them rely on symbolic tr
         > Harmonize NM and PSO optimizer output (PR #115). Add regularisation weights and input checks to log prior functions (PR #119). Use of `emcee_to_samples_dictionary` deprecated in favor of `xarray.Dataset` to save samples long-term (PR #124). Deprecated `output_timestep` in pySODM model's `sim()` function, and added functionality to define the unit of time when using dates (PR #133). Validate the use of Python 3.13, and add a minimum required Python version (PR #138).
     - Version 0.2.8 (2025-05-12, PR #145)
         > Fixed broken badges for "succesfull completion unit tests" and "compilation documentation website" in the readme (PR #144). Added a lognormal prior distribution (PR #145). Forgot to merge PR #145 before publishing 0.2.7 to pyPI, so this one is now called 0.2.8.
+    - Version 0.2.9 (2026-01-04, PR #148)
+        > Validated the use of Python 3.14 (PR #146). Added exponential and halfnormal prior distributions (PR #147).
 - Version 0.1 (2022-12-23, PR #14)
     > Application pySODM to three use cases. Documentation website. Unit tests for ODE, JumpProcess and calibration. 
     - Version 0.1.1 (2023-01-09, PR #20)
