@@ -3,7 +3,7 @@ This script contains simulations of the enzymatic esterification reaction of D-G
 """
 
 __author__      = "Tijs Alleman"
-__copyright__   = "Copyright (c) 2025 by T.W. Alleman, Bionamix, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2026 by T.W. Alleman, BIONAMIX, Ghent University. All Rights Reserved."
 
 ############################
 ## Load required packages ##

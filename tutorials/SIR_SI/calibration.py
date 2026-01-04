@@ -3,7 +3,7 @@ This script contains a calibration of a vector-born disease model to synthetic d
 """
 
 __author__      = "Tijs Alleman & Wolf Demunyck"
-__copyright__   = "Copyright (c) 2023 by T.W. Alleman, BIOSPACE, Ghent University. All Rights Reserved."
+__copyright__   = "Copyright (c) 2026 by T.W. Alleman, BIONAMIX, Ghent University. All Rights Reserved."
 
 
 ############################
