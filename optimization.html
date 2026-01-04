@@ -272,6 +272,43 @@
 <li><p><strong>lp</strong> (float) Log probability of sample x in light of a normal prior distribution.</p></li>
 </ul>
 </div></blockquote>
+<p><strong><em>function</em> log_prior_halfnormal(x, stdev=None, weight=1)</strong></p>
+<blockquote>
+<div><p>Halfnormal log prior distribution.</p>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>stdev</strong> (float) - Standard deviation of the halfnormal distribution.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
+</ul>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Returns:</strong></p>
+<ul class="simple">
+<li><p><strong>lp</strong> (float) Log probability of sample x in light of a halfnormal prior distribution.</p></li>
+</ul>
+</div></blockquote>
+<p><strong><em>function</em> log_prior_lognormal(x, s=None, scale=None, weight=1)</strong></p>
+<blockquote>
+<div><p>Lognormal log prior distribution.</p>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>s</strong> (float) - Parameter ‘s’ of <code class="docutils literal notranslate"><span class="pre">scipy.stats.lognorm.logpdf</span></code>.</p></li>
+<li><p><strong>scale</strong> (float) - Parameter ‘scale’ of <code class="docutils literal notranslate"><span class="pre">scipy.stats.lognorm.logpdf</span></code>.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
+</ul>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Returns:</strong></p>
+<ul class="simple">
+<li><p><strong>lp</strong> (float) Log probability of sample x in light of a lognormal prior distribution.</p></li>
+</ul>
+</div></blockquote>
 <p><strong><em>function</em> log_prior_gamma(x, a=None, loc=None, scale=None, weight=1)</strong></p>
 <blockquote>
 <div><p>Gamma log prior distribution.</p>
@@ -290,6 +327,24 @@
 <div><p><strong>Returns:</strong></p>
 <ul class="simple">
 <li><p><strong>lp</strong> (float) Log probability of sample x in light of a gamma prior distribution.</p></li>
+</ul>
+</div></blockquote>
+<p><strong><em>function</em> log_prior_exponential(x, scale=None, weight=1)</strong></p>
+<blockquote>
+<div><p>Exponential log prior distribution.</p>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><strong>x</strong> (float) - Parameter value. Passed internally by pySODM.</p></li>
+<li><p><strong>scale</strong> (float) - Scale parameter of <code class="docutils literal notranslate"><span class="pre">scipy.stats.expon.logpdf</span></code>. <code class="docutils literal notranslate"><span class="pre">scale</span> <span class="pre">=</span> <span class="pre">1/lambda</span></code> with <code class="docutils literal notranslate"><span class="pre">lambda</span></code> the rate parameter.</p></li>
+<li><p><strong>weight</strong> (float) - optional - Regularisation weight (default: 1).</p></li>
+</ul>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Returns:</strong></p>
+<ul class="simple">
+<li><p><strong>lp</strong> (float) Log probability of sample x in light of an exponential prior distribution.</p></li>
 </ul>
 </div></blockquote>
 <p><strong><em>function</em> log_prior_beta(x, a=None, b=None, loc=None, scale=None, weight=1)</strong></p>
