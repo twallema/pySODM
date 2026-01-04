@@ -5,7 +5,8 @@ from datetime import datetime
 from pySODM.models.base import ODE
 from pySODM.optimization import pso, nelder_mead
 from pySODM.optimization.objective_functions import log_posterior_probability, ll_normal, ll_lognormal, ll_poisson, ll_negative_binomial, \
-                                                    log_prior_uniform, log_prior_triangle, log_prior_normal, log_prior_gamma, log_prior_beta
+                                                    log_prior_uniform, log_prior_triangle, log_prior_normal, log_prior_gamma, log_prior_beta, \
+                                                    log_prior_lognormal, log_prior_halfnormal, log_prior_exponential
 
 from pySODM.optimization.mcmc import perturbate_theta, run_EnsembleSampler
 
@@ -120,6 +121,12 @@ def test_priors():
                               log_prior_prob_fnc=[log_prior_triangle,], log_prior_prob_fnc_args=[{'low': 1e-6, 'high': 1, 'mode': 0.5}])
     log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
                               log_prior_prob_fnc=[log_prior_normal,], log_prior_prob_fnc_args=[{'avg': 0, 'stdev': 1}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_lognormal,], log_prior_prob_fnc_args=[{'s': 0, 'scale': 1}])    
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_halfnormal,], log_prior_prob_fnc_args=[{'stdev': 1}])
+    log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
+                              log_prior_prob_fnc=[log_prior_exponential,], log_prior_prob_fnc_args=[{'scale': 1}])            
     log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
                               log_prior_prob_fnc=[log_prior_gamma,], log_prior_prob_fnc_args=[{'a': 1, 'loc': 1, 'scale': 1}])
     log_posterior_probability(model,pars,bounds,data,states,log_likelihood_fnc,log_likelihood_fnc_args,
