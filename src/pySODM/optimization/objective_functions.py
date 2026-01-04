@@ -500,6 +500,7 @@ def log_prior_gamma(x: float, a: float=None, loc: float=None, scale: float=None,
     """
     return weight*gamma.logpdf(x, a=a, loc=loc, scale=scale)
 
+
 def log_prior_exponential(x: float, scale: float=None, weight: float=1) -> float:
     """ An exponentially distributed log prior distribution
 
